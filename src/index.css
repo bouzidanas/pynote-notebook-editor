@@ -1,0 +1,249 @@
+@import "tailwindcss";
+@import "@fontsource-variable/jetbrains-mono";
+
+@theme {
+  --font-mono: var(--font-mono);
+  
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --radius-lg: var(--radius-lg);
+  --radius-sm: var(--radius-sm);
+  
+  --breakpoint-xs: 30rem;
+  --breakpoint-lg: 56.25rem;
+}
+
+:root {
+  --bg-color: #ffffff; /* Fallback */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--secondary);
+  font-family: var(--font-mono);
+  line-height: var(--line-spacing);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobile zoom adjustment for better fit on small screens */
+@media (width < 30rem) {
+  html {
+    font-size: 16px; /* Reduce base font size from default 16px */
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--foreground);
+  border-radius: var(--radius-lg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Utilities */
+.btn-toolbar {
+  @apply h-9 px-3 rounded-[var(--radius-sm)] text-sm font-semibold bg-transparent border-2 border-primary text-primary hover:bg-foreground transition-colors cursor-pointer;
+}
+
+.btn-icon {
+  @apply p-2 rounded-[var(--radius-sm)] text-secondary hover:bg-foreground transition-colors cursor-pointer;
+}
+
+/* Milkdown & Prose Overrides */
+.milkdown-editor-wrapper {
+  @apply min-h-12.5;
+}
+.milkdown .editor {
+  @apply bg-transparent text-secondary font-mono outline-none ring-0 border-none;
+  caret-color: var(--accent);
+}
+.milkdown .editor:focus {
+  @apply outline-none ring-0 border-none;
+}
+
+/* Fix Tailwind resets for Milkdown content */
+.milkdown .editor ul {
+    list-style-type: disc !important;
+    padding-left: 1.5rem !important;
+    margin: 1rem 0 !important;
+    margin-left: 1.5rem !important;
+}
+.milkdown .editor ol {
+    list-style-type: decimal !important;
+    padding-left: 1.5rem !important;
+    margin: 1rem 0 !important;
+    margin-left: 1.5rem !important;
+}
+.milkdown .editor li::marker {
+    color: var(--primary);
+    font-weight: bold;
+}
+/* Modern Table Styling for Editor and Prose */
+.milkdown .editor table,
+.prose table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1.25rem 0;
+    border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.milkdown .editor th,
+.milkdown .editor td,
+.prose th,
+.prose td {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    position: relative;
+}
+
+/* Header Styles */
+.milkdown .editor th,
+.prose th {
+    background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+    font-weight: 600;
+    color: var(--secondary);
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Body Cell Styles */
+.milkdown .editor td,
+.prose td {
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Remove outer borders from cells to respect table radius */
+.milkdown .editor th:last-child,
+.milkdown .editor td:last-child,
+.prose th:last-child,
+.prose td:last-child {
+    border-right: none;
+}
+
+.milkdown .editor tr:last-child td,
+.prose tr:last-child td {
+    border-bottom: none;
+}
+
+.milkdown .editor code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+    padding: 0.2em 0.4em;
+    border-radius: var(--radius-sm);
+}
+
+/* Fix Tailwind resets for Prose (Presentation Mode) */
+.prose ul {
+    list-style-type: disc !important;
+    padding-left: 1.5rem !important;
+    margin: 1rem 0 !important;
+    margin-left: 1.5rem !important;
+}
+.prose ol {
+    list-style-type: decimal !important;
+    padding-left: 1.5rem !important;
+    margin: 1rem 0 !important;
+    margin-left: 1.5rem !important;
+}
+.prose li::marker {
+    color: var(--primary);
+    font-weight: bold;
+}
+.prose code {
+    font-family: var(--font-mono) !important;
+    font-size: 0.875em !important;
+    background-color: color-mix(in srgb, var(--foreground) 20%, transparent);
+    padding: 0.2em 0.4em;
+    border-radius: var(--radius-sm);
+    color: var(--secondary) !important;
+    font-weight: normal !important;
+}
+/* Remove backticks from code in prose */
+.prose code::before,
+.prose code::after {
+    content: none !important;
+}
+
+.milkdown-theme-nord {
+    --nord0: var(--background) !important;
+    --nord4: var(--secondary) !important;
+    --nord6: var(--secondary) !important;
+    --nord10: var(--primary) !important; /* Headers usually use nord10 in this theme */
+}
+
+/* Prose headers override */
+.prose :where(h1) {
+    color: var(--header-color-1) !important;
+    font-weight: bold !important;
+}
+.prose :where(h2) {
+    color: var(--header-color-2) !important;
+    font-weight: bold !important;
+}
+.prose :where(h3) {
+    color: var(--header-color-3) !important;
+    font-weight: bold !important;
+}
+.prose :where(h4) {
+    color: var(--header-color-4) !important;
+    font-weight: bold !important;
+}
+.prose :where(h5, h6) {
+    color: var(--header-color-4) !important;
+    font-weight: bold !important;
+}
+
+/* Prose text color */
+.prose {
+    color: var(--secondary) !important;
+    font-size: var(--font-size-base) !important;
+}
+.prose h4 {
+    font-size: calc(var(--font-size-base) + var(--font-size-delta)) !important;
+}
+.prose h3 {
+    font-size: calc(var(--font-size-base) + 2 * var(--font-size-delta)) !important;
+}
+.prose h2 {
+    font-size: calc(var(--font-size-base) + 3 * var(--font-size-delta)) !important;
+}
+.prose h1 {
+    font-size: calc(var(--font-size-base) + 4 * var(--font-size-delta)) !important;
+}
+.prose strong {
+    color: var(--primary) !important;
+}
+
+/* Blockquote styling */
+.prose blockquote,
+.milkdown .editor blockquote {
+    border-left: 2px solid var(--primary) !important;
+    padding-left: 1rem !important;
+    margin-left: 0 !important;
+    color: var(--secondary) !important;
+    font-style: normal;
+}
+
+/* Section Scoping Logic */
+.section-scope[data-level="1"] { --primary: var(--header-color-1) !important; --color-primary: var(--header-color-1) !important; }
+.section-scope[data-level="2"] { --primary: var(--header-color-2) !important; --color-primary: var(--header-color-2) !important; }
+.section-scope[data-level="3"] { --primary: var(--header-color-3) !important; --color-primary: var(--header-color-3) !important; }
+.section-scope[data-level="4"] { --primary: var(--header-color-4) !important; --color-primary: var(--header-color-4) !important; }
