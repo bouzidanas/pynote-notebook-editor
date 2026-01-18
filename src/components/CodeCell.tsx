@@ -75,7 +75,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       hasError={!!props.cell.outputs?.error}
     >
       <div class="flex flex-col">
-        <div class="flex p-2">
+        <div class="flex p-2 pl-1">
            {/* Line numbers gutter could go here */}
            <div class="w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.5 text-xs text-foreground select-none font-mono">
               [{props.index + 1}]:
