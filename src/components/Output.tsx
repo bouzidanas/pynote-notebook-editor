@@ -18,7 +18,7 @@ const Output: Component<OutputProps> = (props) => {
 
   return (
     <Show when={hasContent()}>
-      <div class="flex flex-col gap-1 font-mono text-sm p-2 pl-1 border-foreground max-h-125 overflow-y-auto">
+      <div class="flex flex-col gap-1 font-mono text-sm px-2 pb-2 pt-0 pl-1 border-foreground max-h-125 overflow-y-auto">
         <Show when={props.outputs}>
           <For each={props.outputs?.stdout}>
             {(line) => <div class="text-secondary whitespace-pre-wrap">{line}</div>}
@@ -33,7 +33,7 @@ const Output: Component<OutputProps> = (props) => {
           </Show>
           <Show when={props.outputs?.result}>
             <div class="flex w-full">
-              <div class="w-9.5 bg-background border-r border-foreground flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
+              <div class="w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
               <div class="flex-1 text-secondary/80 whitespace-pre-wrap border-l-4 border-foreground bg-accent/5 pt-5 p-4">
                 {props.outputs?.result}
               </div>

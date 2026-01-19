@@ -7,6 +7,10 @@ export interface ExecutionResult {
   stderr: string[];
   result?: string;
   error?: string;
+  executionTime?: number;
+  executionDuration?: number;
+  executionCount?: number;
+  executionKernelId?: string;
 }
 
 class Kernel {
@@ -15,6 +19,9 @@ class Kernel {
   
   private _status;
   private _setStatus;
+  
+  public id: string = "";
+  public executionCount: number = 0;
 
   constructor() {
     const [status, setStatus] = createSignal<KernelStatus>("loading");
@@ -29,6 +36,8 @@ class Kernel {
   init() {
     if (this.worker) this.terminate();
     
+    this.id = Math.random().toString(36).substring(7);
+    this.executionCount = 0;
     this._setStatus("loading");
     this.worker = new Worker(new URL("./pyodide.worker.ts", import.meta.url), {
       type: "module",
@@ -59,10 +68,18 @@ class Kernel {
 
     const id = Math.random().toString(36).substring(7);
     this._setStatus("running");
+    
+    this.executionCount++;
+    const startTime = Date.now();
+    const kernelId = this.id;
+    const execCount = this.executionCount;
 
     const currentResult: ExecutionResult = {
       stdout: [],
       stderr: [],
+      executionTime: startTime,
+      executionCount: execCount,
+      executionKernelId: kernelId
     };
 
     return new Promise((resolve) => {
@@ -75,12 +92,14 @@ class Kernel {
           onUpdate({ ...currentResult });
         } else if (msg.type === "success") {
           currentResult.result = msg.result;
+          currentResult.executionDuration = Date.now() - startTime;
           onUpdate({ ...currentResult });
           this.listeners.delete(id);
           this._setStatus("ready");
           resolve();
         } else if (msg.type === "error") {
           currentResult.error = msg.error;
+          currentResult.executionDuration = Date.now() - startTime;
           onUpdate({ ...currentResult });
           this.listeners.delete(id);
           this._setStatus("ready"); 
@@ -97,6 +116,11 @@ class Kernel {
         this.worker.terminate();
         this.worker = null;
     }
+    // Reject all pending promises
+    for (const [id, listener] of this.listeners) {
+        listener({ type: "error", error: "Kernel interrupted" });
+    }
+    this.listeners.clear();
     this._setStatus("stopped");
   }
 

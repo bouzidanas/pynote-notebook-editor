@@ -1,5 +1,6 @@
 import { type Component, For, Show, createSignal, onCleanup, createEffect, onMount } from "solid-js";
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
+import { TransitionGroup } from "solid-transition-group";
 import { notebookStore, actions, defaultCells } from "../lib/store";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
@@ -29,8 +30,8 @@ const SHORTCUTS = {
     { label: "Deselect Cell", keys: "Esc" },
     { label: "Change to Code", keys: "Y" },
     { label: "Change to Markdown", keys: "M" },
-    { label: "Move Up", keys: "Alt + ↑" },
-    { label: "Move Down", keys: "Alt + ↓" },
+    { label: "Move Up", keys: "Alt/Ctrl+Shift + ↑" },
+    { label: "Move Down", keys: "Alt/Ctrl+Shift + ↓" },
     { label: "Insert Above", keys: "A" },
     { label: "Insert Below", keys: "B" },
     { label: "Delete Cell", keys: "Ctrl + D" }
@@ -45,10 +46,10 @@ const SHORTCUTS = {
 
 const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; onClose: () => void }> = (props) => {
   return (
-     <div class="fixed left-[calc(50%+28rem)] top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col gap-6 text-secondary/60 transition-opacity duration-300 group">
+     <div class="fixed left-[calc(50%+28rem)] top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col gap-6 text-secondary/60 transition-opacity duration-300 group z-50">
         <button 
             onClick={props.onClose}
-            class="absolute -top-2 -right-2 p-1.5 rounded-sm hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200"
+            class="absolute -top-2 -right-2 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 cursor-pointer"
             title="Hide Shortcuts"
         >
             <X size={16} />
@@ -208,34 +209,26 @@ const Notebook: Component = () => {
   // Signal for showing the Esc hint in presentation mode
   const [showEscHint, setShowEscHint] = createSignal(false);
   const [showShortcuts, setShowShortcuts] = createSignal(false);
+  // Version signal to force re-mounting of the list on full reloads
+  const [notebookVersion, setNotebookVersion] = createSignal(0);
 
   // --- Internal Autosave Mechanism ---
   const AUTOSAVE_KEY = "pynote-autosave";
 
   // Helper to run a specific cell
-  const runCell = async (id: string) => {
-    const cell = notebookStore.cells.find(c => c.id === id);
-    if (!cell || cell.type !== "code") return;
-    
-    if (cell.isRunning) return;
-    actions.setCellRunning(id, true);
-    actions.clearCellOutput(id);
-    try {
-      await kernel.run(cell.content, (result) => {
-        actions.updateCellOutput(id, result);
-      });
-    } catch (e) {
-      console.error(e);
-    } finally {
-      actions.setCellRunning(id, false);
-    }
+  const runCell = (id: string) => {
+    actions.runCell(id, async (content, id) => {
+        await kernel.run(content, (result) => {
+            actions.updateCellOutput(id, result);
+        });
+    });
   };
 
   const runAll = async () => {
-    // Run sequentially
+    // Run sequentially using the queue logic
     for (const cell of notebookStore.cells) {
         if (cell.type === "code") {
-            await runCell(cell.id);
+            runCell(cell.id);
         }
     }
   };
@@ -271,7 +264,9 @@ const Notebook: Component = () => {
       } else if (e.altKey && e.key === "n") { // Alt + N for New
         e.preventDefault();
         actions.loadNotebook([], "Untitled.ipynb");
+        setNotebookVersion(v => v + 1);
         autosaveNotebook();
+        window.scrollTo(0, 0);
       } else if ((e.ctrlKey || e.metaKey) && e.key === "e") {
         e.preventDefault();
         handleSave(); // Export is same as Save currently
@@ -293,9 +288,11 @@ const Notebook: Component = () => {
       } else if (e.altKey && e.key === "k") {
         e.preventDefault();
         kernel.restart();
+        actions.resetExecutionState();
       } else if (e.altKey && e.key === "q") {
         e.preventDefault();
         kernel.terminate();
+        actions.resetExecutionState();
       }
 
       const activeId = notebookStore.activeCellId;
@@ -347,13 +344,13 @@ const Notebook: Component = () => {
              // Deselect
              e.preventDefault();
              actions.setActiveCell(null);
-        } else if (e.key === "ArrowUp" && e.altKey) {
+        } else if (e.key === "ArrowUp" && (e.altKey || (e.ctrlKey && e.shiftKey))) {
              // Move Up
              e.preventDefault();
              if (activeIndex > 0) {
                  actions.moveCell(activeIndex, activeIndex - 1);
              }
-        } else if (e.key === "ArrowDown" && e.altKey) {
+        } else if (e.key === "ArrowDown" && (e.altKey || (e.ctrlKey && e.shiftKey))) {
              // Move Down
              e.preventDefault();
              if (activeIndex < notebookStore.cells.length - 1) {
@@ -407,7 +404,8 @@ const Notebook: Component = () => {
       cells: notebookStore.cells.map(cell => ({ ...cell, isEditing: false })),
       filename: notebookStore.filename,
       history: notebookStore.history,
-      historyIndex: notebookStore.historyIndex
+      historyIndex: notebookStore.historyIndex,
+      activeCellId: notebookStore.activeCellId
     };
     try {
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
@@ -426,12 +424,10 @@ const Notebook: Component = () => {
         actions.loadNotebook(
           data.cells,
           data.filename || "Untitled.ipynb",
-          data.history || []
+          data.history || [],
+          typeof data.historyIndex === "number" ? data.historyIndex : undefined,
+          data.activeCellId
         );
-        // Restore history index if present
-        if (typeof data.historyIndex === "number") {
-          notebookStore.historyIndex = data.historyIndex;
-        }
         return true;
       }
     } catch (e) {
@@ -550,8 +546,11 @@ const Notebook: Component = () => {
           }));
           // Extract history from PyNote metadata if it exists
           const history = nb.metadata?.PyNote?.history || [];
+          
           actions.loadNotebook(newCells, file.name, history);
+          setNotebookVersion(v => v + 1);
           autosaveNotebook();
+          window.scrollTo(0, 0);
         }
       } catch (err) {
         console.error("Failed to load notebook", err);
@@ -589,7 +588,12 @@ const Notebook: Component = () => {
                    </button>
                }>
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
-                   <DropdownItem onClick={() => { actions.loadNotebook([], "Untitled.ipynb"); autosaveNotebook(); }} shortcut="Alt+N"> 
+                   <DropdownItem onClick={() => { 
+                       actions.loadNotebook([], "Untitled.ipynb"); 
+                       setNotebookVersion(v => v + 1);
+                       autosaveNotebook(); 
+                       window.scrollTo(0, 0);
+                   }} shortcut="Alt+N"> 
                        <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                    </DropdownItem>
                    <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
@@ -669,12 +673,34 @@ const Notebook: Component = () => {
                    </DropdownItem>
 
                    <DropdownDivider />
+                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Execution</div>
+                   
+                   <DropdownItem onClick={() => actions.setExecutionMode("queue_all")}>
+                       <div class="flex items-center gap-2">
+                           <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "queue_all" ? "bg-accent" : ""}`}></div>
+                           Sequential
+                       </div>
+                   </DropdownItem>
+                   <DropdownItem onClick={() => actions.setExecutionMode("hybrid")}>
+                       <div class="flex items-center gap-2">
+                           <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "hybrid" ? "bg-accent" : ""}`}></div>
+                           Hybrid
+                       </div>
+                   </DropdownItem>
+                   <DropdownItem onClick={() => actions.setExecutionMode("direct")}>
+                       <div class="flex items-center gap-2">
+                           <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
+                           Concurrent
+                       </div>
+                   </DropdownItem>
+
+                   <DropdownDivider />
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
                    
-                   <DropdownItem onClick={() => kernel.restart()} shortcut="Alt+K">
+                   <DropdownItem onClick={() => { kernel.restart(); actions.resetExecutionState(); }} shortcut="Alt+K">
                        <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                    </DropdownItem>
-                   <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
+                   <DropdownItem onClick={() => { kernel.terminate(); actions.resetExecutionState(); }} shortcut="Alt+Q">
                        <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                    </DropdownItem>
                </Dropdown>
@@ -740,8 +766,8 @@ const Notebook: Component = () => {
                  }
                  fullWidthMobile={true}
                >
-                   {/* Nested on xs+, sectioned on max-xs */}
-                   <div class="hidden xs:block">
+                   {/* Nested on sm+, sectioned on max-sm */}
+                   <div class="hidden sm:block">
                      <DropdownNested label={<div class="flex items-center gap-2"><Save size={18} /> File</div>}>
                          <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")} shortcut="Alt+N">
                              <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
@@ -812,18 +838,39 @@ const Notebook: Component = () => {
                          </DropdownItem>
 
                          <DropdownDivider />
+                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Execution</div>
+                         <DropdownItem onClick={() => actions.setExecutionMode("queue_all")}>
+                             <div class="flex items-center gap-2">
+                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "queue_all" ? "bg-accent" : ""}`}></div>
+                                 Sequential
+                             </div>
+                         </DropdownItem>
+                         <DropdownItem onClick={() => actions.setExecutionMode("hybrid")}>
+                             <div class="flex items-center gap-2">
+                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "hybrid" ? "bg-accent" : ""}`}></div>
+                                 Hybrid
+                             </div>
+                         </DropdownItem>
+                         <DropdownItem onClick={() => actions.setExecutionMode("direct")}>
+                             <div class="flex items-center gap-2">
+                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
+                                 Concurrent
+                             </div>
+                         </DropdownItem>
+
+                         <DropdownDivider />
                          <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
 
-                         <DropdownItem onClick={() => kernel.restart()} shortcut="Alt+K">
+                         <DropdownItem onClick={() => { kernel.restart(); actions.resetExecutionState(); }} shortcut="Alt+K">
                              <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                          </DropdownItem>
-                         <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
+                         <DropdownItem onClick={() => { kernel.terminate(); actions.resetExecutionState(); }} shortcut="Alt+Q">
                              <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                          </DropdownItem>
                      </DropdownNested>
                    </div>
-                   {/* Sectioned layout on max-xs */}
-                   <div class="block xs:hidden">
+                   {/* Sectioned layout on max-sm */}
+                   <div class="block sm:hidden">
                      {/* File Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
                      <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")} shortcut="Alt+N">
@@ -894,8 +941,30 @@ const Notebook: Component = () => {
                      </DropdownItem>
 
                      <DropdownDivider />
+                     
+                     <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Execution</div>
+                     <DropdownItem onClick={() => actions.setExecutionMode("queue_all")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "queue_all" ? "bg-accent" : ""}`}></div>
+                             Sequential
+                         </div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => actions.setExecutionMode("hybrid")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "hybrid" ? "bg-accent" : ""}`}></div>
+                             Hybrid
+                         </div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => actions.setExecutionMode("direct")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
+                             Concurrent
+                         </div>
+                     </DropdownItem>
 
-                     <DropdownItem onClick={() => kernel.restart()} shortcut="Alt+K">
+                     <DropdownDivider />
+
+                     <DropdownItem onClick={() => { kernel.restart(); actions.resetExecutionState(); }} shortcut="Alt+K">
                          <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                      </DropdownItem>
                      <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
@@ -974,18 +1043,24 @@ const Notebook: Component = () => {
            <AutoScroller />
            <DragDropSensors />
            <div class="px-4 max-xs:px-3">
-             <SortableProvider ids={notebookStore.cells.map((c) => c.id)}>
-               <For each={notebookStore.cells}>
-                 {(cell, index) => (
-                   <Show 
-                      when={cell.type === "code"} 
-                      fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />} 
-                   >
-                      <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />
-                   </Show>
-                 )}
-               </For>
-             </SortableProvider>
+             <For each={[notebookVersion()]}>
+               {() => (
+                 <SortableProvider ids={notebookStore.cells.map((c) => c.id)}>
+                   <TransitionGroup name="cell-list">
+                     <For each={notebookStore.cells}>
+                       {(cell, index) => (
+                         <Show 
+                            when={cell.type === "code"} 
+                            fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />} 
+                         >
+                            <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />
+                         </Show>
+                       )}
+                     </For>
+                   </TransitionGroup>
+                 </SortableProvider>
+               )}
+             </For>
            </div>
            {/* Invisible DragOverlay for collision detection only */}
            <DragOverlay style={{ opacity: 0, "pointer-events": "none" }}>
@@ -1055,14 +1130,14 @@ const Notebook: Component = () => {
        {/* Keyboard Shortcuts Modal */}
        <Show when={showShortcuts()}>
          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowShortcuts(false)}>
-           <div class="bg-background border border-foreground rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-             <div class="flex items-center justify-between p-4 border-b border-foreground">
+           <div class="bg-background border border-foreground rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+             <div class="flex items-center justify-between p-4 border-b border-foreground flex-shrink-0">
                <h2 class="text-lg font-bold flex items-center gap-2"><Keyboard /> Keyboard Shortcuts</h2>
                <button onClick={() => setShowShortcuts(false)} class="p-1 hover:bg-foreground rounded-sm">
                  <X size={20} />
                </button>
              </div>
-             <div class="p-4 space-y-6">
+             <div class="p-4 space-y-6 overflow-y-auto flex-1">
                
                <div>
                  <h3 class="text-sm font-bold text-accent uppercase mb-2">Global</h3>
@@ -1092,7 +1167,7 @@ const Notebook: Component = () => {
                </div>
 
              </div>
-             <div class="p-4 border-t border-foreground text-center text-xs text-secondary/50">
+             <div class="p-4 border-t border-foreground text-center text-xs text-secondary/50 flex-shrink-0">
                Click anywhere outside to close
              </div>
            </div>

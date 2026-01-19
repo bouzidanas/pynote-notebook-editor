@@ -1,4 +1,4 @@
-import { type Component, createEffect, on } from "solid-js";
+import { type Component } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { nord } from "@uiw/codemirror-theme-nord";
