@@ -18,7 +18,10 @@ interface CellWrapperProps {
   // Optional props for sidebar action button
   onActionClick?: () => void;
   actionRunning?: boolean;
+  isQueued?: boolean;
   hasError?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 const CellWrapper: Component<CellWrapperProps> = (props) => {
@@ -47,53 +50,70 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
           props.onActivate();
         }
       }}
-      onMouseEnter={() => !presentationMode() && setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => {
+          if (!presentationMode()) setHovered(true);
+          props.onMouseEnter?.();
+      }}
+      onMouseLeave={() => {
+          setHovered(false);
+          props.onMouseLeave?.();
+      }}
     >
       {/* Sidebar / Drag Handle - Hidden in presentation mode */}
       <Show when={!presentationMode()}>
         <div 
           class={clsx(
-            "absolute -left-10 top-0 bottom-0 w-8 flex-col items-center justify-center py-2 gap-2 opacity-0 transition-opacity hidden lg:flex",
-            (hovered() || props.isActive) && "opacity-100"
+            "absolute -left-10 w-8 top-0 bottom-0 flex flex-col items-center hidden lg:flex transition-opacity duration-200 pointer-events-none",
+            (hovered() || props.isActive) ? "opacity-100" : "opacity-0"
           )}
+          style={{ "container-type": "size", "container-name": "cell-sidebar" }}
         >
-        {/* Action Button (Play for code, Edit for markdown) */}
-        <Show when={props.onActionClick}>
-          <button 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              props.onActionClick?.(); 
-            }} 
-            disabled={props.type === "code" && props.actionRunning}
-            class={clsx(
-              "p-1 hover:text-accent rounded-sm disabled:opacity-50",
-              props.hasError ? "text-primary" : (props.isActive || props.isEditing) ? "text-accent" : "text-foreground"
-            )}
-            title={props.type === "code" ? "Run Cell" : (props.isEditing ? "Finish Editing" : "Edit Markdown")}
-          >
-            <Show when={props.type === "code"}
-              fallback={
-                <Show when={props.isEditing} fallback={<Edit2 size={14} />}>
-                  <Check size={14} />
+          <div class={clsx(
+            "flex flex-col items-center gap-2 pointer-events-auto py-2 transition-all duration-200 sidebar-inner-auto-center",
+            // Base alignment
+            notebookStore.sidebarAlignment === "top" ? "mt-0 mb-auto" : 
+            notebookStore.sidebarAlignment === "bottom" ? "mt-auto mb-0" : 
+            "my-auto"
+          )}>
+            {/* Action Button (Play for code, Edit for markdown) */}
+            <Show when={props.onActionClick}>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  props.onActionClick?.(); 
+                }} 
+                disabled={props.type === "code" && (props.actionRunning || props.isQueued)}
+                class={clsx(
+                  "p-2 -m-1 hover:text-accent rounded-sm disabled:opacity-50",
+                  props.hasError ? "text-primary" : (props.isActive || props.isEditing) ? "text-accent" : "text-foreground"
+                )}
+                title={props.type === "code" ? "Run Cell" : (props.isEditing ? "Finish Editing" : "Edit Markdown")}
+              >
+                <Show when={props.type === "code"}
+                  fallback={
+                    <Show when={props.isEditing} fallback={<Edit2 size={14} />}>
+                      <Check size={14} />
+                    </Show>
+                  }
+                >
+                  <Show when={!props.actionRunning} fallback={<Square size={14} class="animate-pulse" />}>
+                    <Show when={props.isQueued} fallback={<Play size={14} />}>
+                      <div class="text-[8px] font-bold uppercase tracking-wider text-accent/70">...</div>
+                    </Show>
+                  </Show>
                 </Show>
-              }
-            >
-              <Show when={!props.actionRunning} fallback={<Square size={14} class="animate-pulse" />}>
-                <Play size={14} />
-              </Show>
+              </button>
             </Show>
-          </button>
-        </Show>
 
-        <div class="cursor-grab hover:text-accent p-1 rounded-sm text-foreground">
-          <GripVertical size={16} />
-        </div>
-        
-        {/* Quick Actions */}
-         <button onClick={(e) => { e.stopPropagation(); props.onDelete(); }} class="p-1 hover:text-primary rounded-sm text-foreground">
-           <Trash2 size={14} />
-         </button>
+            <div class="cursor-grab hover:text-accent p-2 -m-1 rounded-sm text-foreground">
+              <GripVertical size={16} />
+            </div>
+            
+            {/* Quick Actions */}
+            <button onClick={(e) => { e.stopPropagation(); props.onDelete(); }} class="p-2 -m-1 hover:text-primary rounded-sm text-foreground">
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </Show>
 

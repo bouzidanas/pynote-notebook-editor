@@ -11,9 +11,14 @@ export interface CellData {
     stderr: string[];
     result?: string;
     error?: string;
+    executionTime?: number; // timestamp
+    executionDuration?: number; // ms
+    executionCount?: number;
+    executionKernelId?: string;
   };
   isEditing?: boolean;
   isRunning?: boolean;
+  isQueued?: boolean;
 }
 
 // Compact history format:
@@ -31,6 +36,9 @@ export interface NotebookState {
   history: HistoryEntry[];
   historyIndex: number; // Current position in history (-1 = no history)
   presentationMode: boolean;
+  executionMode: "queue_all" | "hybrid" | "direct";
+  executionQueue: string[]; // List of cell IDs waiting to run
+  sidebarAlignment: "top" | "center" | "bottom";
 }
 
 const MAX_HISTORY = 100;
@@ -55,6 +63,9 @@ const [store, setStore] = createStore<NotebookState>({
   history: [],
   historyIndex: -1,
   presentationMode: false,
+  executionMode: "hybrid", // Default to Hybrid as requested
+  executionQueue: [],
+  sidebarAlignment: "top"
 });
 
 export const notebookStore = store;
@@ -120,11 +131,11 @@ export const actions = {
   },
 
   changeCellType: (id: string, type: CellType) => {
-      setStore("cells", (c) => c.id === id, "type", type);
-      // Autosave
-      if ((actions as any).__autosaveCallback) {
-        (actions as any).__autosaveCallback();
-      }
+    setStore("cells", (c) => c.id === id, "type", type);
+    // Autosave
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
   },
 
   clearCellOutput: (id: string) => {
@@ -273,13 +284,86 @@ export const actions = {
     setStore("cells", (c) => c.id === id, "isRunning", isRunning);
   },
 
+  setCellQueued: (id: string, isQueued: boolean) => {
+    setStore("cells", (c) => c.id === id, "isQueued", isQueued);
+  },
+
+  setExecutionMode: (mode: NotebookState["executionMode"]) => {
+    setStore("executionMode", mode);
+  },
+
+  runCell: (id: string, runKernel: (content: string, id: string) => Promise<void>) => {
+    const cell = store.cells.find(c => c.id === id);
+    if (!cell || cell.type !== "code" || cell.isRunning || cell.isQueued) return;
+
+    const mode = store.executionMode;
+    const isKernelRunning = store.cells.some(c => c.isRunning);
+    const prevIndex = store.cells.findIndex(c => c.id === id) - 1;
+    const prevCell = prevIndex >= 0 ? store.cells[prevIndex] : null;
+    const isPrevRunningOrQueued = prevCell && (prevCell.isRunning || prevCell.isQueued);
+
+    const shouldQueue =
+      mode === "queue_all" ? isKernelRunning :
+        mode === "hybrid" ? isPrevRunningOrQueued :
+          false;
+
+    if (shouldQueue) {
+      actions.addToQueue(id);
+    } else {
+      actions.executeCell(id, runKernel);
+    }
+  },
+
+  executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>) => {
+    actions.setCellRunning(id, true);
+    actions.clearCellOutput(id);
+    const cell = store.cells.find(c => c.id === id);
+    if (!cell) return;
+
+    try {
+      await runKernel(cell.content, id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      actions.setCellRunning(id, false);
+
+      // Process next in queue
+      const nextId = actions.popFromQueue();
+      if (nextId) {
+        actions.executeCell(nextId, runKernel);
+      }
+    }
+  },
+
+  addToQueue: (id: string) => {
+    if (!store.executionQueue.includes(id)) {
+      setStore("executionQueue", produce(q => q.push(id)));
+      actions.setCellQueued(id, true);
+    }
+  },
+
+  popFromQueue: () => {
+    const id = store.executionQueue[0];
+    if (id) {
+      setStore("executionQueue", produce(q => q.shift()));
+      actions.setCellQueued(id, false);
+      return id;
+    }
+    return null;
+  },
+
   clearAllOutputs: () => {
     setStore("cells", {}, "outputs", undefined);
   },
 
+  resetExecutionState: () => {
+    setStore("executionQueue", []);
+    setStore("cells", {}, (cell) => ({ ...cell, isRunning: false, isQueued: false }));
+  },
+
   deleteAllCells: () => {
     if (store.cells.length === 0) return;
-    
+
     // Add to history as multiple deletes? Or just clear?
     // For simplicity, let's just clear. Or better, create a special 'clear all' history event if we wanted robust undo.
     // For now, I'll just clear the cells.
@@ -297,12 +381,13 @@ export const actions = {
     }
   },
 
-  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[]) => {
+  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null) => {
     setStore({
       cells,
       filename,
+      activeCellId: activeCellId || null,
       history: history || [],
-      historyIndex: history ? history.length - 1 : -1
+      historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1)
     });
   },
 

@@ -63,7 +63,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
   const menuClasses = clsx(
     "shadow-lg bg-background border border-foreground ring-1 ring-black/5 focus:outline-none z-50",
     props.fullWidthMobile ? "max-xs:fixed max-xs:left-0 max-xs:right-0 max-xs:top-16.25 max-xs:mt-0 max-xs:rounded-none max-xs:border-t-0 max-xs:w-auto" : "",
-    props.fullWidthMobile ? "xs:absolute xs:mt-2 xs:w-80 xs:rounded-sm" : "mt-2 w-80 rounded-sm",
+    props.fullWidthMobile ? "xs:absolute xs:mt-2 xs:w-70 sm:w-40 xs:rounded-sm" : "mt-2 w-70 rounded-sm",
     // If NOT using portal, we use relative positioning classes
     !props.usePortal && (props.align === "right" ? "right-0" : "left-0"),
     !props.usePortal && "absolute"
@@ -144,7 +144,7 @@ export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Eleme
       </button>
       <Show when={isOpen()}>
         <div 
-          class="absolute left-full -top-1 w-80 rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50"
+          class="absolute left-full -top-1 w-70 rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50"
         >
           <div class="py-1" role="menu" aria-orientation="vertical">
             {props.children}

@@ -62,6 +62,18 @@ body {
   @apply p-2 rounded-[var(--radius-sm)] text-secondary hover:bg-foreground transition-colors cursor-pointer;
 }
 
+/* Sidebar Container Query Logic */
+@container cell-sidebar (max-height: 125px) {
+  .sidebar-inner-auto-center {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    width: 100% !important;
+  }
+}
+
 /* Milkdown & Prose Overrides */
 .milkdown-editor-wrapper {
   @apply min-h-12.5;
@@ -247,3 +259,8 @@ body {
 .section-scope[data-level="2"] { --primary: var(--header-color-2) !important; --color-primary: var(--header-color-2) !important; }
 .section-scope[data-level="3"] { --primary: var(--header-color-3) !important; --color-primary: var(--header-color-3) !important; }
 .section-scope[data-level="4"] { --primary: var(--header-color-4) !important; --color-primary: var(--header-color-4) !important; }
+
+/* Cell List Transition Group */
+.cell-list-move {
+  transition: transform 0.3s ease-in-out;
+}
