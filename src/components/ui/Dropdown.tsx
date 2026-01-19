@@ -63,7 +63,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
   const menuClasses = clsx(
     "shadow-lg bg-background border border-foreground ring-1 ring-black/5 focus:outline-none z-50",
     props.fullWidthMobile ? "max-xs:fixed max-xs:left-0 max-xs:right-0 max-xs:top-16.25 max-xs:mt-0 max-xs:rounded-none max-xs:border-t-0 max-xs:w-auto" : "",
-    props.fullWidthMobile ? "xs:absolute xs:mt-2 xs:w-56 xs:rounded-sm" : "mt-2 w-56 rounded-sm",
+    props.fullWidthMobile ? "xs:absolute xs:mt-2 xs:w-80 xs:rounded-sm" : "mt-2 w-80 rounded-sm",
     // If NOT using portal, we use relative positioning classes
     !props.usePortal && (props.align === "right" ? "right-0" : "left-0"),
     !props.usePortal && "absolute"
@@ -102,18 +102,21 @@ const Dropdown: Component<DropdownProps> = (props) => {
   );
 };
 
-export const DropdownItem: Component<{ onClick?: () => void; children: JSX.Element; class?: string; disabled?: boolean }> = (props) => {
+export const DropdownItem: Component<{ onClick?: () => void; children: JSX.Element; class?: string; disabled?: boolean; shortcut?: string }> = (props) => {
     return (
         <button
             onClick={props.onClick}
             disabled={props.disabled}
             class={clsx(
-                "w-full text-left block px-4 py-2 text-sm text-secondary hover:bg-foreground hover:text-secondary disabled:opacity-50 disabled:cursor-not-allowed",
+                "w-full text-left flex items-center justify-between px-4 py-2 text-sm text-secondary hover:bg-foreground hover:text-secondary disabled:opacity-50 disabled:cursor-not-allowed group",
                 props.class
             )}
             role="menuitem"
         >
-            {props.children}
+            <span class="flex items-center gap-2">{props.children}</span>
+            <Show when={props.shortcut}>
+                <span class="text-xs font-mono opacity-50 group-hover:opacity-80">{props.shortcut}</span>
+            </Show>
         </button>
     )
 }
@@ -141,7 +144,7 @@ export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Eleme
       </button>
       <Show when={isOpen()}>
         <div 
-          class="absolute left-full -top-1 w-56 rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50"
+          class="absolute left-full -top-1 w-80 rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50"
         >
           <div class="py-1" role="menu" aria-orientation="vertical">
             {props.children}

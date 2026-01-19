@@ -1,28 +1,44 @@
+# PyNote Notebook Editor
+
+PyNote is a modern, browser-based Python notebook environment (similar to Jupyter) that runs entirely in the client using Pyodide (WebAssembly).
+
+## Features
+
+-   **Client-Side Execution**: Runs Python code directly in your browser using Pyodide. No backend server required.
+-   **Rich Text Support**: Markdown cells with math support (KaTeX).
+-   **Interactive Code**: Code cells with syntax highlighting, auto-completion, and output display.
+-   **Persistence**: Autosaves your work to local storage; supports importing and exporting `.ipynb` files.
+-   **Shortcuts**: Extensive keyboard shortcuts for efficient workflow.
+
 ## Usage
 
+### Installation
+
 ```bash
-$ npm install # or pnpm install or yarn install
+npm install
 ```
 
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
+### Development
 
-## Available Scripts
+```bash
+npm run dev
+```
 
-In the project directory, you can run:
+Runs the app in development mode. Open [http://localhost:5173](http://localhost:5173) to view it.
 
-### `npm run dev`
+### Build
 
-Runs the app in the development mode.<br>
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
+```bash
+npm run build
+```
 
-### `npm run build`
+Builds the app for production to the `dist` folder.
 
-Builds the app for production to the `dist` folder.<br>
-It correctly bundles Solid in production mode and optimizes the build for the best performance.
+## Tech Stack
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-## Deployment
-
-Learn more about deploying your application with the [documentations](https://vite.dev/guide/static-deploy.html)
+-   **Frontend Framework**: SolidJS
+-   **Language**: TypeScript
+-   **Bundler**: Vite
+-   **Styling**: Tailwind CSS
+-   **Python Runtime**: Pyodide (WASM)
+-   **Editor**: CodeMirror 6, Milkdown

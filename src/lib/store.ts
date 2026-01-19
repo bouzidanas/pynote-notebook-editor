@@ -13,6 +13,7 @@ export interface CellData {
     error?: string;
   };
   isEditing?: boolean;
+  isRunning?: boolean;
 }
 
 // Compact history format:
@@ -118,6 +119,14 @@ export const actions = {
     setStore("cells", (c) => c.id === id, "outputs", output);
   },
 
+  changeCellType: (id: string, type: CellType) => {
+      setStore("cells", (c) => c.id === id, "type", type);
+      // Autosave
+      if ((actions as any).__autosaveCallback) {
+        (actions as any).__autosaveCallback();
+      }
+  },
+
   clearCellOutput: (id: string) => {
     setStore("cells", (c) => c.id === id, "outputs", undefined);
   },
@@ -135,6 +144,10 @@ export const actions = {
       setStore("cells", produce((cells) => {
         cells.splice(idx, 1);
       }));
+
+      if (store.activeCellId === id) {
+        setStore("activeCellId", null);
+      }
     }
     // Autosave after deleting a cell
     if ((actions as any).__autosaveCallback) {
@@ -252,6 +265,34 @@ export const actions = {
     setStore("cells", (c) => c.id === id, "isEditing", isEditing);
     // Call autosave only when leaving edit mode
     if (!isEditing && (actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
+  },
+
+  setCellRunning: (id: string, isRunning: boolean) => {
+    setStore("cells", (c) => c.id === id, "isRunning", isRunning);
+  },
+
+  clearAllOutputs: () => {
+    setStore("cells", {}, "outputs", undefined);
+  },
+
+  deleteAllCells: () => {
+    if (store.cells.length === 0) return;
+    
+    // Add to history as multiple deletes? Or just clear?
+    // For simplicity, let's just clear. Or better, create a special 'clear all' history event if we wanted robust undo.
+    // For now, I'll just clear the cells.
+    // If we want undo, we could iterate and delete, but that might spam history.
+    // Let's just clear for now, maybe add a "bulk delete" history type later if needed.
+    // Actually, user might expect undo. Let's do it safe:
+    // We can't easily undo a full clear with the current "single action" history logic without spamming.
+    // I'll skip history for 'deleteAll' for now or just treat it as a non-undoable action unless I expand history logic.
+    // Wait, the user asked for features, didn't explicitly demand undo for them, but it's good practice.
+    // Given the constraints, I'll just implement the action.
+    setStore("cells", []);
+    // Autosave
+    if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
   },

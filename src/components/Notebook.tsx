@@ -3,9 +3,98 @@ import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, close
 import { notebookStore, actions, defaultCells } from "../lib/store";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
-import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye } from "lucide-solid";
+import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
+
+const SHORTCUTS = {
+  global: [
+    { label: "New Notebook", keys: "Alt + N" },
+    { label: "Open File", keys: "Ctrl + O" },
+    { label: "Save Notebook", keys: "Ctrl + S" },
+    { label: "Export .ipynb", keys: "Ctrl + E" },
+    { label: "Toggle Shortcuts", keys: "Ctrl + /" },
+    { label: "Presentation Mode", keys: "Alt + P" },
+    { label: "Run All Cells", keys: "Alt + R" },
+    { label: "Clear All Outputs", keys: "Alt + C" },
+    { label: "Delete All Cells", keys: "Alt + D" },
+    { label: "Restart Kernel", keys: "Alt + K" },
+    { label: "Shutdown Kernel", keys: "Alt + Q" }
+  ],
+  command: [
+    { label: "Run & Stay", keys: "Ctrl + Enter" },
+    { label: "Run & Select Next", keys: "Shift + Enter" },
+    { label: "Run & Insert", keys: "Alt + Enter" },
+    { label: "Enter Edit Mode", keys: "Enter" },
+    { label: "Deselect Cell", keys: "Esc" },
+    { label: "Change to Code", keys: "Y" },
+    { label: "Change to Markdown", keys: "M" },
+    { label: "Move Up", keys: "Alt + ↑" },
+    { label: "Move Down", keys: "Alt + ↓" },
+    { label: "Insert Above", keys: "A" },
+    { label: "Insert Below", keys: "B" },
+    { label: "Delete Cell", keys: "Ctrl + D" }
+  ],
+  edit: [
+    { label: "Run & Stay Editing", keys: "Ctrl + Enter" },
+    { label: "Run & Edit Next", keys: "Shift + Enter" },
+    { label: "Run & Insert", keys: "Alt + Enter" },
+    { label: "Exit Edit Mode", keys: "Esc" }
+  ]
+};
+
+const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; onClose: () => void }> = (props) => {
+  return (
+     <div class="fixed left-[calc(50%+28rem)] top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col gap-6 text-secondary/60 transition-opacity duration-300 group">
+        <button 
+            onClick={props.onClose}
+            class="absolute -top-2 -right-2 p-1.5 rounded-sm hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200"
+            title="Hide Shortcuts"
+        >
+            <X size={16} />
+        </button>
+
+        {/* Global - Always show */}
+        <div class="space-y-2">
+            <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Global</h3>
+            <For each={SHORTCUTS.global}>
+                {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
+            </For>
+        </div>
+
+        {/* Dynamic Context Section using Grid for stacking */}
+        <div class="grid grid-cols-1">
+            {/* Command Mode */}
+            <div 
+                class={`col-start-1 row-start-1 space-y-2 transition-all ease-out ${
+                    props.activeId && !props.isEditing 
+                    ? "opacity-100 translate-x-0 duration-300 delay-100" 
+                    : "opacity-0 translate-x-4 duration-100 pointer-events-none"
+                }`}
+            >
+                <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Command Mode</h3>
+                <For each={SHORTCUTS.command}>
+                    {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
+                </For>
+            </div>
+
+            {/* Edit Mode */}
+            <div 
+                class={`col-start-1 row-start-1 space-y-2 transition-all ease-out ${
+                    props.activeId && props.isEditing 
+                    ? "opacity-100 translate-x-0 duration-300 delay-100" 
+                    : "opacity-0 translate-x-4 duration-100 pointer-events-none"
+                }`}
+            >
+                <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Edit Mode</h3>
+                <For each={SHORTCUTS.edit}>
+                    {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
+                </For>
+            </div>
+        </div>
+     </div>
+  );
+};
 
 // Track mouse position globally to calculate grab offset
 if (typeof window !== 'undefined') {
@@ -118,9 +207,197 @@ const Notebook: Component = () => {
   const [cellWidth, setCellWidth] = createSignal(0);
   // Signal for showing the Esc hint in presentation mode
   const [showEscHint, setShowEscHint] = createSignal(false);
+  const [showShortcuts, setShowShortcuts] = createSignal(false);
 
   // --- Internal Autosave Mechanism ---
   const AUTOSAVE_KEY = "pynote-autosave";
+
+  // Helper to run a specific cell
+  const runCell = async (id: string) => {
+    const cell = notebookStore.cells.find(c => c.id === id);
+    if (!cell || cell.type !== "code") return;
+    
+    if (cell.isRunning) return;
+    actions.setCellRunning(id, true);
+    actions.clearCellOutput(id);
+    try {
+      await kernel.run(cell.content, (result) => {
+        actions.updateCellOutput(id, result);
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      actions.setCellRunning(id, false);
+    }
+  };
+
+  const runAll = async () => {
+    // Run sequentially
+    for (const cell of notebookStore.cells) {
+        if (cell.type === "code") {
+            await runCell(cell.id);
+        }
+    }
+  };
+
+  const runSelected = () => {
+      if (notebookStore.activeCellId) {
+          runCell(notebookStore.activeCellId);
+      }
+  };
+
+  const clearSelectedOutput = () => {
+      if (notebookStore.activeCellId) {
+          actions.clearCellOutput(notebookStore.activeCellId);
+      }
+  };
+  
+  const deleteSelected = () => {
+       if (notebookStore.activeCellId) {
+          actions.deleteCell(notebookStore.activeCellId);
+      }
+  };
+
+  // Keyboard Shortcuts
+  onMount(() => {
+    const handleGlobalKeydown = (e: KeyboardEvent) => {
+      // Global Shortcuts
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "o") {
+        e.preventDefault();
+        fileInput?.click();
+      } else if (e.altKey && e.key === "n") { // Alt + N for New
+        e.preventDefault();
+        actions.loadNotebook([], "Untitled.ipynb");
+        autosaveNotebook();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+        e.preventDefault();
+        handleSave(); // Export is same as Save currently
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        setShowShortcuts(!showShortcuts());
+      } else if (e.altKey && e.key === "p") {
+        e.preventDefault();
+        actions.setPresentationMode(!notebookStore.presentationMode);
+      } else if (e.altKey && e.key === "r") {
+        e.preventDefault();
+        runAll();
+      } else if (e.altKey && e.key === "c") {
+        e.preventDefault();
+        actions.clearAllOutputs();
+      } else if (e.altKey && e.key === "d") {
+        e.preventDefault();
+        actions.deleteAllCells();
+      } else if (e.altKey && e.key === "k") {
+        e.preventDefault();
+        kernel.restart();
+      } else if (e.altKey && e.key === "q") {
+        e.preventDefault();
+        kernel.terminate();
+      }
+
+      const activeId = notebookStore.activeCellId;
+      const activeCell = activeId ? notebookStore.cells.find(c => c.id === activeId) : null;
+      const activeIndex = activeId ? notebookStore.cells.findIndex(c => c.id === activeId) : -1;
+      const isEditing = activeCell?.isEditing;
+
+      if (isEditing) {
+        // Edit Mode Shortcuts
+        if (e.key === "Enter" && e.shiftKey) {
+            // Run & Edit Next
+            e.preventDefault();
+            if (activeId) {
+                runCell(activeId);
+                // Exit current edit
+                actions.setEditing(activeId, false);
+                // Move to next or insert
+                if (activeIndex < notebookStore.cells.length - 1) {
+                    const nextId = notebookStore.cells[activeIndex + 1].id;
+                    actions.setActiveCell(nextId);
+                    actions.setEditing(nextId, true);
+                } else {
+                    // Insert same type below
+                    actions.addCell(activeCell?.type || "code");
+                }
+            }
+        } else if (e.key === "Enter" && e.ctrlKey) {
+            // Run & Stay Editing
+            e.preventDefault();
+            if (activeId) runCell(activeId);
+        } else if (e.key === "Enter" && e.altKey) {
+            // Run & Insert Below (Edit new)
+            e.preventDefault();
+            if (activeId) {
+                runCell(activeId);
+                actions.setEditing(activeId, false);
+                actions.addCell(activeCell?.type || "code", activeIndex + 1);
+            }
+        } else if (e.key === "Escape") {
+             // Exit Edit Mode
+             if (activeId) actions.setEditing(activeId, false);
+        }
+      } else if (activeId) {
+        // Command/Selected Mode Shortcuts (when not editing)
+        if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+             e.preventDefault();
+             actions.setEditing(activeId, true);
+        } else if (e.key === "Escape") {
+             // Deselect
+             e.preventDefault();
+             actions.setActiveCell(null);
+        } else if (e.key === "ArrowUp" && e.altKey) {
+             // Move Up
+             e.preventDefault();
+             if (activeIndex > 0) {
+                 actions.moveCell(activeIndex, activeIndex - 1);
+             }
+        } else if (e.key === "ArrowDown" && e.altKey) {
+             // Move Down
+             e.preventDefault();
+             if (activeIndex < notebookStore.cells.length - 1) {
+                 actions.moveCell(activeIndex, activeIndex + 1);
+             }
+        } else if (e.key === "ArrowUp") {
+             e.preventDefault();
+             if (activeIndex > 0) actions.setActiveCell(notebookStore.cells[activeIndex - 1].id);
+        } else if (e.key === "ArrowDown") {
+             e.preventDefault();
+             if (activeIndex < notebookStore.cells.length - 1) actions.setActiveCell(notebookStore.cells[activeIndex + 1].id);
+        } else if (e.key === "a" || e.key === "A") { // Insert Above (Same Type)
+             actions.addCell(activeCell?.type || "code", activeIndex);
+        } else if (e.key === "b" || e.key === "B") { // Insert Below (Same Type)
+             actions.addCell(activeCell?.type || "code", activeIndex + 1);
+        } else if (e.key === "d" && (e.ctrlKey || e.metaKey)) { 
+             e.preventDefault();
+             actions.deleteCell(activeId);
+        } else if (e.key === "m" || e.key === "M") {
+             actions.changeCellType(activeId, "markdown");
+        } else if (e.key === "y" || e.key === "Y") {
+             actions.changeCellType(activeId, "code");
+        } else if (e.key === "Enter" && e.shiftKey) {
+            // Run & Select Next
+            e.preventDefault();
+            runCell(activeId);
+            if (activeIndex < notebookStore.cells.length - 1) {
+                actions.setActiveCell(notebookStore.cells[activeIndex + 1].id);
+            }
+        } else if (e.key === "Enter" && e.ctrlKey) {
+            // Run & Stay Selected
+            e.preventDefault();
+            runCell(activeId);
+        } else if (e.key === "Enter" && e.altKey) {
+             // Run & Insert Below (Edit new) - "run and insert new cell ... automatically in editing mode"
+            e.preventDefault();
+            runCell(activeId);
+            actions.addCell(activeCell?.type || "code", activeIndex + 1);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeydown);
+    onCleanup(() => window.removeEventListener("keydown", handleGlobalKeydown));
+  });
 
   // Save notebook state to localStorage (internal, not user-controlled)
   function autosaveNotebook() {
@@ -312,22 +589,25 @@ const Notebook: Component = () => {
                    </button>
                }>
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
-                   <DropdownItem onClick={() => { actions.loadNotebook([], "Untitled.ipynb"); autosaveNotebook(); }}> 
+                   <DropdownItem onClick={() => { actions.loadNotebook([], "Untitled.ipynb"); autosaveNotebook(); }} shortcut="Alt+N"> 
                        <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                    </DropdownItem>
-                   <DropdownItem onClick={() => fileInput?.click()}>
+                   <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
                        <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
                    </DropdownItem>
-                   <DropdownItem onClick={handleSave}>
+                   <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                        <div class="flex items-center gap-2"><Save size={18} /> Save</div>
                    </DropdownItem>
-                   <DropdownItem onClick={handleSave}>
+                   <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                        <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                    </DropdownItem>
                    <DropdownDivider />
-                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Modes</div>
-                   <DropdownItem onClick={() => actions.setPresentationMode(true)}>
+                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">View</div>
+                   <DropdownItem onClick={() => actions.setPresentationMode(true)} shortcut="Alt+P">
                        <div class="flex items-center gap-2"><Eye size={18} /> Presentation</div>
+                   </DropdownItem>
+                   <DropdownItem onClick={() => setShowShortcuts(!showShortcuts())} shortcut="Ctrl+/">
+                       <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                    </DropdownItem>
                </Dropdown>
     
@@ -337,10 +617,64 @@ const Notebook: Component = () => {
                        Kernel <ChevronDown size={18} />
                    </button>
                }>
-                   <DropdownItem onClick={() => kernel.restart()}>
+                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Cell</div>
+                   <DropdownItem 
+                        onClick={runSelected}
+                        disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
+                        shortcut="Shift+Enter"
+                   >
+                       <div class="flex items-center gap-2"><Play size={18} /> Run Selected</div>
+                   </DropdownItem>
+                   <DropdownItem 
+                        onClick={clearSelectedOutput}
+                        disabled={kernel.status !== "ready" || !notebookStore.activeCellId || (() => {
+                            const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
+                            return !c || !c.outputs;
+                        })()}
+                        // No default shortcut for clear selected, maybe leave blank
+                   >
+                       <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
+                   </DropdownItem>
+                   <DropdownItem 
+                        onClick={deleteSelected}
+                        disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
+                        shortcut="Ctrl+D"
+                   >
+                       <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
+                   </DropdownItem>
+
+                   <DropdownDivider />
+                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Notebook</div>
+                   
+                   <DropdownItem 
+                        onClick={runAll} 
+                        disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
+                        shortcut="Alt+R"
+                   >
+                       <div class="flex items-center gap-2"><Play size={18} /> Run All</div>
+                   </DropdownItem>
+                   <DropdownItem 
+                        onClick={() => actions.clearAllOutputs()}
+                        disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
+                        shortcut="Alt+C"
+                   >
+                       <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
+                   </DropdownItem>
+                   <DropdownItem 
+                        onClick={() => actions.deleteAllCells()}
+                        disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
+                        shortcut="Alt+D"
+                   >
+                       <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
+                   </DropdownItem>
+
+                   <DropdownDivider />
+                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
+                   
+                   <DropdownItem onClick={() => kernel.restart()} shortcut="Alt+K">
                        <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                    </DropdownItem>
-                   <DropdownItem onClick={() => kernel.terminate()}>
+                   <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
                        <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                    </DropdownItem>
                </Dropdown>
@@ -409,24 +743,81 @@ const Notebook: Component = () => {
                    {/* Nested on xs+, sectioned on max-xs */}
                    <div class="hidden xs:block">
                      <DropdownNested label={<div class="flex items-center gap-2"><Save size={18} /> File</div>}>
-                         <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")}>
+                         <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")} shortcut="Alt+N">
                              <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                          </DropdownItem>
-                         <DropdownItem onClick={() => fileInput?.click()}>
+                         <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
                              <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
                          </DropdownItem>
-                         <DropdownItem onClick={handleSave}>
+                         <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                              <div class="flex items-center gap-2"><Save size={18} /> Save</div>
                          </DropdownItem>
-                         <DropdownItem onClick={handleSave}>
+                         <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                              <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
+                         </DropdownItem>
+                         <DropdownDivider />
+                         <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
+                             <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                          </DropdownItem>
                      </DropdownNested>
                      <DropdownNested label={<div class="flex items-center gap-2"><RotateCw size={18} /> Kernel</div>}>
-                         <DropdownItem onClick={() => kernel.restart()}>
+                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Cell</div>
+                         <DropdownItem 
+                              onClick={runSelected}
+                              disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
+                              shortcut="Shift+Enter"
+                         >
+                             <div class="flex items-center gap-2"><Play size={18} /> Run Selected</div>
+                         </DropdownItem>
+                         <DropdownItem 
+                              onClick={clearSelectedOutput}
+                              disabled={kernel.status !== "ready" || !notebookStore.activeCellId || (() => {
+                                  const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
+                                  return !c || !c.outputs;
+                              })()}
+                         >
+                             <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
+                         </DropdownItem>
+                         <DropdownItem 
+                              onClick={deleteSelected}
+                              disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
+                              shortcut="Ctrl+D"
+                         >
+                             <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
+                         </DropdownItem>
+
+                         <DropdownDivider />
+                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Notebook</div>
+                         
+                         <DropdownItem 
+                              onClick={runAll} 
+                              disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
+                              shortcut="Alt+R"
+                         >
+                             <div class="flex items-center gap-2"><Play size={18} /> Run All</div>
+                         </DropdownItem>
+                         <DropdownItem 
+                              onClick={() => actions.clearAllOutputs()}
+                              disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
+                              shortcut="Alt+C"
+                         >
+                             <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
+                         </DropdownItem>
+                         <DropdownItem 
+                              onClick={() => actions.deleteAllCells()}
+                              disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
+                              shortcut="Alt+D"
+                         >
+                             <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
+                         </DropdownItem>
+
+                         <DropdownDivider />
+                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
+
+                         <DropdownItem onClick={() => kernel.restart()} shortcut="Alt+K">
                              <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                          </DropdownItem>
-                         <DropdownItem onClick={() => kernel.terminate()}>
+                         <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
                              <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                          </DropdownItem>
                      </DropdownNested>
@@ -435,25 +826,79 @@ const Notebook: Component = () => {
                    <div class="block xs:hidden">
                      {/* File Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
-                     <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")}>
+                     <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")} shortcut="Alt+N">
                          <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                      </DropdownItem>
-                     <DropdownItem onClick={() => fileInput?.click()}>
+                     <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
                          <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
                      </DropdownItem>
-                     <DropdownItem onClick={handleSave}>
+                     <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                          <div class="flex items-center gap-2"><Save size={18} /> Save</div>
                      </DropdownItem>
-                     <DropdownItem onClick={handleSave}>
+                     <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                          <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
+                         <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                      </DropdownItem>
                      <DropdownDivider />
                      {/* Kernel Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Kernel</div>
-                     <DropdownItem onClick={() => kernel.restart()}>
+                     
+                     <DropdownItem 
+                          onClick={runSelected}
+                          disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
+                          shortcut="Shift+Enter"
+                     >
+                         <div class="flex items-center gap-2"><Play size={18} /> Run Selected</div>
+                     </DropdownItem>
+                     <DropdownItem 
+                          onClick={clearSelectedOutput}
+                          disabled={kernel.status !== "ready" || !notebookStore.activeCellId || (() => {
+                              const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
+                              return !c || !c.outputs;
+                          })()}
+                     >
+                         <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
+                     </DropdownItem>
+                     <DropdownItem 
+                          onClick={deleteSelected}
+                          disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
+                          shortcut="Ctrl+D"
+                     >
+                         <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
+                     </DropdownItem>
+
+                     <DropdownDivider />
+
+                     <DropdownItem 
+                          onClick={runAll} 
+                          disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
+                          shortcut="Alt+R"
+                     >
+                         <div class="flex items-center gap-2"><Play size={18} /> Run All</div>
+                     </DropdownItem>
+                     <DropdownItem 
+                          onClick={() => actions.clearAllOutputs()}
+                          disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
+                          shortcut="Alt+C"
+                     >
+                         <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
+                     </DropdownItem>
+                     <DropdownItem 
+                          onClick={() => actions.deleteAllCells()}
+                          disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
+                          shortcut="Alt+D"
+                     >
+                         <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
+                     </DropdownItem>
+
+                     <DropdownDivider />
+
+                     <DropdownItem onClick={() => kernel.restart()} shortcut="Alt+K">
                          <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                      </DropdownItem>
-                     <DropdownItem onClick={() => kernel.terminate()}>
+                     <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
                          <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                      </DropdownItem>
                    </div>
@@ -605,6 +1050,62 @@ const Notebook: Component = () => {
              Press Esc to exit
            </div>
          </Show>
+       </Show>
+
+       {/* Keyboard Shortcuts Modal */}
+       <Show when={showShortcuts()}>
+         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowShortcuts(false)}>
+           <div class="bg-background border border-foreground rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+             <div class="flex items-center justify-between p-4 border-b border-foreground">
+               <h2 class="text-lg font-bold flex items-center gap-2"><Keyboard /> Keyboard Shortcuts</h2>
+               <button onClick={() => setShowShortcuts(false)} class="p-1 hover:bg-foreground rounded-sm">
+                 <X size={20} />
+               </button>
+             </div>
+             <div class="p-4 space-y-6">
+               
+               <div>
+                 <h3 class="text-sm font-bold text-accent uppercase mb-2">Global</h3>
+                 <div class="grid grid-cols-2 gap-2 text-sm">
+                   <For each={SHORTCUTS.global}>
+                       {s => <><div class="text-secondary/80">{s.label}</div><div class="font-mono text-right">{s.keys}</div></>}
+                   </For>
+                 </div>
+               </div>
+
+               <div>
+                 <h3 class="text-sm font-bold text-accent uppercase mb-2">Command Mode (Cell Selected)</h3>
+                 <div class="grid grid-cols-2 gap-2 text-sm">
+                   <For each={SHORTCUTS.command}>
+                       {s => <><div class="text-secondary/80">{s.label}</div><div class="font-mono text-right">{s.keys}</div></>}
+                   </For>
+                 </div>
+               </div>
+
+               <div>
+                 <h3 class="text-sm font-bold text-accent uppercase mb-2">Edit Mode</h3>
+                 <div class="grid grid-cols-2 gap-2 text-sm">
+                    <For each={SHORTCUTS.edit}>
+                       {s => <><div class="text-secondary/80">{s.label}</div><div class="font-mono text-right">{s.keys}</div></>}
+                   </For>
+                 </div>
+               </div>
+
+             </div>
+             <div class="p-4 border-t border-foreground text-center text-xs text-secondary/50">
+               Click anywhere outside to close
+             </div>
+           </div>
+         </div>
+       </Show>
+
+       {/* Side Shortcuts (Visible on 2xl screens) */}
+       <Show when={showShortcuts() && !notebookStore.presentationMode}>
+          <SideShortcuts 
+            activeId={notebookStore.activeCellId} 
+            isEditing={!!notebookStore.activeCellId && !!notebookStore.cells.find(c => c.id === notebookStore.activeCellId)?.isEditing} 
+            onClose={() => setShowShortcuts(false)}
+          />
        </Show>
     </div>
   );

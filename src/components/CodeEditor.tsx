@@ -15,7 +15,7 @@ interface EditorProps {
   readOnly?: boolean;
 }
 
-const Editor: Component<EditorProps> = (props) => {
+const CodeEditor: Component<EditorProps> = (props) => {
   const { ref, createExtension } = createCodeMirror({
     onValueChange: props.onChange,
     value: props.value,
@@ -65,4 +65,4 @@ const Editor: Component<EditorProps> = (props) => {
   );
 };
 
-export default Editor;
+export default CodeEditor;

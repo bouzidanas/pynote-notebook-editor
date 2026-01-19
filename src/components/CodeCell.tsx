@@ -1,7 +1,7 @@
 import { type Component, createSignal, Show } from "solid-js";
 import { type CellData, actions } from "../lib/store";
 import { kernel } from "../lib/pyodide";
-import Editor from "./Editor";
+import CodeEditor from "./CodeEditor";
 import Output from "./Output";
 import CellWrapper from "./CellWrapper";
 import { Play, Square, Trash2 } from "lucide-solid";
@@ -14,11 +14,12 @@ interface CodeCellProps {
 }
 
 const CodeCell: Component<CodeCellProps> = (props) => {
-  const [running, setRunning] = createSignal(false);
+  // Local running state replaced by store state
+  // const [running, setRunning] = createSignal(false);
 
   const handleRun = async () => {
-    if (running()) return;
-    setRunning(true);
+    if (props.cell.isRunning) return;
+    actions.setCellRunning(props.cell.id, true);
     actions.clearCellOutput(props.cell.id);
     try {
       await kernel.run(props.cell.content, (result) => {
@@ -27,7 +28,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
     } catch (e) {
       console.error(e);
     } finally {
-      setRunning(false);
+      actions.setCellRunning(props.cell.id, false);
     }
   };
 
@@ -35,14 +36,14 @@ const CodeCell: Component<CodeCellProps> = (props) => {
     <div class="flex lg:hidden items-center gap-1 p-1">
       <button 
         onClick={handleRun}
-        disabled={running()}
+        disabled={props.cell.isRunning}
         class={clsx(
           "p-1.5 hover:bg-foreground rounded-sm disabled:opacity-50",
           props.cell.outputs?.error ? "text-primary" : (props.isActive || props.cell.isEditing) ? "text-accent" : "text-accent"
         )}
         title="Run Cell (Ctrl+Enter)"
       >
-        <Show when={!running()} fallback={<Square size={16} class="animate-pulse text-primary" />}>
+        <Show when={!props.cell.isRunning} fallback={<Square size={16} class="animate-pulse text-primary" />}>
           <Play size={16} />
         </Show>
       </button>
@@ -71,7 +72,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       toolbar={toolbar}
       type="code"
       onActionClick={handleRun}
-      actionRunning={running()}
+      actionRunning={props.cell.isRunning}
       hasError={!!props.cell.outputs?.error}
     >
       <div class="flex flex-col">
@@ -81,13 +82,13 @@ const CodeCell: Component<CodeCellProps> = (props) => {
               [{props.index + 1}]:
            </div>
            <div class="flex-1 bg-background relative">
-             <Editor
+             <CodeEditor
                value={props.cell.content}
                onChange={(val) => actions.updateCell(props.cell.id, val)}
                language="python"
-               readOnly={!props.cell.isEditing || running()}
+               readOnly={!props.cell.isEditing || props.cell.isRunning}
              />
-             <Show when={!props.cell.isEditing && !running()}>
+             <Show when={!props.cell.isEditing && !props.cell.isRunning}>
                <div 
                  class="absolute inset-0 z-10 cursor-text"
                  onClick={(e) => {
