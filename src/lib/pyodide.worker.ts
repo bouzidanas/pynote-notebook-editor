@@ -6,17 +6,50 @@ let pyodide: any = null;
 const INIT_CODE = `
 import sys
 import io
+import contextvars
+from pyodide.code import eval_code_async
 
-class OutputCapture(io.StringIO):
-    def __init__(self, callback):
-        super().__init__()
-        self.callback = callback
+# Context variable to track which cell is currently executing
+current_cell_id = contextvars.ContextVar("current_cell_id", default=None)
+
+# Callback to JS
+_publish_stream_callback = None
+
+def register_stream_callback(cb):
+    global _publish_stream_callback
+    _publish_stream_callback = cb
+
+class ContextAwareOutput(io.TextIOBase):
+    def __init__(self, name):
+        self.name = name
 
     def write(self, s):
-        self.callback(s)
-        return super().write(s)
+        cell_id = current_cell_id.get()
+        if _publish_stream_callback and cell_id:
+            _publish_stream_callback(cell_id, self.name, s)
+        return len(s)
 
-# We will redirect stdout/stderr in the run function wrapper
+sys.stdout = ContextAwareOutput("stdout")
+sys.stderr = ContextAwareOutput("stderr")
+
+async def run_cell_code(code, cell_id):
+    token = current_cell_id.set(cell_id)
+    try:
+        # Execute code in the global namespace
+        res = await eval_code_async(code, globals=globals())
+        
+        # Auto-wrap lists of UIElements into a Group
+        if isinstance(res, list) and res:
+            # Check if likely a list of UI elements (duck typing)
+            if all(hasattr(x, '_repr_mimebundle_') for x in res):
+                try:
+                    from pynote_ui.elements import Group
+                    return Group(res)
+                except ImportError:
+                    pass
+        return res
+    finally:
+        current_cell_id.reset(token)
 `;
 
 async function initPyodide() {
@@ -25,7 +58,28 @@ async function initPyodide() {
       indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.0/full/"
     });
     await pyodide.loadPackage("micropip");
+    const micropip = pyodide.pyimport("micropip");
+    console.log("Installing pynote_ui...");
+    await micropip.install(self.location.origin + "/packages/pynote_ui-0.1.0-py3-none-any.whl");
+    console.log("pynote_ui installed successfully.");
+    
     await pyodide.runPythonAsync(INIT_CODE);
+
+    // Register stream callback
+    const register_cb = pyodide.globals.get("register_stream_callback");
+    register_cb((id: string, stream: string, text: string) => {
+        postMessage({ id, type: stream, content: text });
+    });
+    register_cb.destroy();
+
+    // Register comm target
+    const pkg = pyodide.pyimport("pynote_ui");
+    pkg.register_comm_target((uid: string, data: any) => {
+        const jsData = data.toJs({ dict_converter: Object.fromEntries });
+        postMessage({ type: "component_update", uid, data: jsData });
+    });
+    pkg.destroy();
+
     postMessage({ type: "ready" });
   } catch (e) {
     postMessage({ type: "error", error: String(e) });
@@ -38,22 +92,28 @@ async function runCode(id: string, code: string) {
     return;
   }
 
-  // Reset streams for this execution
-  pyodide.setStdout({
-    batched: (msg: string) => {
-        postMessage({ id, type: "stdout", content: msg });
-    }
-  });
-  pyodide.setStderr({
-    batched: (msg: string) => {
-        postMessage({ id, type: "stderr", content: msg });
-    }
-  });
+  // We do NOT setStdout here anymore. Python handles context-aware routing.
 
   try {
     await pyodide.loadPackagesFromImports(code);
-    const result = await pyodide.runPythonAsync(code);
-    postMessage({ id, type: "success", result: result?.toString() });
+    
+    // Call the Python helper function
+    const run_cell_code = pyodide.globals.get("run_cell_code");
+    const result = await run_cell_code(code, id);
+    run_cell_code.destroy();
+
+    let mimebundle = undefined;
+    if (result && result._repr_mimebundle_) {
+        try {
+            const mb = result._repr_mimebundle_();
+            mimebundle = mb.toJs({ dict_converter: Object.fromEntries });
+            mb.destroy();
+        } catch (e) {
+            console.error("Error extracting mimebundle", e);
+        }
+    }
+
+    postMessage({ id, type: "success", result: result?.toString(), mimebundle });
   } catch (error: any) {
     postMessage({ id, type: "error", error: error.toString() });
   }
@@ -65,6 +125,43 @@ self.onmessage = async (e) => {
   if (type === "init") {
     await initPyodide();
   } else if (type === "run") {
-    await runCode(id, code);
+    // Concurrent execution allowed!
+    // We do NOT await here to block the loop, but we handle errors in runCode.
+    // However, runCode is async. If we don't await, it runs in background.
+    // This is exactly what we want for Hybrid/Concurrent mode.
+    runCode(id, code); 
+  } else if (type === "interaction") {
+    const { uid, data } = e.data;
+    if (pyodide) {
+        try {
+            const pkg = pyodide.pyimport("pynote_ui");
+            const pyData = pyodide.toPy(data);
+            pkg.handle_interaction(uid, pyData);
+            pyData.destroy();
+            pkg.destroy();
+        } catch(err) {
+            console.error("Interaction error", err);
+        }
+    }
+  } else if (type === "set_cell_context") {
+     if (pyodide) {
+        try {
+            const pkg = pyodide.pyimport("pynote_ui");
+            pkg.set_current_cell(id);
+            pkg.destroy();
+        } catch(err) {
+            console.error("Set cell context error", err);
+        }
+     }
+  } else if (type === "clear_cell_context") {
+     if (pyodide) {
+        try {
+            const pkg = pyodide.pyimport("pynote_ui");
+            pkg.clear_cell(id);
+            pkg.destroy();
+        } catch(err) {
+            console.error("Clear cell context error", err);
+        }
+     }
   }
 };

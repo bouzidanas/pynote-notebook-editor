@@ -82,6 +82,10 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .create()
       .then((editor) => {
         editorInstance = editor;
+        editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            if (view) view.focus();
+        });
       })
       .catch((e) => console.error("Milkdown init error", e));
   });

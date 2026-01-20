@@ -1,10 +1,11 @@
 import { type Component, createSignal, Show } from "solid-js";
 import { type CellData, actions } from "../lib/store";
 import { kernel } from "../lib/pyodide";
+import { currentTheme } from "../lib/theme";
 import CodeEditor from "./CodeEditor";
-import Output from "./Output";
+import { OutputResult, OutputStdoutUI, OutputStderr, OutputError } from "./Output";
 import CellWrapper from "./CellWrapper";
-import { Play, Square, Trash2 } from "lucide-solid";
+import { Play, Square, Trash2, Timer } from "lucide-solid";
 import clsx from "clsx";
 
 interface CodeCellProps {
@@ -25,6 +26,14 @@ const CodeCell: Component<CodeCellProps> = (props) => {
   // Ideally CodeCell should just call actions.runCell.
   
   const handleRun = () => {
+      if (props.cell.isRunning) {
+          // Stop execution
+          // Since we can't easily interrupt, we restart the kernel
+          kernel.restart();
+          actions.resetExecutionState();
+          return;
+      }
+      
       actions.runCell(props.cell.id, async (content, id) => {
         await kernel.run(content, (result) => {
             actions.updateCellOutput(id, result);
@@ -36,16 +45,16 @@ const CodeCell: Component<CodeCellProps> = (props) => {
     <div class="flex lg:hidden items-center gap-1 p-1">
       <button 
         onClick={handleRun}
-        disabled={props.cell.isRunning || props.cell.isQueued}
+        disabled={props.cell.isQueued}
         class={clsx(
           "p-1.5 hover:bg-foreground rounded-sm disabled:opacity-50",
           props.cell.outputs?.error ? "text-primary" : (props.isActive || props.cell.isEditing) ? "text-accent" : "text-accent"
         )}
-        title="Run Cell (Ctrl+Enter)"
+        title={props.cell.isRunning ? "Stop Cell (Restart Kernel)" : "Run Cell (Ctrl+Enter)"}
       >
         <Show when={!props.cell.isRunning} fallback={<Square size={16} class="animate-pulse text-primary" />}>
           <Show when={props.cell.isQueued} fallback={<Play size={16} />}>
-             <div class="text-[10px] font-bold uppercase tracking-wider text-accent/70">Wait</div>
+             <Timer size={16} class="text-accent/70 animate-pulse" />
           </Show>
         </Show>
       </button>
@@ -81,6 +90,11 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       onMouseLeave={() => setHovered(false)}
     >
       <div class="flex flex-col">
+        {/* Output Logs (Stdout/UI) Above */}
+        <Show when={currentTheme.outputLayout === "above" && props.cell.outputs}>
+           <OutputStdoutUI outputs={props.cell.outputs} />
+        </Show>
+
         <div class={clsx("flex relative pl-1.75 z-10", props.cell.outputs && (props.cell.outputs.stdout.length > 0 || props.cell.outputs.stderr.length > 0 || props.cell.outputs.result || props.cell.outputs.error) ? "pt-2 px-2 pb-0" : "p-2")}>
            {/* Line numbers gutter could go here */}
            <div class={clsx(
@@ -89,14 +103,14 @@ const CodeCell: Component<CodeCellProps> = (props) => {
            )}>
               [{props.index + 1}]:
            </div>
-           <div class="flex-1 bg-background relative">
+           <div class="flex-1 bg-accent/2 relative">
              <CodeEditor
                value={props.cell.content}
                onChange={(val) => actions.updateCell(props.cell.id, val)}
                language="python"
-               readOnly={!props.cell.isEditing || props.cell.isRunning}
+               readOnly={!props.cell.isEditing}
              />
-             <Show when={!props.cell.isEditing && !props.cell.isRunning}>
+             <Show when={!props.cell.isEditing}>
                <div 
                  class="absolute inset-0 z-10 cursor-text"
                  onClick={(e) => {
@@ -165,8 +179,24 @@ const CodeCell: Component<CodeCellProps> = (props) => {
            </div>
         </Show>
 
+        {/* Stderr (Always Below Editor) */}
         <Show when={props.cell.outputs}>
-          <Output outputs={props.cell.outputs} />
+          <OutputStderr outputs={props.cell.outputs} />
+        </Show>
+
+        {/* Result (Always Below Stderr) */}
+        <Show when={props.cell.outputs}>
+          <OutputResult outputs={props.cell.outputs} />
+        </Show>
+
+        {/* Output Logs (Stdout/UI) Below (if layout is below) */}
+        <Show when={currentTheme.outputLayout === "below" && props.cell.outputs}>
+          <OutputStdoutUI outputs={props.cell.outputs} />
+        </Show>
+
+        {/* Error (Always Bottom Most) */}
+        <Show when={props.cell.outputs}>
+          <OutputError outputs={props.cell.outputs} />
         </Show>
       </div>
     </CellWrapper>

@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: pynote_ui
+Version: 0.1.0
+Summary: Custom UI components for PyNote
+Author: PyNote Team
+Requires-Python: >=3.8
+Provides-Extra: dev
+Requires-Dist: build; extra == "dev"

@@ -1,6 +1,6 @@
 import { type Component, type JSX, Show, createSignal } from "solid-js";
 import { createSortable } from "@thisbeyond/solid-dnd";
-import { GripVertical, Trash2, Play, Square, Edit2, Check } from "lucide-solid";
+import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer } from "lucide-solid";
 import clsx from "clsx";
 import { notebookStore } from "../lib/store";
 
@@ -98,7 +98,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
                 >
                   <Show when={!props.actionRunning} fallback={<Square size={14} class="animate-pulse" />}>
                     <Show when={props.isQueued} fallback={<Play size={14} />}>
-                      <div class="text-[8px] font-bold uppercase tracking-wider text-accent/70">...</div>
+                      <Timer size={14} class="text-accent/70 animate-pulse" />
                     </Show>
                   </Show>
                 </Show>

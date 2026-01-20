@@ -1,9 +1,9 @@
-import { type Component } from "solid-js";
+import { type Component, createEffect } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
-import { nord } from "@uiw/codemirror-theme-nord";
+import { duotoneDark } from "@uiw/codemirror-theme-duotone";
 import { EditorView, keymap } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import { currentTheme } from "../lib/theme";
 
@@ -16,9 +16,15 @@ interface EditorProps {
 }
 
 const CodeEditor: Component<EditorProps> = (props) => {
-  const { ref, createExtension } = createCodeMirror({
+  const { ref, createExtension, editorView } = createCodeMirror({
     onValueChange: props.onChange,
     value: props.value,
+  });
+
+  createEffect(() => {
+    if (!props.readOnly && editorView()) {
+      editorView().focus();
+    }
   });
 
   // Dynamic Theme
@@ -51,9 +57,14 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Base extensions
   createExtension([
     python(),
-    nord,
+    duotoneDark,
     history(),
-    keymap.of([...defaultKeymap, ...historyKeymap]),
+    keymap.of([
+      { key: "Mod-Enter", run: () => false },
+      indentWithTab,
+      ...defaultKeymap,
+      ...historyKeymap
+    ]),
     EditorView.lineWrapping
   ]);
 

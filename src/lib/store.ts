@@ -1,4 +1,5 @@
 import { createStore, produce } from "solid-js/store";
+import { kernel } from "./pyodide";
 
 export type CellType = "code" | "markdown";
 
@@ -10,6 +11,7 @@ export interface CellData {
     stdout: string[];
     stderr: string[];
     result?: string;
+    mimebundle?: any;
     error?: string;
     executionTime?: number; // timestamp
     executionDuration?: number; // ms
@@ -147,6 +149,9 @@ export const actions = {
     const idx = store.cells.findIndex((c) => c.id === id);
 
     if (idx !== -1 && cell) {
+      // Clear UI state
+      kernel.clearCellState(id);
+
       // Add to history before deleting: "d|index|type|id|content"
       // Escape pipes in content
       const escapedContent = cell.content.replace(/\|/g, '\\|');
@@ -298,14 +303,16 @@ export const actions = {
 
     const mode = store.executionMode;
     const isKernelRunning = store.cells.some(c => c.isRunning);
+    const isKernelLoading = kernel.status === "loading";
     const prevIndex = store.cells.findIndex(c => c.id === id) - 1;
     const prevCell = prevIndex >= 0 ? store.cells[prevIndex] : null;
     const isPrevRunningOrQueued = prevCell && (prevCell.isRunning || prevCell.isQueued);
 
     const shouldQueue =
-      mode === "queue_all" ? isKernelRunning :
+      isKernelLoading ||
+      (mode === "queue_all" ? isKernelRunning :
         mode === "hybrid" ? isPrevRunningOrQueued :
-          false;
+          false);
 
     if (shouldQueue) {
       actions.addToQueue(id);
@@ -316,14 +323,25 @@ export const actions = {
 
   executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>) => {
     actions.setCellRunning(id, true);
-    actions.clearCellOutput(id);
     const cell = store.cells.find(c => c.id === id);
     if (!cell) return;
 
+    const previousOutputs = cell.outputs;
+
     try {
+      // Clear old UI state for this cell
+      kernel.clearCellState(id);
+      // Set context for new UI elements
+      kernel.setCellContext(id);
+      
       await runKernel(cell.content, id);
     } catch (e) {
       console.error(e);
+      // If the run failed/interrupted without producing any new output, clear the stale output
+      const currentCell = store.cells.find(c => c.id === id);
+      if (currentCell && currentCell.outputs === previousOutputs) {
+          actions.clearCellOutput(id);
+      }
     } finally {
       actions.setCellRunning(id, false);
 

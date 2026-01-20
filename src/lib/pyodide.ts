@@ -6,6 +6,7 @@ export interface ExecutionResult {
   stdout: string[];
   stderr: string[];
   result?: string;
+  mimebundle?: any;
   error?: string;
   executionTime?: number;
   executionDuration?: number;
@@ -16,6 +17,7 @@ export interface ExecutionResult {
 class Kernel {
   private worker: Worker | null = null;
   private listeners: Map<string, (msg: any) => void> = new Map();
+  private componentListeners: Map<string, (data: any) => void> = new Map();
   
   private _status;
   private _setStatus;
@@ -52,12 +54,43 @@ class Kernel {
          // Global init error
          console.error("Pyodide Init Error:", error);
          this._setStatus("error");
+      } else if (type === "component_update") {
+         const { uid, data } = e.data;
+         if (this.componentListeners.has(uid)) {
+             this.componentListeners.get(uid)!(data);
+         }
       } else if (id && this.listeners.has(id)) {
         this.listeners.get(id)!(e.data);
       }
     };
 
     this.worker.postMessage({ type: "init" });
+  }
+
+  sendInteraction(uid: string, data: any) {
+    if (this.worker && this.status === "ready") {
+        this.worker.postMessage({ type: "interaction", uid, data });
+    }
+  }
+
+  registerComponentListener(uid: string, callback: (data: any) => void) {
+      this.componentListeners.set(uid, callback);
+  }
+
+  unregisterComponentListener(uid: string) {
+      this.componentListeners.delete(uid);
+  }
+
+  setCellContext(cellId: string) {
+      if (this.worker && this.status === "ready") {
+          this.worker.postMessage({ type: "set_cell_context", id: cellId });
+      }
+  }
+  
+  clearCellState(cellId: string) {
+      if (this.worker && this.status === "ready") {
+          this.worker.postMessage({ type: "clear_cell_context", id: cellId });
+      }
   }
 
   run(code: string, onUpdate: (data: ExecutionResult) => void): Promise<void> {
@@ -77,6 +110,9 @@ class Kernel {
     const currentResult: ExecutionResult = {
       stdout: [],
       stderr: [],
+      result: undefined,
+      mimebundle: undefined,
+      error: undefined,
       executionTime: startTime,
       executionCount: execCount,
       executionKernelId: kernelId
@@ -92,6 +128,7 @@ class Kernel {
           onUpdate({ ...currentResult });
         } else if (msg.type === "success") {
           currentResult.result = msg.result;
+          currentResult.mimebundle = msg.mimebundle;
           currentResult.executionDuration = Date.now() - startTime;
           onUpdate({ ...currentResult });
           this.listeners.delete(id);
@@ -117,7 +154,7 @@ class Kernel {
         this.worker = null;
     }
     // Reject all pending promises
-    for (const [id, listener] of this.listeners) {
+    for (const [, listener] of this.listeners) {
         listener({ type: "error", error: "Kernel interrupted" });
     }
     this.listeners.clear();

@@ -1,12 +1,15 @@
-import { type Component, For, Show, createSignal, onCleanup, createEffect, onMount } from "solid-js";
+import { type Component, For, Show, createSignal, onCleanup, createEffect, onMount, lazy } from "solid-js";
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
 import { TransitionGroup } from "solid-transition-group";
 import { notebookStore, actions, defaultCells } from "../lib/store";
+import { tutorialCells } from "../lib/tutorial-notebook";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
-import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard } from "lucide-solid";
+import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
+
+const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 
 const SHORTCUTS = {
   global: [
@@ -34,7 +37,8 @@ const SHORTCUTS = {
     { label: "Move Down", keys: "Alt/Ctrl+Shift + ↓" },
     { label: "Insert Above", keys: "A" },
     { label: "Insert Below", keys: "B" },
-    { label: "Delete Cell", keys: "Ctrl + D" }
+    { label: "Delete Cell", keys: "Ctrl + D" },
+    { label: "Clear Output", keys: "Alt + Backspace" }
   ],
   edit: [
     { label: "Run & Stay Editing", keys: "Ctrl + Enter" },
@@ -209,6 +213,7 @@ const Notebook: Component = () => {
   // Signal for showing the Esc hint in presentation mode
   const [showEscHint, setShowEscHint] = createSignal(false);
   const [showShortcuts, setShowShortcuts] = createSignal(false);
+  const [showPerformance, setShowPerformance] = createSignal(false);
   // Version signal to force re-mounting of the list on full reloads
   const [notebookVersion, setNotebookVersion] = createSignal(0);
 
@@ -216,13 +221,31 @@ const Notebook: Component = () => {
   const AUTOSAVE_KEY = "pynote-autosave";
 
   // Helper to run a specific cell
-  const runCell = (id: string) => {
-    actions.runCell(id, async (content, id) => {
-        await kernel.run(content, (result) => {
-            actions.updateCellOutput(id, result);
-        });
-    });
+  const executeRunner = async (content: string, id: string) => {
+      await kernel.run(content, (result) => {
+          actions.updateCellOutput(id, result);
+      });
   };
+
+  const runCell = (id: string) => {
+    actions.runCell(id, executeRunner);
+  };
+
+  // Monitor Kernel Status
+  createEffect(() => {
+      const status = kernel.status;
+      if (status === "ready") {
+          // If queue has items and nothing is running, start the queue
+          if (notebookStore.executionQueue.length > 0 && !notebookStore.cells.some(c => c.isRunning)) {
+              const nextId = actions.popFromQueue();
+              if (nextId) {
+                  actions.executeCell(nextId, executeRunner);
+              }
+          }
+      } else if (status === "error" || status === "stopped") {
+          actions.resetExecutionState();
+      }
+  });
 
   const runAll = async () => {
     // Run sequentially using the queue logic
@@ -293,6 +316,11 @@ const Notebook: Component = () => {
         e.preventDefault();
         kernel.terminate();
         actions.resetExecutionState();
+      } else if (e.altKey && e.key === "Backspace") {
+        if (notebookStore.activeCellId) {
+             e.preventDefault();
+             actions.clearCellOutput(notebookStore.activeCellId);
+        }
       }
 
       const activeId = notebookStore.activeCellId;
@@ -401,7 +429,12 @@ const Notebook: Component = () => {
     // Only save essential notebook state (cells, filename, history, historyIndex)
     // Always set isEditing to false for all cells before saving
     const data = {
-      cells: notebookStore.cells.map(cell => ({ ...cell, isEditing: false })),
+      cells: notebookStore.cells.map(cell => ({ 
+        ...cell, 
+        isEditing: false,
+        isRunning: false,
+        isQueued: false
+      })),
       filename: notebookStore.filename,
       history: notebookStore.history,
       historyIndex: notebookStore.historyIndex,
@@ -421,8 +454,15 @@ const Notebook: Component = () => {
       if (!raw) return false;
       const data = JSON.parse(raw);
       if (data && Array.isArray(data.cells)) {
+        // Sanitize cells to ensure no stale running state
+        const sanitizedCells = data.cells.map((c: any) => ({
+             ...c,
+             isRunning: false,
+             isQueued: false
+        }));
+
         actions.loadNotebook(
-          data.cells,
+          sanitizedCells,
           data.filename || "Untitled.ipynb",
           data.history || [],
           typeof data.historyIndex === "number" ? data.historyIndex : undefined,
@@ -610,6 +650,17 @@ const Notebook: Component = () => {
                    <DropdownItem onClick={() => actions.setPresentationMode(true)} shortcut="Alt+P">
                        <div class="flex items-center gap-2"><Eye size={18} /> Presentation</div>
                    </DropdownItem>
+                   <DropdownItem onClick={() => setShowPerformance(true)}>
+                       <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
+                   </DropdownItem>
+                   <DropdownItem onClick={() => {
+                       actions.loadNotebook(JSON.parse(JSON.stringify(tutorialCells)), "Tutorial.ipynb");
+                       setNotebookVersion(v => v + 1);
+                       autosaveNotebook();
+                       window.scrollTo(0, 0);
+                   }}>
+                       <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
+                   </DropdownItem>
                    <DropdownItem onClick={() => setShowShortcuts(!showShortcuts())} shortcut="Ctrl+/">
                        <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                    </DropdownItem>
@@ -782,6 +833,17 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                          </DropdownItem>
                          <DropdownDivider />
+                         <DropdownItem onClick={() => setShowPerformance(true)}>
+                             <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
+                         </DropdownItem>
+                         <DropdownItem onClick={() => {
+                             actions.loadNotebook(JSON.parse(JSON.stringify(tutorialCells)), "Tutorial.ipynb");
+                             setNotebookVersion(v => v + 1);
+                             autosaveNotebook();
+                             window.scrollTo(0, 0);
+                         }}>
+                            <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
+                         </DropdownItem>
                          <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
                              <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                          </DropdownItem>
@@ -884,6 +946,17 @@ const Notebook: Component = () => {
                      </DropdownItem>
                      <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                          <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => setShowPerformance(true)}>
+                         <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => {
+                         actions.loadNotebook(JSON.parse(JSON.stringify(tutorialCells)), "Tutorial.ipynb");
+                         setNotebookVersion(v => v + 1);
+                         autosaveNotebook();
+                         window.scrollTo(0, 0);
+                     }}>
+                         <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                      </DropdownItem>
                      <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
                          <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
@@ -1181,6 +1254,11 @@ const Notebook: Component = () => {
             isEditing={!!notebookStore.activeCellId && !!notebookStore.cells.find(c => c.id === notebookStore.activeCellId)?.isEditing} 
             onClose={() => setShowShortcuts(false)}
           />
+       </Show>
+
+       {/* Performance Monitor */}
+       <Show when={showPerformance()}>
+          <PerformanceMonitor onClose={() => setShowPerformance(false)} />
        </Show>
     </div>
   );
