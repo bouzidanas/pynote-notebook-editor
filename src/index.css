@@ -274,6 +274,17 @@ body {
   transition: transform 0.3s ease-in-out;
 }
 
+.cell-list-enter-active,
+.cell-list-exit-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.cell-list-enter-from,
+.cell-list-exit-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
 /* Remove bottom margin from last header to prevent double spacing */
 .prose > :where(h1, h2, h3, h4):last-child,
 .prose > .section-scope:last-child > :where(h1, h2, h3, h4):last-child,
