@@ -287,6 +287,7 @@ const Notebook: Component = () => {
       } else if (e.altKey && e.key === "n") { // Alt + N for New
         e.preventDefault();
         actions.loadNotebook([], "Untitled.ipynb");
+        window.history.replaceState({}, '', window.location.pathname); // Clear tutorial mode if set
         setNotebookVersion(v => v + 1);
         autosaveNotebook();
         window.scrollTo(0, 0);
@@ -426,6 +427,13 @@ const Notebook: Component = () => {
 
   // Save notebook state to localStorage (internal, not user-controlled)
   function autosaveNotebook() {
+    // If we are in tutorial mode (query param exists), do NOT overwrite user's local storage.
+    // We strictly check the query param to avoid blocking files named "Tutorial.ipynb" uploaded by user.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") === "tutorial") {
+      return;
+    }
+    
     // Only save essential notebook state (cells, filename, history, historyIndex)
     // Always set isEditing to false for all cells before saving
     const data = {
@@ -479,6 +487,14 @@ const Notebook: Component = () => {
 
   // On mount, restore autosaved notebook if present, else load default cells
   onMount(() => {
+    // Check for query params (e.g., ?open=tutorial)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") === "tutorial") {
+      actions.loadNotebook([...tutorialCells], "Tutorial.ipynb", []);
+      // Keep the query param so we know we are in read-only tutorial mode
+      return;
+    }
+
     const restored = restoreNotebook();
     if (!restored) {
       actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
@@ -654,10 +670,9 @@ const Notebook: Component = () => {
                        <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
                    </DropdownItem>
                    <DropdownItem onClick={() => {
-                       actions.loadNotebook(JSON.parse(JSON.stringify(tutorialCells)), "Tutorial.ipynb");
-                       setNotebookVersion(v => v + 1);
-                       autosaveNotebook();
-                       window.scrollTo(0, 0);
+                       // Open tutorial in new tab
+                       const url = `${window.location.origin}${window.location.pathname}?open=tutorial`;
+                       window.open(url, '_blank');
                    }}>
                        <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                    </DropdownItem>
@@ -837,10 +852,9 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
                          </DropdownItem>
                          <DropdownItem onClick={() => {
-                             actions.loadNotebook(JSON.parse(JSON.stringify(tutorialCells)), "Tutorial.ipynb");
-                             setNotebookVersion(v => v + 1);
-                             autosaveNotebook();
-                             window.scrollTo(0, 0);
+                             // Open tutorial in new tab
+                             const url = `${window.location.origin}${window.location.pathname}?open=tutorial`;
+                             window.open(url, '_blank');
                          }}>
                             <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                          </DropdownItem>
@@ -951,10 +965,9 @@ const Notebook: Component = () => {
                          <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
                      </DropdownItem>
                      <DropdownItem onClick={() => {
-                         actions.loadNotebook(JSON.parse(JSON.stringify(tutorialCells)), "Tutorial.ipynb");
-                         setNotebookVersion(v => v + 1);
-                         autosaveNotebook();
-                         window.scrollTo(0, 0);
+                         // Open tutorial in new tab
+                         const url = `${window.location.origin}${window.location.pathname}?open=tutorial`;
+                         window.open(url, '_blank');
                      }}>
                          <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                      </DropdownItem>

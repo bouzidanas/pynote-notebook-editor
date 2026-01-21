@@ -1,5 +1,6 @@
 {
   "name": "pynote-notebook-editor",
+  "author": "Anas Bouzid",
   "private": true,
   "version": "0.0.0",
   "type": "module",

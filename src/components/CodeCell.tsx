@@ -89,13 +89,13 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div class="flex flex-col">
+      <div class="flex flex-col p-2.25 py-2.75">
         {/* Output Logs (Stdout/UI) Above */}
         <Show when={currentTheme.outputLayout === "above" && props.cell.outputs}>
            <OutputStdoutUI outputs={props.cell.outputs} />
         </Show>
 
-        <div class={clsx("flex relative pl-1.75 z-10", props.cell.outputs && (props.cell.outputs.stdout.length > 0 || props.cell.outputs.stderr.length > 0 || props.cell.outputs.result || props.cell.outputs.error) ? "pt-2 px-2 pb-0" : "p-2")}>
+        <div class={clsx("flex relative pl-1.75 z-10 p-2")}>
            {/* Line numbers gutter could go here */}
            <div class={clsx(
              "w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono",
@@ -126,7 +126,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
 
         {/* Timeline Connector */}
         <Show when={props.cell.outputs && (props.cell.outputs.stdout.length > 0 || props.cell.outputs.stderr.length > 0 || props.cell.outputs.result || props.cell.outputs.error)}>
-           <div class="flex pl-1.5 relative z-0 h-5 my-0.75">
+           <div class="flex pl-1.5 relative z-0 h-5 -my-1.5">
               <div class="w-10 relative flex items-center justify-center">
                   <div class={clsx(
                       "absolute -right-1.25 rounded-full transition-all duration-300",
