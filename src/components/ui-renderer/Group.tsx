@@ -38,7 +38,7 @@ const Group: Component<GroupProps> = (p) => {
       <For each={p.props.children}>
         {(childData, index) => (
             <div 
-              class={p.props.layout === "row" && p.props.fill !== false ? "h-full [&>*]:h-full" : ""}
+              class={p.props.layout === "row" && p.props.fill !== false ? "h-full *:h-full" : ""}
               style={{
                 "flex-basis": p.props.basis && p.props.basis[index()] !== undefined ? p.props.basis[index()] : "auto",
                 "flex-grow": p.props.grow && p.props.grow[index()] !== undefined ? p.props.grow[index()] : undefined,
@@ -57,7 +57,7 @@ const Group: Component<GroupProps> = (p) => {
     <div class={`flex w-full ${justifyClass()}`}>
       <Show when={p.props.label} fallback={content}>
         <fieldset 
-          class={`border-2 border-foreground rounded-[var(--radius-sm)] p-3 bg-base-200/20 w-full`}
+          class={`border-2 border-foreground rounded-sm p-3 bg-base-200/20 w-full`}
           style={widthStyle()}
         >
           <legend class="px-2 text-xs font-bold uppercase tracking-wider text-secondary/70">

@@ -125,7 +125,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         </div>
 
         {/* Timeline Connector */}
-        <Show when={props.cell.outputs && (props.cell.outputs.stdout.length > 0 || props.cell.outputs.stderr.length > 0 || props.cell.outputs.result || props.cell.outputs.error)}>
+        <Show when={props.cell.outputs}>
            <div class="flex pl-1.5 relative z-0 h-5 -my-1.5">
               <div class="w-10 relative flex items-center justify-center">
                   <div class={clsx(

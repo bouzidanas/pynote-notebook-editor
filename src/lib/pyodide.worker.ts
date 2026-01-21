@@ -80,9 +80,221 @@ async function initPyodide() {
         });
         await pyodide.loadPackage("micropip");
         const micropip = pyodide.pyimport("micropip");
-        console.log("Installing pynote_ui...");
-        await micropip.install(self.location.origin + "/packages/pynote_ui-0.1.0-py3-none-any.whl");
-        console.log("pynote_ui installed successfully.");
+        // console.log("Installing pynote_ui...");
+        // await micropip.install(self.location.origin + "/packages/pynote_ui-0.1.0-py3-none-any.whl");
+        // console.log("pynote_ui installed successfully.");
+
+        // Optimisation: Pre-load pynote_ui directly into FS to skip HTTP/Micropip overhead
+        pyodide.FS.mkdir("pynote_ui");
+        pyodide.FS.writeFile("pynote_ui/__init__.py", `
+from .core import UIElement, StateManager, handle_interaction, set_current_cell, clear_cell, register_comm_target
+from .elements import Slider, Text, Group
+
+__all__ = ["UIElement", "StateManager", "handle_interaction", "Slider", "Text", "Group", "set_current_cell", "clear_cell", "register_comm_target"]
+`);
+        pyodide.FS.writeFile("pynote_ui/core.py", `
+import uuid
+import json
+
+class StateManager:
+    _instances = {}
+    _instances_by_cell = {}
+    _current_cell_id = None
+    _comm_target = None
+
+    @classmethod
+    def set_current_cell(cls, cell_id):
+        cls._current_cell_id = cell_id
+
+    @classmethod
+    def clear_cell(cls, cell_id):
+        if cell_id in cls._instances_by_cell:
+            for uid in cls._instances_by_cell[cell_id]:
+                if uid in cls._instances:
+                    del cls._instances[uid]
+            del cls._instances_by_cell[cell_id]
+
+    @classmethod
+    def register(cls, instance):
+        cls._instances[instance.id] = instance
+        if cls._current_cell_id:
+            if cls._current_cell_id not in cls._instances_by_cell:
+                cls._instances_by_cell[cls._current_cell_id] = []
+            cls._instances_by_cell[cls._current_cell_id].append(instance.id)
+
+    @classmethod
+    def get(cls, uid):
+        return cls._instances.get(uid)
+    
+    @classmethod
+    def update(cls, uid, data):
+        instance = cls.get(uid)
+        if instance:
+            instance.handle_interaction(data)
+            return True
+        return False
+    
+    @classmethod
+    def register_comm_target(cls, callback):
+        cls._comm_target = callback
+    
+    @classmethod
+    def send_update(cls, uid, data):
+        if cls._comm_target:
+            try:
+                cls._comm_target(uid, data)
+            except Exception as e:
+                # Fallback or error logging if needed
+                pass
+
+class UIElement:
+    def __init__(self, **kwargs):
+        self.id = str(uuid.uuid4())
+        self.props = kwargs
+        self._on_update = None
+        StateManager.register(self)
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "type": self.__class__.__name__,
+            "props": self.props
+        }
+
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return {
+            "application/vnd.pynote.ui+json": self.to_json()
+        }
+    
+    def on_update(self, callback):
+        self._on_update = callback
+
+    def handle_interaction(self, data):
+        """Override in subclasses to handle updates from frontend"""
+        if self._on_update:
+            self._on_update(data)
+    
+    def send_update(self, **kwargs):
+        """Send property updates to the frontend"""
+        self.props.update(kwargs)
+        StateManager.send_update(self.id, kwargs)
+
+def handle_interaction(uid, data):
+    return StateManager.update(uid, data)
+
+def set_current_cell(cell_id):
+    StateManager.set_current_cell(cell_id)
+
+def clear_cell(cell_id):
+    StateManager.clear_cell(cell_id)
+
+def register_comm_target(callback):
+    StateManager.register_comm_target(callback)
+`);
+        pyodide.FS.writeFile("pynote_ui/elements.py", `
+from .core import UIElement
+
+class Slider(UIElement):
+    def __init__(self, value=0, min=0, max=100, step=1, label="Slider"):
+        self._value = value
+        self.min = min
+        self.max = max
+        self.step = step
+        self.label = label
+        super().__init__(value=value, min=min, max=max, step=step, label=label)
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, new_value):
+        self._value = new_value
+        self.send_update(value=new_value)
+
+    def handle_interaction(self, data):
+        if "value" in data:
+            self._value = type(self._value)(data["value"])
+            # Update internal props to match current state
+            self.props["value"] = self._value
+        super().handle_interaction(data)
+
+class Text(UIElement):
+    def __init__(self, content=""):
+        self._content = content
+        super().__init__(content=content)
+
+    @property
+    def content(self):
+        return self._content
+
+    @content.setter
+    def content(self, value):
+        self._content = value
+        self.send_update(content=value)
+
+class Group(UIElement):
+    def __init__(self, children, layout="col", label=None, width="full", align="center", basis=None, shrink=None, grow=None, fill=True):
+        self.children = children
+        
+        # Validation helper
+        def validate_list_arg(arg, name):
+            if arg:
+                if not isinstance(arg, list):
+                    print(f"Warning: {name} must be a list.")
+                    return None
+                if len(arg) > len(children):
+                    print(f"Warning: {name} list is longer than children list. Extra values will be ignored.")
+            return arg
+
+        basis = validate_list_arg(basis, "basis")
+        shrink = validate_list_arg(shrink, "shrink")
+        grow = validate_list_arg(grow, "grow")
+
+        super().__init__(
+            children=[c.to_json() for c in children], 
+            layout=layout, 
+            label=label, 
+            width=width, 
+            align=align,
+            basis=basis,
+            shrink=shrink,
+            grow=grow,
+            fill=fill
+        )
+
+    @property
+    def width(self):
+        return self.props.get("width")
+    
+    @width.setter
+    def width(self, value):
+        self.send_update(width=value)
+
+    @property
+    def align(self):
+        return self.props.get("align")
+    
+    @align.setter
+    def align(self, value):
+        self.send_update(align=value)
+
+    @property
+    def layout(self):
+        return self.props.get("layout")
+    
+    @layout.setter
+    def layout(self, value):
+        self.send_update(layout=value)
+        
+    @property
+    def label(self):
+        return self.props.get("label")
+    
+    @label.setter
+    def label(self, value):
+        self.send_update(label=value)
+`);
 
         await pyodide.runPythonAsync(INIT_CODE);
 
@@ -124,7 +336,7 @@ async function runCode(id: string, code: string) {
         run_cell_code.destroy();
 
         // Check for explicit error returned from Python (captured traceback)
-        if (result && result.toJs && result.has("__pynote_error__")) {
+        if (result && result.toJs && typeof result.has === "function" && result.has("__pynote_error__")) {
             const errorMsg = result.get("__pynote_error__");
             postMessage({ id, type: "error", error: errorMsg });
             result.destroy();

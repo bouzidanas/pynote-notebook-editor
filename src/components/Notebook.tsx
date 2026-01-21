@@ -8,6 +8,7 @@ import MarkdownCell from "./MarkdownCell";
 import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
+import { sessionManager } from "../lib/session";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 
@@ -44,7 +45,8 @@ const SHORTCUTS = {
     { label: "Run & Stay Editing", keys: "Ctrl + Enter" },
     { label: "Run & Edit Next", keys: "Shift + Enter" },
     { label: "Run & Insert", keys: "Alt + Enter" },
-    { label: "Exit Edit Mode", keys: "Esc" }
+    { label: "Exit Edit Mode", keys: "Esc" },
+    { label: "Clear Output", keys: "Alt + Backspace" }
   ]
 };
 
@@ -215,10 +217,10 @@ const Notebook: Component = () => {
   const [showShortcuts, setShowShortcuts] = createSignal(false);
   const [showPerformance, setShowPerformance] = createSignal(false);
   // Version signal to force re-mounting of the list on full reloads
-  const [notebookVersion, setNotebookVersion] = createSignal(0);
+  const [notebookVersion, ] = createSignal(0);
 
-  // --- Internal Autosave Mechanism ---
-  const AUTOSAVE_KEY = "pynote-autosave";
+  // --- Old Internal Autosave Mechanism ---
+  // const AUTOSAVE_KEY = "pynote-autosave";
 
   // Helper to run a specific cell
   const executeRunner = async (content: string, id: string) => {
@@ -286,11 +288,12 @@ const Notebook: Component = () => {
         fileInput?.click();
       } else if (e.altKey && e.key === "n") { // Alt + N for New
         e.preventDefault();
-        actions.loadNotebook([], "Untitled.ipynb");
-        window.history.replaceState({}, '', window.location.pathname); // Clear tutorial mode if set
-        setNotebookVersion(v => v + 1);
-        autosaveNotebook();
-        window.scrollTo(0, 0);
+        // Redirect to a completely new session URL
+        const url = sessionManager.createNewSessionUrl();
+        // Option A: Same Tab (History Push)
+        // window.location.href = url;
+        // Option B: New Tab
+        window.open(url, '_blank');
       } else if ((e.ctrlKey || e.metaKey) && e.key === "e") {
         e.preventDefault();
         handleSave(); // Export is same as Save currently
@@ -433,6 +436,13 @@ const Notebook: Component = () => {
     if (params.get("open") === "tutorial") {
       return;
     }
+
+    const sessionId = sessionManager.getSessionIdFromUrl();
+    if (!sessionId) {
+      // Should not happen for normal sessions, but if it does (e.g. user manually removed param),
+      // we don't save to avoid polluting "null" key.
+      return;
+    }
     
     // Only save essential notebook state (cells, filename, history, historyIndex)
     // Always set isEditing to false for all cells before saving
@@ -448,20 +458,17 @@ const Notebook: Component = () => {
       historyIndex: notebookStore.historyIndex,
       activeCellId: notebookStore.activeCellId
     };
-    try {
-      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
-    } catch (e) {
-      // Ignore quota errors, etc.
-    }
+    
+    sessionManager.saveSession(sessionId, data);
   }
 
   // Restore notebook state from localStorage (if present)
   function restoreNotebook() {
-    try {
-      const raw = localStorage.getItem(AUTOSAVE_KEY);
-      if (!raw) return false;
-      const data = JSON.parse(raw);
-      if (data && Array.isArray(data.cells)) {
+    const sessionId = sessionManager.getSessionIdFromUrl();
+    if (!sessionId) return false;
+
+    const data = sessionManager.loadSession(sessionId);
+    if (data && Array.isArray(data.cells)) {
         // Sanitize cells to ensure no stale running state
         const sanitizedCells = data.cells.map((c: any) => ({
              ...c,
@@ -478,9 +485,6 @@ const Notebook: Component = () => {
         );
         return true;
       }
-    } catch (e) {
-      // Ignore parse errors
-    }
     return false;
   }
 
@@ -495,9 +499,24 @@ const Notebook: Component = () => {
       return;
     }
 
-    const restored = restoreNotebook();
-    if (!restored) {
-      actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
+    // New Session Handling
+    let sessionId = sessionManager.getSessionIdFromUrl();
+    if (!sessionId) {
+        // First visit or cleared URL - Create new session
+        const newUrl = sessionManager.createNewSessionUrl();
+        window.history.replaceState({}, '', newUrl);
+        // Start fresh
+        actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
+        // Force immediate save to establish the session in index
+        autosaveNotebook();
+    } else {
+        const restored = restoreNotebook();
+        if (!restored) {
+            // ID exists but data is gone (expired/deleted)
+            // Treat as fresh
+             actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
+             autosaveNotebook();
+        }
     }
   });
 
@@ -603,10 +622,25 @@ const Notebook: Component = () => {
           // Extract history from PyNote metadata if it exists
           const history = nb.metadata?.PyNote?.history || [];
           
-          actions.loadNotebook(newCells, file.name, history);
-          setNotebookVersion(v => v + 1);
-          autosaveNotebook();
-          window.scrollTo(0, 0);
+          // Generate a new session ID for this file
+          const newSessionId = crypto.randomUUID();
+          
+          // Create session data
+          const sessionData = {
+            cells: newCells,
+            filename: file.name,
+            history: history,
+            historyIndex: 0,
+            activeCellId: null
+          };
+          
+          // Save to the new session slot
+          sessionManager.saveSession(newSessionId, sessionData);
+          
+          // Navigate to the new session URL (pushes to history so Back works)
+          const url = new URL(window.location.href);
+          url.searchParams.set("session", newSessionId);
+          window.location.assign(url.toString()); // Re-loads with new session
         }
       } catch (err) {
         console.error("Failed to load notebook", err);
@@ -645,10 +679,8 @@ const Notebook: Component = () => {
                }>
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
                    <DropdownItem onClick={() => { 
-                       actions.loadNotebook([], "Untitled.ipynb"); 
-                       setNotebookVersion(v => v + 1);
-                       autosaveNotebook(); 
-                       window.scrollTo(0, 0);
+                       const url = sessionManager.createNewSessionUrl();
+                       window.open(url, '_blank');
                    }} shortcut="Alt+N"> 
                        <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                    </DropdownItem>
@@ -701,7 +733,7 @@ const Notebook: Component = () => {
                             const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                             return !c || !c.outputs;
                         })()}
-                        // No default shortcut for clear selected, maybe leave blank
+                        shortcut="Alt+Backspace"
                    >
                        <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
                    </DropdownItem>
@@ -835,7 +867,10 @@ const Notebook: Component = () => {
                    {/* Nested on sm+, sectioned on max-sm */}
                    <div class="hidden sm:block">
                      <DropdownNested label={<div class="flex items-center gap-2"><Save size={18} /> File</div>}>
-                         <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")} shortcut="Alt+N">
+                         <DropdownItem onClick={() => {
+                            const url = sessionManager.createNewSessionUrl();
+                            window.open(url, '_blank');
+                         }} shortcut="Alt+N">
                              <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                          </DropdownItem>
                          <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
@@ -877,6 +912,7 @@ const Notebook: Component = () => {
                                   const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                                   return !c || !c.outputs;
                               })()}
+                              shortcut="Alt+Backspace"
                          >
                              <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
                          </DropdownItem>
@@ -949,7 +985,10 @@ const Notebook: Component = () => {
                    <div class="block sm:hidden">
                      {/* File Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
-                     <DropdownItem onClick={() => actions.loadNotebook([], "Untitled.ipynb")} shortcut="Alt+N">
+                     <DropdownItem onClick={() => {
+                        const url = sessionManager.createNewSessionUrl();
+                        window.open(url, '_blank');
+                     }} shortcut="Alt+N">
                          <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                      </DropdownItem>
                      <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
@@ -990,7 +1029,9 @@ const Notebook: Component = () => {
                           disabled={kernel.status !== "ready" || !notebookStore.activeCellId || (() => {
                               const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                               return !c || !c.outputs;
+                              
                           })()}
+                          shortcut="Alt+Backspace"
                      >
                          <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
                      </DropdownItem>
@@ -1217,7 +1258,7 @@ const Notebook: Component = () => {
        <Show when={showShortcuts()}>
          <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowShortcuts(false)}>
            <div class="bg-background border border-foreground rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-             <div class="flex items-center justify-between p-4 border-b border-foreground flex-shrink-0">
+             <div class="flex items-center justify-between p-4 border-b border-foreground shrink-0">
                <h2 class="text-lg font-bold flex items-center gap-2"><Keyboard /> Keyboard Shortcuts</h2>
                <button onClick={() => setShowShortcuts(false)} class="p-1 hover:bg-foreground rounded-sm">
                  <X size={20} />
@@ -1253,7 +1294,7 @@ const Notebook: Component = () => {
                </div>
 
              </div>
-             <div class="p-4 border-t border-foreground text-center text-xs text-secondary/50 flex-shrink-0">
+             <div class="p-4 border-t border-foreground text-center text-xs text-secondary/50 shrink-0">
                Click anywhere outside to close
              </div>
            </div>
