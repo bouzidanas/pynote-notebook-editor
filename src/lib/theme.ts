@@ -21,11 +21,13 @@ export interface Theme {
     fontSize: string;
     headerDelta: string;
     headerColors?: string[];
+    headerMarginBottom: string;
   };
   editor: {
     maxCodeHeight: string;
   };
   sectionScoping: boolean;
+  outputLayout: "above" | "below";
 }
 
 const defaultTheme: Theme = {
@@ -48,11 +50,13 @@ const defaultTheme: Theme = {
     fontSize: "1rem",
     headerDelta: "0.225rem",
     headerColors: ["#f38ba8", "#fab387", "#f9e2af", "#a6e3a1"],
+    headerMarginBottom: "1rem",
   },
   editor: {
     maxCodeHeight: "none",
   },
   sectionScoping: true,
+  outputLayout: "above",
 };
 
 const [theme, setTheme] = createStore<Theme>(defaultTheme);
@@ -67,6 +71,7 @@ export const updateTheme = (newTheme: any) => {
   if (newTheme.typography) setTheme("typography", (t) => ({ ...t, ...newTheme.typography }));
   if (newTheme.editor) setTheme("editor", (e) => ({ ...e, ...newTheme.editor }));
   if (newTheme.sectionScoping !== undefined) setTheme("sectionScoping", newTheme.sectionScoping);
+  if (newTheme.outputLayout) setTheme("outputLayout", newTheme.outputLayout);
 };
 
 export const initTheme = () => {
@@ -93,6 +98,7 @@ export const initTheme = () => {
 
     root.style.setProperty("--font-size-base", theme.typography.fontSize);
     root.style.setProperty("--font-size-delta", theme.typography.headerDelta);
+    root.style.setProperty("--header-margin-bottom", theme.typography.headerMarginBottom);
 
     // Header Colors Logic
     const colors = theme.typography.headerColors || [];
