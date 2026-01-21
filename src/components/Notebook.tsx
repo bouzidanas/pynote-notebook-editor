@@ -42,7 +42,8 @@ const SHORTCUTS = {
     { label: "Clear Output", keys: "Alt + Backspace" }
   ],
   edit: [
-    { label: "Run & Stay Editing", keys: "Ctrl + Enter" },
+    { label: "Run & Stay (Code)", keys: "Ctrl + Enter" },
+    { label: "Render (Markdown)", keys: "Ctrl + Enter" },
     { label: "Run & Edit Next", keys: "Shift + Enter" },
     { label: "Run & Insert", keys: "Alt + Enter" },
     { label: "Exit Edit Mode", keys: "Esc" },
@@ -352,9 +353,15 @@ const Notebook: Component = () => {
                 }
             }
         } else if (e.key === "Enter" && e.ctrlKey) {
-            // Run & Stay Editing
+            // Run & Stay (Exit Edit Mode for Markdown, Stay for Code)
             e.preventDefault();
-            if (activeId) runCell(activeId);
+            if (activeId) {
+                runCell(activeId);
+                // Only exit edit mode if it's a markdown cell
+                if (activeCell?.type === "markdown") {
+                    actions.setEditing(activeId, false);
+                }
+            }
         } else if (e.key === "Enter" && e.altKey) {
             // Run & Insert Below (Edit new)
             e.preventDefault();

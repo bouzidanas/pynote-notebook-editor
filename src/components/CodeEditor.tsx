@@ -54,6 +54,17 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
   }, { dark: true }));
 
+  // Prevent default CodeMirror newline behavior for run shortcuts
+  // execution handling is done at the window level in Notebook.tsx
+  createExtension(() => EditorView.domEventHandlers({
+    keydown: (event) => {
+      if (event.key === "Enter" && (event.ctrlKey || event.shiftKey || event.altKey)) {
+        return true; // Stop CodeMirror from handling this (no newline), but let it bubble
+      }
+      return false;
+    }
+  }));
+
   // Base extensions
   createExtension([
     python(),

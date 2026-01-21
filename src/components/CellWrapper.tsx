@@ -1,4 +1,4 @@
-import { type Component, type JSX, Show, createSignal } from "solid-js";
+import { type Component, type JSX, Show, createSignal, createEffect } from "solid-js";
 import { createSortable } from "@thisbeyond/solid-dnd";
 import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer } from "lucide-solid";
 import clsx from "clsx";
@@ -28,10 +28,28 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
   const sortable = createSortable(props.id);
   const [hovered, setHovered] = createSignal(false);
   const presentationMode = () => notebookStore.presentationMode;
+  let elementRef: HTMLDivElement | undefined;
+
+  createEffect(() => {
+    if (props.isActive && elementRef) {
+      const rect = elementRef.getBoundingClientRect();
+      const HEADER_HEIGHT = 100; // Safe area for sticky header + toolbar + padding
+      const BOTTOM_MARGIN = 20;
+
+      // Check if hidden above
+      if (rect.top < HEADER_HEIGHT) {
+        window.scrollBy({ top: rect.top - HEADER_HEIGHT, behavior: "smooth" });
+      } 
+      // Check if hidden below
+      else if (rect.bottom > window.innerHeight - BOTTOM_MARGIN) {
+        window.scrollBy({ top: rect.bottom - window.innerHeight + BOTTOM_MARGIN, behavior: "smooth" });
+      }
+    }
+  });
 
   return (
     <div
-      ref={sortable.ref}
+      ref={(el) => { sortable.ref(el); elementRef = el; }}
       {...sortable.dragActivators}
       onKeyDown={undefined}
       class={clsx(
@@ -63,7 +81,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       <Show when={!presentationMode()}>
         <div 
           class={clsx(
-            "absolute -left-10 w-8 top-0 bottom-0 flex flex-col items-center hidden lg:flex transition-opacity duration-200 pointer-events-none",
+            "absolute -left-10 w-8 top-0 bottom-0 flex-col items-center hidden lg:flex transition-opacity duration-200 pointer-events-none",
             (hovered() || props.isActive) ? "opacity-100" : "opacity-0"
           )}
           style={{ "container-type": "size", "container-name": "cell-sidebar" }}
