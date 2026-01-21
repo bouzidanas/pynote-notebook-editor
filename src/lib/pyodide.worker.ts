@@ -79,7 +79,7 @@ async function initPyodide() {
             indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.0/full/"
         });
         await pyodide.loadPackage("micropip");
-        const micropip = pyodide.pyimport("micropip");
+        // const micropip = pyodide.pyimport("micropip");
         // console.log("Installing pynote_ui...");
         // await micropip.install(self.location.origin + "/packages/pynote_ui-0.1.0-py3-none-any.whl");
         // console.log("pynote_ui installed successfully.");
