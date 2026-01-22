@@ -24,11 +24,12 @@ export interface CellData {
 }
 
 // Compact history format:
-// a=add, d=delete, m=move
+// a=add, d=delete, m=move, u=update
 // Format: "action|data"
 // Add: "a|index|type|id"
 // Delete: "d|index|type|id|content"
 // Move: "m|fromIndex|toIndex|id"
+// Update: "u|id|oldContent|newContent"
 type HistoryEntry = string;
 
 export interface NotebookState {
@@ -44,6 +45,63 @@ export interface NotebookState {
 }
 
 const MAX_HISTORY = 100;
+
+// Internal cache to track content at the start of an edit session
+const editSessionStartContent = new Map<string, string>();
+
+// --- History Storage Utilities ---
+// Robust string escaping for pipe-delimited format
+const escapeContent = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+const unescapeContent = (s: string) => s.replace(/\\\|/g, '|').replace(/\\\\/g, '\\');
+
+// Helper to parse "u|id|old|new" which has two escaped distinct content blocks
+const parseUpdateEntry = (entry: string): { id: string, oldContent: string, newContent: string } | null => {
+  // skip "u|" (2 chars)
+  const firstPipe = entry.indexOf('|');
+  const secondPipe = entry.indexOf('|', firstPipe + 1);
+  if (firstPipe === -1 || secondPipe === -1) return null;
+
+  const id = entry.substring(firstPipe + 1, secondPipe);
+  const contentParams = entry.substring(secondPipe + 1);
+
+  // scan for the middle separator
+  let splitIdx = -1;
+  for (let i = 0; i < contentParams.length; i++) {
+    if (contentParams[i] === '|') {
+      let backslashCount = 0;
+      for (let j = i - 1; j >= 0; j--) {
+        if (contentParams[j] === '\\') backslashCount++;
+        else break;
+      }
+      if (backslashCount % 2 === 0) {
+        splitIdx = i;
+        break;
+      }
+    }
+  }
+
+  if (splitIdx === -1) return null;
+
+  return {
+    id,
+    oldContent: unescapeContent(contentParams.substring(0, splitIdx)),
+    newContent: unescapeContent(contentParams.substring(splitIdx + 1))
+  };
+};
+
+// Helper to commit an edit session (check for changes and update history)
+const commitEditSession = (id: string, currentContent: string) => {
+  const startContent = editSessionStartContent.get(id);
+  // Only commit if we actually have a start snapshot
+  if (startContent !== undefined) {
+    if (startContent !== currentContent) {
+      // Content changed! Push to global history
+      addToHistory(`u|${id}|${escapeContent(startContent)}|${escapeContent(currentContent)}`);
+    }
+    // Cleanup
+    editSessionStartContent.delete(id);
+  }
+};
 
 export const defaultCells: CellData[] = [
   {
@@ -153,9 +211,7 @@ export const actions = {
       kernel.clearCellState(id);
 
       // Add to history before deleting: "d|index|type|id|content"
-      // Escape pipes in content
-      const escapedContent = cell.content.replace(/\|/g, '\\|');
-      addToHistory(`d|${idx}|${cell.type}|${id}|${escapedContent}`);
+      addToHistory(`d|${idx}|${cell.type}|${id}|${escapeContent(cell.content)}`);
 
       setStore("cells", produce((cells) => {
         cells.splice(idx, 1);
@@ -209,7 +265,9 @@ export const actions = {
       // Undo delete: re-add the cell
       const [, indexStr, type, id, ...contentParts] = parts;
       const idx = parseInt(indexStr);
-      const content = contentParts.join('|').replace(/\\\|/g, '|');
+      // Join remaining parts in case content contained pipe (legacy fallback)
+      const content = unescapeContent(contentParts.join('|'));
+
       setStore("cells", produce((cells) => {
         cells.splice(idx, 0, {
           id,
@@ -227,6 +285,15 @@ export const actions = {
         const [moved] = cells.splice(toIndex, 1);
         cells.splice(fromIndex, 0, moved);
       }));
+    } else if (action === 'u') {
+      const updateData = parseUpdateEntry(entry);
+      if (updateData) {
+        setStore("cells", (c) => c.id === updateData.id, "content", updateData.oldContent);
+      }
+    }
+    // Autosave after undo
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
     }
   },
 
@@ -264,10 +331,25 @@ export const actions = {
         const [moved] = cells.splice(fromIndex, 1);
         cells.splice(toIndex, 0, moved);
       }));
+    } else if (action === 'u') {
+      const updateData = parseUpdateEntry(entry);
+      if (updateData) {
+        setStore("cells", (c) => c.id === updateData.id, "content", updateData.newContent);
+      }
+    }    // Autosave after redo
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
     }
   },
 
   setActiveCell: (id: string | null) => {
+    // Commit any active edit sessions before switching
+    store.cells.forEach(cell => {
+      if (cell.isEditing && cell.id !== id) {
+        commitEditSession(cell.id, cell.content);
+      }
+    });
+
     setStore("activeCellId", id);
     setStore("cells", (c) => c.id !== id, "isEditing", false);
   },
@@ -278,6 +360,21 @@ export const actions = {
     (actions as any).__autosaveCallback = cb;
   },
   setEditing: (id: string, isEditing: boolean) => {
+    // Session State Tracking for Undo/Redo
+    const cell = store.cells.find(c => c.id === id);
+    if (cell) {
+      if (isEditing) {
+        // Start of edit session: Cache the current content
+        // Only if not already tracking (avoid overwriting start state on double calls)
+        if (!editSessionStartContent.has(id)) {
+          editSessionStartContent.set(id, cell.content);
+        }
+      } else {
+        // End of edit session: Check for changes
+        commitEditSession(id, cell.content);
+      }
+    }
+
     setStore("cells", (c) => c.id === id, "isEditing", isEditing);
     // Call autosave only when leaving edit mode
     if (!isEditing && (actions as any).__autosaveCallback) {
@@ -333,14 +430,14 @@ export const actions = {
       kernel.clearCellState(id);
       // Set context for new UI elements
       kernel.setCellContext(id);
-      
+
       await runKernel(cell.content, id);
     } catch (e) {
       console.error(e);
       // If the run failed/interrupted without producing any new output, clear the stale output
       const currentCell = store.cells.find(c => c.id === id);
       if (currentCell && currentCell.outputs === previousOutputs) {
-          actions.clearCellOutput(id);
+        actions.clearCellOutput(id);
       }
     } finally {
       actions.setCellRunning(id, false);
@@ -413,6 +510,12 @@ export const actions = {
     setStore("presentationMode", enabled);
     // Clear active cell and exit edit mode when entering presentation
     if (enabled) {
+      // Commit pending edits
+      store.cells.forEach(cell => {
+        if (cell.isEditing) {
+          commitEditSession(cell.id, cell.content);
+        }
+      });
       setStore("activeCellId", null);
       setStore("cells", () => true, "isEditing", false);
     }

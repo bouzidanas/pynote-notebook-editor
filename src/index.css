@@ -86,30 +86,45 @@ body {
   @apply outline-none ring-0 border-none;
 }
 
-/* Fix Tailwind resets for Milkdown content */
-.milkdown .editor ul {
+/* Fix Tailwind resets for Milkdown content and Prose (Shared styles) */
+.milkdown .editor ul,
+.prose ul {
     list-style-type: disc !important;
     padding-left: 1.5rem !important;
-    margin: 1rem 0 !important;
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
     margin-left: 1.5rem !important;
 }
-.milkdown .editor ol {
+.milkdown .editor ol,
+.prose ol {
     list-style-type: decimal !important;
-    padding-left: 1.5rem !important;
-    margin: 1rem 0 !important;
-    margin-left: 1.5rem !important;
+    /* Reverting left padding/margin alignment as requested */
+    padding-left: 1.5rem !important; 
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
+    margin-left: 2.2rem !important;
 }
-.milkdown .editor li::marker {
+.milkdown .editor li::marker,
+.prose li::marker {
     color: var(--primary);
     font-weight: bold;
 }
+
+/* Remove left margin for nested lists */
+.milkdown .editor li > ul,
+.milkdown .editor li > ol,
+.prose li > ul,
+.prose li > ol {
+    margin-left: 0.5rem !important;
+}
+
 /* Modern Table Styling for Editor and Prose */
 .milkdown .editor table,
 .prose table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    margin: 1.25rem 0;
+    margin: 0;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
     overflow: hidden;
@@ -162,23 +177,7 @@ body {
     border-radius: var(--radius-sm);
 }
 
-/* Fix Tailwind resets for Prose (Presentation Mode) */
-.prose ul {
-    list-style-type: disc !important;
-    padding-left: 1.5rem !important;
-    margin: 1rem 0 !important;
-    margin-left: 1.5rem !important;
-}
-.prose ol {
-    list-style-type: decimal !important;
-    padding-left: 1.5rem !important;
-    margin: 1rem 0 !important;
-    margin-left: 1.5rem !important;
-}
-.prose li::marker {
-    color: var(--primary);
-    font-weight: bold;
-}
+/* Fix Tailwind resets for Prose (Presentation Mode) - Removed duplicates, now shared above */
 .prose code {
     font-family: var(--font-mono) !important;
     font-size: 0.875em !important;
@@ -256,11 +255,20 @@ body {
 /* Blockquote styling */
 .prose blockquote,
 .milkdown .editor blockquote {
-    border-left: 2px solid var(--primary) !important;
-    padding-left: 1rem !important;
-    margin-left: 0 !important;
+    border-left: 3px solid var(--primary) !important;
+    padding-left: 2rem !important;
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
+    margin-left: 1px !important;
     color: var(--secondary) !important;
     font-style: normal;
+}
+
+ /* Image Styling */
+.prose img,
+.milkdown .editor img {
+    border-radius: var(--radius-sm) !important;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
 }
 
 /* Section Scoping Logic */

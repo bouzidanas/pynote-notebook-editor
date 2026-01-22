@@ -280,6 +280,12 @@ const Notebook: Component = () => {
   // Keyboard Shortcuts
   onMount(() => {
     const handleGlobalKeydown = (e: KeyboardEvent) => {
+      // Resolve state early
+      const activeId = notebookStore.activeCellId;
+      const activeCell = activeId ? notebookStore.cells.find(c => c.id === activeId) : null;
+      const activeIndex = activeId ? notebookStore.cells.findIndex(c => c.id === activeId) : -1;
+      const isEditing = activeCell?.isEditing;
+
       // Global Shortcuts
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
@@ -298,7 +304,21 @@ const Notebook: Component = () => {
       } else if ((e.ctrlKey || e.metaKey) && e.key === "e") {
         e.preventDefault();
         handleSave(); // Export is same as Save currently
+      } else if (!isEditing && (e.ctrlKey || e.metaKey) && (e.key === "z" || e.key === "Z")) {
+        // Global Undo/Redo (Only when NOT editing)
+        if (e.shiftKey) {
+           e.preventDefault();
+           actions.redo();
+        } else {
+           e.preventDefault();
+           actions.undo();
+        }
+      } else if (!isEditing && (e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y")) {
+         // Global Redo (Windows style)
+         e.preventDefault();
+         actions.redo();
       } else if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+
         e.preventDefault();
         setShowShortcuts(!showShortcuts());
       } else if (e.altKey && e.key === "p") {
@@ -328,12 +348,8 @@ const Notebook: Component = () => {
         }
       }
 
-      const activeId = notebookStore.activeCellId;
-      const activeCell = activeId ? notebookStore.cells.find(c => c.id === activeId) : null;
-      const activeIndex = activeId ? notebookStore.cells.findIndex(c => c.id === activeId) : -1;
-      const isEditing = activeCell?.isEditing;
-
       if (isEditing) {
+
         // Edit Mode Shortcuts
         if (e.key === "Enter" && e.shiftKey) {
             // Run & Edit Next
@@ -437,16 +453,10 @@ const Notebook: Component = () => {
 
   // Save notebook state to localStorage (internal, not user-controlled)
   function autosaveNotebook() {
-    // If we are in tutorial mode (query param exists), do NOT overwrite user's local storage.
-    // We strictly check the query param to avoid blocking files named "Tutorial.ipynb" uploaded by user.
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("open") === "tutorial") {
-      return;
-    }
-
     const sessionId = sessionManager.getSessionIdFromUrl();
     if (!sessionId) {
       // Should not happen for normal sessions, but if it does (e.g. user manually removed param),
+
       // we don't save to avoid polluting "null" key.
       return;
     }
@@ -498,16 +508,24 @@ const Notebook: Component = () => {
 
   // On mount, restore autosaved notebook if present, else load default cells
   onMount(() => {
-    // Check for query params (e.g., ?open=tutorial)
     const params = new URLSearchParams(window.location.search);
-    if (params.get("open") === "tutorial") {
+    const isTutorial = params.get("open") === "tutorial";
+    let sessionId = sessionManager.getSessionIdFromUrl();
+
+    // Handle Tutorial Initialization (Fresh)
+    if (isTutorial && !sessionId) {
+      // Create new session ID for the tutorial
+      sessionId = crypto.randomUUID();
+      const url = new URL(window.location.href);
+      url.searchParams.set("session", sessionId);
+      window.history.replaceState({}, "", url.toString());
+
       actions.loadNotebook([...tutorialCells], "Tutorial.ipynb", []);
-      // Keep the query param so we know we are in read-only tutorial mode
+      autosaveNotebook();
       return;
     }
 
-    // New Session Handling
-    let sessionId = sessionManager.getSessionIdFromUrl();
+    // New Session Handling (Normal)
     if (!sessionId) {
         // First visit or cleared URL - Create new session
         const newUrl = sessionManager.createNewSessionUrl();
@@ -520,8 +538,13 @@ const Notebook: Component = () => {
         const restored = restoreNotebook();
         if (!restored) {
             // ID exists but data is gone (expired/deleted)
-            // Treat as fresh
-             actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
+            if (isTutorial) {
+                 // Tutorial link with invalid/expired session -> Reload Tutorial
+                 actions.loadNotebook([...tutorialCells], "Tutorial.ipynb", []);
+            } else {
+                 // Normal link with invalid/expired session -> New Notebook
+                 actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
+            }
              autosaveNotebook();
         }
     }
@@ -637,7 +660,7 @@ const Notebook: Component = () => {
             cells: newCells,
             filename: file.name,
             history: history,
-            historyIndex: 0,
+            historyIndex: history.length - 1,
             activeCellId: null
           };
           
@@ -647,6 +670,7 @@ const Notebook: Component = () => {
           // Navigate to the new session URL (pushes to history so Back works)
           const url = new URL(window.location.href);
           url.searchParams.set("session", newSessionId);
+          url.searchParams.delete("open"); // Clear tutorial param if present
           window.location.assign(url.toString()); // Re-loads with new session
         }
       } catch (err) {
@@ -692,7 +716,7 @@ const Notebook: Component = () => {
                        <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                    </DropdownItem>
                    <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
-                       <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
+                       <div class="flex items-center gap-2"><FolderOpen size={18} /> Open</div>
                    </DropdownItem>
                    <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                        <div class="flex items-center gap-2"><Save size={18} /> Save</div>

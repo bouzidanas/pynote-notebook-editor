@@ -16,6 +16,8 @@ export interface Theme {
   };
   spacing: {
     line: string;
+    cell: string;
+    block: string;
   };
   typography: {
     fontSize: string;
@@ -45,12 +47,14 @@ const defaultTheme: Theme = {
   },
   spacing: {
     line: "1.75",
+    cell: "0.90rem",
+    block: "1.25rem",
   },
   typography: {
     fontSize: "1rem",
     headerDelta: "0.225rem",
     headerColors: ["#f38ba8", "#fab387", "#f9e2af", "#a6e3a1"],
-    headerMarginBottom: "1rem",
+    headerMarginBottom: "1.5rem",
   },
   editor: {
     maxCodeHeight: "none",
@@ -87,14 +91,16 @@ export const initTheme = () => {
 
     // Persist critical colors for index.html pre-loader
     try {
-        localStorage.setItem("theme_bg", theme.colors.background);
-        localStorage.setItem("theme_text", theme.colors.secondary);
+      localStorage.setItem("theme_bg", theme.colors.background);
+      localStorage.setItem("theme_text", theme.colors.secondary);
     } catch (e) { /* ignore */ }
 
     root.style.setProperty("--radius-lg", theme.radii.lg);
     root.style.setProperty("--radius-sm", theme.radii.sm);
 
     root.style.setProperty("--line-spacing", theme.spacing.line);
+    root.style.setProperty("--cell-margin", theme.spacing.cell);
+    root.style.setProperty("--block-margin", theme.spacing.block);
 
     root.style.setProperty("--font-size-base", theme.typography.fontSize);
     root.style.setProperty("--font-size-delta", theme.typography.headerDelta);

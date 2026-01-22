@@ -53,7 +53,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       {...sortable.dragActivators}
       onKeyDown={undefined}
       class={clsx(
-        "group relative flex flex-col my-3 rounded-sm border-2 transition-all duration-200 p-1 max-xs:p-0",
+        "group relative flex flex-col rounded-sm border-2 transition-all duration-200 p-1 max-xs:p-0",
         !presentationMode() && "cursor-grab active:cursor-grabbing",
         !props.isActive && "border-transparent",
         !presentationMode() && !props.isActive && "hover:border-secondary/10",
@@ -61,7 +61,11 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         props.isActive && props.isEditing && "border-accent shadow-[0_0_5px_var(--accent)]",
         sortable.isActiveDraggable ? "opacity-50" : ""
       )}
-      style={{ transform: `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)` }}
+      style={{ 
+        transform: `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)`,
+        "margin-top": "var(--cell-margin)",
+        "margin-bottom": "var(--cell-margin)"
+      }}
       onClick={(e) => {
         if (!presentationMode()) {
           e.stopPropagation();
