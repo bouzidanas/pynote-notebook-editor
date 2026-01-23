@@ -224,6 +224,7 @@ body {
 .prose :where(h5, h6) {
     color: var(--header-color-4) !important;
     font-weight: bold !important;
+    margin-bottom: calc(var(--header-margin-bottom) * 0.25) !important;
 }
 
 /* Milkdown headers override */

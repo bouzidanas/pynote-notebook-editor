@@ -297,8 +297,12 @@ const Notebook: Component = () => {
         e.preventDefault();
         // Redirect to a completely new session URL
         const url = sessionManager.createNewSessionUrl();
+
         // Option A: Same Tab (History Push)
+        //           In the future we might want to provide both options: open new document in same tab or new tab
+        //           So we leave this commented for now.
         // window.location.href = url;
+        
         // Option B: New Tab
         window.open(url, '_blank');
       } else if ((e.ctrlKey || e.metaKey) && e.key === "e") {

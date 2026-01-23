@@ -137,7 +137,7 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
       hasError={renderError()}
     >
       <div 
-        class="min-h-[50px] w-full"
+        class="min-h-12.5 w-full"
         onDblClick={() => actions.setEditing(props.cell.id, true)}
       >
         <Show 
