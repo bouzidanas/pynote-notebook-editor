@@ -1,7 +1,9 @@
-import { type Component, onMount, onCleanup } from "solid-js";
+import { type Component, onMount, onCleanup, createEffect } from "solid-js";
+import { TextSelection } from "@milkdown/kit/prose/state"; // Standard state handling
 
 // Core Framework
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, schemaCtx } from "@milkdown/kit/core";
+import { type CellData, actions } from "../lib/store";
 
 // Theme (remains separate)
 import { nord } from "@milkdown/theme-nord";
@@ -38,6 +40,8 @@ import { clipboard } from "@milkdown/kit/plugin/clipboard";
 // Utilities & ProseMirror Bridge
 import { callCommand } from "@milkdown/kit/utils";
 import { lift, wrapIn, setBlockType } from "@milkdown/kit/prose/commands"; // Re-exported from kit
+import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"; // Import standard history commands
+import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
 // UI Components
 import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete } from "lucide-solid";
@@ -49,6 +53,7 @@ interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
+  cell: CellData;
 }
 
 const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
@@ -65,12 +70,25 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         ctx.set(defaultValueCtx, props.value);
 
         // Use the listener to sync changes back to props
-        ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
-          // In Solid, avoid destructuring props to maintain reactivity
-          if (!isUpdatingFromProps) {
-            props.onChange(markdown);
-          }
-        });
+        ctx.get(listenerCtx)
+            .markdownUpdated((_ctx, markdown) => {
+              // In Solid, avoid destructuring props to maintain reactivity
+              if (!isUpdatingFromProps) {
+                props.onChange(markdown);
+              }
+            })
+            // Listen for any state updates (transactions) to track history depth
+            .updated((ctx, _doc, _prevDoc) => {
+               const view = ctx.get(editorViewCtx);
+               if (view && !props.readOnly) {
+                   const state = view.state;
+                   const canUndo = undoDepth(state) > 0;
+                   const canRedo = redoDepth(state) > 0;
+                   if (props.cell.canUndo !== canUndo || props.cell.canRedo !== canRedo) {
+                       actions.updateEditorCapabilities(props.cell.id, canUndo, canRedo);
+                   }
+               }
+            });
       })
       .config(nord) // Theme config
       .use(commonmark) // Foundation (Paragraphs, Bold, etc.)
@@ -82,17 +100,55 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .create()
       .then((editor) => {
         editorInstance = editor;
+        
+        // Focus the editor and initialize capabilities
         editor.action((ctx) => {
-            const view = ctx.get(editorViewCtx);
-            if (view) view.focus();
+          const view = ctx.get(editorViewCtx);
+          if (view) {
+              // Restore Selection State if available
+              if (props.cell.editorState) {
+                  try {
+                       // We can't use EditorState.fromJSON fully because plugins/history aren't serializable
+                       // But we CAN restore the cursor position (Selection)
+                       const savedSelection = props.cell.editorState.selection;
+                       if (savedSelection) {
+                            // Recover selection from JSON. 
+                            // Note: This relies on the document structure being 99% identical to when we saved.
+                            // Since we reconstruct the doc from the same markdown, it matches.
+                            const sel = TextSelection.fromJSON(view.state.doc, savedSelection);
+                            const tr = view.state.tr.setSelection(sel);
+                            view.dispatch(tr);
+                            // Scroll line into view
+                            view.dispatch(view.state.tr.scrollIntoView());
+                       }
+                  } catch (e) {
+                      console.warn("Failed to restore markdown cursor:", e);
+                  }
+              }
+
+              view.focus();
+              const state = view.state;
+              const canUndo = undoDepth(state) > 0;
+              const canRedo = redoDepth(state) > 0;
+              actions.updateEditorCapabilities(props.cell.id, canUndo, canRedo);
+          }
         });
       })
       .catch((e) => console.error("Milkdown init error", e));
   });
 
   onCleanup(() => {
-    // Essential: Destroy the editor instance when the component unmounts
+    // Save Selection State before destroying
     if (editorInstance) {
+        editorInstance.action((ctx) => {
+             const view = ctx.get(editorViewCtx);
+             if (view) {
+                 const state = view.state;
+                 // We only save the selection, not the full state or history (as they are not serializable)
+                 const selectionJSON = state.selection.toJSON();
+                 actions.updateCellEditorState(props.cell.id, { selection: selectionJSON });
+             }
+        });
       editorInstance.destroy();
     }
   });
@@ -188,6 +244,25 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   const insertTable = () => {
       call(insertTableCommand.key, { row: 3, col: 3 });
   };
+
+// --- External Signal Handling ---
+  createEffect(() => {
+    const action = props.cell.editorAction;
+    if (action && editorInstance) {
+        editorInstance.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            if (view) {
+                if (action === "undo") {
+                    milkUndo(view.state, view.dispatch);
+                } else if (action === "redo") {
+                    milkRedo(view.state, view.dispatch);
+                }
+                actions.clearEditorAction(props.cell.id);
+                view.focus();
+            }
+        });
+    }
+  });
 
   return (
     <div class="flex flex-col gap-2">
@@ -368,5 +443,6 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
     </div>
   );
 };
+
 
 export default MarkdownEditor;

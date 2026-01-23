@@ -277,6 +277,63 @@ const Notebook: Component = () => {
       }
   };
 
+  const isEditingActive = () => {
+    const activeId = notebookStore.activeCellId;
+    if (!activeId) return false;
+    const cell = notebookStore.cells.find(c => c.id === activeId);
+    return !!cell?.isEditing;
+  };
+
+  const getUndoDisabled = () => {
+    if (isEditingActive()) {
+        const activeId = notebookStore.activeCellId;
+        const cell = notebookStore.cells.find(c => c.id === activeId);
+        // If we have exposed state (CodeEditor), check depth
+        // For Markdown/Milkdown we don't have easy access to depth, so we keep it enabled
+        if (cell?.canUndo !== undefined) {
+             return !cell.canUndo;
+        }
+        return true; // Default to disabled while loading
+    }
+    return notebookStore.historyIndex < 0;
+  };
+
+  const getRedoDisabled = () => {
+    if (isEditingActive()) {
+        const activeId = notebookStore.activeCellId;
+        const cell = notebookStore.cells.find(c => c.id === activeId);
+        // If we have exposed state (CodeEditor), check depth
+        if (cell?.canRedo !== undefined) {
+             return !cell.canRedo;
+        }
+        return true; // Default to disabled while loading
+    }
+    return notebookStore.historyIndex >= notebookStore.history.length - 1;
+  };
+
+  const handleUndo = () => {
+    if (isEditingActive()) {
+        const activeId = notebookStore.activeCellId;
+        if (activeId) {
+             actions.dispatchEditorAction(activeId, "undo");
+             return;
+        }
+    }
+    actions.undo();
+  };
+
+  const handleRedo = () => {
+    if (isEditingActive()) {
+        const activeId = notebookStore.activeCellId;
+         if (activeId) {
+             actions.dispatchEditorAction(activeId, "redo");
+             return;
+        }
+    }
+    actions.redo();
+  };
+
+
   // Keyboard Shortcuts
   onMount(() => {
     const handleGlobalKeydown = (e: KeyboardEvent) => {
@@ -699,7 +756,7 @@ const Notebook: Component = () => {
            }
          }}
        >
-         <div class="max-w-202 mx-auto px-7.5 max-xs:px-6.5 py-4 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+         <div class="max-w-202 mx-auto px-7.5 max-xs:pl-6.5 max-xs:pr-2 py-4 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
            <div class="flex items-center gap-2">
              <div class="btn-toolbar bg-primary! text-background! hover:bg-primary/90! flex items-center justify-center font-bold! text-xl! leading-none sm:flex border-primary">PyNote</div>
              <div class="h-8 w-px bg-foreground mx-1 hidden xs:block"></div>
@@ -869,20 +926,20 @@ const Notebook: Component = () => {
   
                {/* Undo/Redo */}
                <button 
-                 onClick={() => actions.undo()} 
+                 onClick={handleUndo} 
                  class="btn-toolbar flex items-center gap-1" 
                  title="Undo"
-                 disabled={notebookStore.historyIndex < 0}
-                 classList={{ "opacity-50 cursor-not-allowed": notebookStore.historyIndex < 0 }}
+                 disabled={getUndoDisabled()}
+                 classList={{ "opacity-50 cursor-not-allowed": getUndoDisabled() }}
                >
                  <Undo2 size={20} />
                </button>
                <button 
-                 onClick={() => actions.redo()} 
+                 onClick={handleRedo} 
                  class="btn-toolbar flex items-center gap-1" 
                  title="Redo"
-                 disabled={notebookStore.historyIndex >= notebookStore.history.length - 1}
-                 classList={{ "opacity-50 cursor-not-allowed": notebookStore.historyIndex >= notebookStore.history.length - 1 }}
+                 disabled={getRedoDisabled()}
+                 classList={{ "opacity-50 cursor-not-allowed": getRedoDisabled() }}
                >
                  <Redo2 size={20} />
                </button>
@@ -1167,14 +1224,14 @@ const Notebook: Component = () => {
                    </DropdownItem>
                    <DropdownDivider />
                    <DropdownItem 
-                     onClick={() => actions.undo()}
-                     disabled={notebookStore.historyIndex < 0}
+                     onClick={handleUndo}
+                     disabled={getUndoDisabled()}
                    >
                        <div class="flex items-center gap-2"><Undo2 size={16} /> Undo</div>
                    </DropdownItem>
                    <DropdownItem 
-                     onClick={() => actions.redo()}
-                     disabled={notebookStore.historyIndex >= notebookStore.history.length - 1}
+                     onClick={handleRedo}
+                     disabled={getRedoDisabled()}
                    >
                        <div class="flex items-center gap-2"><Redo2 size={16} /> Redo</div>
                    </DropdownItem>
@@ -1184,13 +1241,13 @@ const Notebook: Component = () => {
              <input ref={fileInput} type="file" accept=".ipynb" class="hidden" onChange={handleLoad} />
            </div>
   
-           <div class="flex items-center gap-2">
+           <div class="flex items-center gap-2 max-xs:flex-1 max-xs:justify-center">
              <div class={`text-xs font-mono py-1 rounded-sm flex items-center gap-2 ${
                  kernel.status === "ready" ? "text-green-500" :
                  (kernel.status === "loading" || kernel.status === "running") ? "text-yellow-500" :
                  "text-red-600"
              }`}>
-               <div class={`w-2 h-2 rounded-full bg-current ${ 
+               <div class={`w-2 h-2 rounded-full bg-current max-xs:-mr-1.5 ${ 
                    kernel.status === "running" || kernel.status === "loading" ? "animate-pulse" : "" 
                }`}></div>
                <span class="hidden sm:inline">{kernel.status.toUpperCase()}</span>

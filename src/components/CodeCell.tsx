@@ -109,6 +109,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                onChange={(val) => actions.updateCell(props.cell.id, val)}
                language="python"
                readOnly={!props.cell.isEditing}
+               cell={props.cell}
              />
              <Show when={!props.cell.isEditing}>
                <div 

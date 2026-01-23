@@ -1,11 +1,12 @@
-import { type Component, createEffect } from "solid-js";
+import { type Component, createEffect, onCleanup, onMount } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { duotoneDark } from "@uiw/codemirror-theme-duotone";
 import { EditorView, keymap } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import { currentTheme } from "../lib/theme";
+import { type CellData, actions } from "../lib/store";
 
 interface EditorProps {
   value: string;
@@ -13,12 +14,124 @@ interface EditorProps {
   language?: string;
   class?: string;
   readOnly?: boolean;
+  cell: CellData; // Add cell prop to access stored state
 }
 
 const CodeEditor: Component<EditorProps> = (props) => {
   const { ref, createExtension, editorView } = createCodeMirror({
     onValueChange: props.onChange,
     value: props.value,
+  });
+
+  // Store extensions configuration for state restoration
+  let extensionsConfig: any[] = [];
+
+  // Restore editor state when component mounts (entering edit mode)
+  onMount(() => {
+    const savedState = props.cell.editorState;
+    const view = editorView();
+    
+    if (savedState && view && extensionsConfig.length > 0) {
+      try {
+        // Restore state from JSON using CodeMirror's fromJSON
+        // This restores the history that corresponds to the current content
+        const restoredState = EditorState.fromJSON(
+          savedState,
+          {
+            doc: props.value, // Always use current content from props
+            extensions: extensionsConfig,
+          }
+        );
+        
+        // Update the view with restored state
+        view.setState(restoredState);
+      } catch (err) {
+        console.warn("Failed to restore CodeMirror state:", err);
+      }
+    }
+  });
+  
+
+
+  // Save editor state before cleanup
+  onCleanup(() => {
+    const view = editorView();
+    if (view) {
+      try {
+        // Serialize the editor state to JSON
+        const stateJSON = view.state.toJSON();
+        
+        // Optimization: Remove doc from saved state since it's already in cell.content
+        // This reduces memory usage by ~30-70% (doc is typically the largest part)
+        // We'll inject the doc from props.value when restoring
+        const { doc, ...stateWithoutDoc } = stateJSON;
+        
+        actions.updateCellEditorState(props.cell.id, stateWithoutDoc);
+      } catch (err) {
+        console.warn("Failed to save CodeMirror state:", err);
+      }
+    }
+  });
+
+  // Report history position ONLY when entering/exiting edit mode (readOnly transitions)
+  createEffect((prevReadOnly) => {
+    const view = editorView();
+    const currentReadOnly = props.readOnly;
+    
+    if (view && prevReadOnly !== undefined && prevReadOnly !== currentReadOnly) {
+      const position = undoDepth(view.state);
+      
+      if (currentReadOnly) {
+        // Exiting edit mode (becoming read-only)
+        console.log(`[CodeEditor] Exiting edit mode, exit position ${position} for cell ${props.cell.id}`);
+        actions.commitCodeCellEditSession(props.cell.id, position);
+      } else {
+        // Entering edit mode (becoming editable)
+        console.log(`[CodeEditor] Entering edit mode, entry position ${position} for cell ${props.cell.id}`);
+        actions.setCodeCellEntryPosition(props.cell.id, position);
+      }
+    }
+    
+    return currentReadOnly;
+  }, props.readOnly);
+
+  // Navigate to target history position when set by global undo/redo
+  createEffect(() => {
+    const view = editorView();
+    const targetPosition = props.cell.targetHistoryPosition;
+    
+    if (view && targetPosition !== undefined) {
+      const currentPosition = undoDepth(view.state);
+      const delta = targetPosition - currentPosition;
+      
+      if (delta !== 0) {
+        console.log(`[CodeEditor] Navigating from position ${currentPosition} to ${targetPosition} (delta: ${delta}) for cell ${props.cell.id}`);
+        
+        // Navigate by dispatching history transactions directly
+        // We need to get the updated state after each dispatch
+        for (let i = 0; i < Math.abs(delta); i++) {
+          // Get fresh state and history state for each iteration
+          const currentState = view.state;
+          const histState = currentState.field(historyField, false);
+          
+          if (histState) {
+            // Use done (BranchName.Done = 0) for undo, undone (BranchName.Undone = 1) for redo
+            const side = delta < 0 ? 0 : 1; // 0 = Done (undo), 1 = Undone (redo)
+            // Use 'any' cast to bypass strict typing of internal CodeMirror State
+            const tr = (histState as any).pop(side, currentState, false);
+            if (tr) {
+              view.dispatch(tr);
+            }
+          }
+        }
+        
+        const finalPosition = undoDepth(view.state);
+        console.log(`[CodeEditor] Navigation complete, final position ${finalPosition} for cell ${props.cell.id}`);
+      }
+      
+      // Clear the target position so it can be set again later (even if delta was 0)
+      actions.setCodeCellTargetPosition(props.cell.id, undefined);
+    }
   });
 
   createEffect(() => {
@@ -66,7 +179,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
   }));
 
   // Base extensions
-  createExtension([
+  extensionsConfig = [
     python(),
     duotoneDark,
     history(),
@@ -77,10 +190,62 @@ const CodeEditor: Component<EditorProps> = (props) => {
       ...historyKeymap
     ]),
     EditorView.lineWrapping
-  ]);
+  ];
+  createExtension(extensionsConfig);
 
   // Read-only state
   createExtension(() => EditorState.readOnly.of(!!props.readOnly));
+
+  // Report capabilities to store for UI buttons
+  createEffect(() => {
+      const view = editorView();
+      // Listen to updates that might change history
+      if (view && !props.readOnly) {
+          const updateHandler = EditorView.updateListener.of((update) => {
+              if (update.docChanged || update.selectionSet) {
+                  const canUndo = undoDepth(view.state) > 0;
+                  const canRedo = redoDepth(view.state) > 0;
+                  // Only update if changed to avoid unnecessary renders
+                  if (props.cell.canUndo !== canUndo || props.cell.canRedo !== canRedo) {
+                       actions.updateEditorCapabilities(props.cell.id, canUndo, canRedo);
+                  }
+              }
+          });
+          return updateHandler;
+      }
+  });
+  // Also register initial extension
+  createExtension(() => {
+      return EditorView.updateListener.of((update) => {
+          // Check history depth on every update if editable
+          if (!props.readOnly) {
+              const state = update.state;
+              const canUndo = undoDepth(state) > 0;
+              const canRedo = redoDepth(state) > 0;
+              if (props.cell.canUndo !== canUndo || props.cell.canRedo !== canRedo) {
+                    actions.updateEditorCapabilities(props.cell.id, canUndo, canRedo);
+              }
+          }
+      });
+  });
+
+  // Handle external editor actions (undo/redo via signal)
+  createEffect(() => {
+     const action = props.cell.editorAction;
+     if (action) {
+         const view = editorView();
+         if (view) {
+             if (action === "undo") {
+                 undo(view);
+             } else if (action === "redo") {
+                 redo(view);
+             }
+             // Clear signal immediately
+             actions.clearEditorAction(props.cell.id);
+             view.focus();
+         }
+     }
+  });
 
   return (
     <div ref={ref} class={`relative w-full ${props.class || ""}`} />

@@ -49,6 +49,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
 
   return (
     <div
+      id={`cell-${props.id}`}
       ref={(el) => { sortable.ref(el); elementRef = el; }}
       {...sortable.dragActivators}
       onKeyDown={undefined}

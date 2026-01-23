@@ -140,7 +140,7 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
         class="min-h-12.5 w-full"
         onDblClick={() => actions.setEditing(props.cell.id, true)}
       >
-        <Show 
+        <Show
           when={props.cell.isEditing} 
           fallback={
             <div 
@@ -153,6 +153,7 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
             <MarkdownEditor
               value={props.cell.content}
               onChange={(val) => actions.updateCell(props.cell.id, val)}
+              cell={props.cell}
             />
           </div>
         </Show>

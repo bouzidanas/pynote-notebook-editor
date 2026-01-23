@@ -21,15 +21,33 @@ export interface CellData {
   isEditing?: boolean;
   isRunning?: boolean;
   isQueued?: boolean;
+  // Editor state persistence (session-only, not saved to localStorage)
+  editorState?: any; // EditorState JSON from CodeMirror/ProseMirror
+  lastEditTimestamp?: number;
+  // For code cells: track position in internal history for global undo
+  targetHistoryPosition?: number | undefined; // Target position to navigate to (set by global undo)
+  // For markdown cells (and fallback): snapshot of state before editing
+  preEditState?: {
+    content: string;
+    editorState?: any;
+  };
+  // Transient action used to signal editor components (undo/redo)
+  // This avoids direct DOM manipulation
+  editorAction?: "undo" | "redo" | undefined;
+
+  // Local editor capabilities (reported by editor)
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 // Compact history format:
-// a=add, d=delete, m=move, u=update
+// a=add, d=delete, m=move, u=update, h=history-position (code cells only)
 // Format: "action|data"
 // Add: "a|index|type|id"
 // Delete: "d|index|type|id|content"
 // Move: "m|fromIndex|toIndex|id"
-// Update: "u|id|oldContent|newContent"
+// Update (markdown): "u|id|oldContent|newContent"
+// History Position (code): "h|id|entryPosition|exitPosition"
 type HistoryEntry = string;
 
 export interface NotebookState {
@@ -46,8 +64,8 @@ export interface NotebookState {
 
 const MAX_HISTORY = 100;
 
-// Internal cache to track content at the start of an edit session
-const editSessionStartContent = new Map<string, string>();
+// Internal cache to track start state at the start of an edit session
+const editSessionStart = new Map<string, { content?: string; position?: number }>();
 
 // --- History Storage Utilities ---
 // Robust string escaping for pipe-delimited format
@@ -90,16 +108,59 @@ const parseUpdateEntry = (entry: string): { id: string, oldContent: string, newC
 };
 
 // Helper to commit an edit session (check for changes and update history)
-const commitEditSession = (id: string, currentContent: string) => {
-  const startContent = editSessionStartContent.get(id);
+const commitEditSession = (id: string, currentContent: string, currentPosition?: number) => {
+  const cell = defaultStore.cells.find(c => c.id === id);
+  const startState = editSessionStart.get(id);
+
+  console.log(`[commitEditSession] Looking up cell ${id}:`);
+  console.log(`  - cell found: ${!!cell}`);
+  console.log(`  - startState:`, startState);
+  console.log(`  - Map has key: ${editSessionStart.has(id)}`);
+  console.log(`  - Map size: ${editSessionStart.size}`);
+  console.log(`  - Map keys:`, Array.from(editSessionStart.keys()));
+
   // Only commit if we actually have a start snapshot
-  if (startContent !== undefined) {
-    if (startContent !== currentContent) {
-      // Content changed! Push to global history
-      addToHistory(`u|${id}|${escapeContent(startContent)}|${escapeContent(currentContent)}`);
+  if (cell && startState) {
+    if (cell.type === "code" && startState.position !== undefined && currentPosition !== undefined) {
+      // For code cells: check if history position changed
+      if (startState.position !== currentPosition) {
+        console.log(`[commitEditSession] Code cell ${id} history: ${startState.position} -> ${currentPosition}`);
+
+        // Before adding to history, check if we need to truncate forward history
+        // If historyIndex is not at the end, it means user undid and then made new edits
+        // The forward history (redo branch) should be discarded
+        const currentHistoryIndex = defaultStore.historyIndex;
+        if (currentHistoryIndex < defaultStore.history.length - 1) {
+          console.log(`[commitEditSession] Truncating forward history from index ${currentHistoryIndex + 1} to ${defaultStore.history.length - 1}`);
+          setStore("history", defaultStore.history.slice(0, currentHistoryIndex + 1));
+        }
+
+        addToHistory(`h|${id}|${startState.position}|${currentPosition}`);
+      } else {
+        console.log(`[commitEditSession] Code cell ${id} - no history changes (${startState.position} == ${currentPosition})`);
+      }
+    } else if (cell.type === "markdown" && startState.content !== undefined) {
+      // For markdown cells: use content comparison
+      if (startState.content !== currentContent) {
+        console.log(`[commitEditSession] Markdown cell ${id}: content changed`);
+
+        // Same truncation logic for markdown cells
+        const currentHistoryIndex = defaultStore.historyIndex;
+        if (currentHistoryIndex < defaultStore.history.length - 1) {
+          console.log(`[commitEditSession] Truncating forward history from index ${currentHistoryIndex + 1} to ${defaultStore.history.length - 1}`);
+          setStore("history", defaultStore.history.slice(0, currentHistoryIndex + 1));
+        }
+
+        addToHistory(`u|${id}|${escapeContent(startState.content)}|${escapeContent(currentContent)}`);
+      } else {
+        console.log(`[commitEditSession] Markdown cell ${id} - no changes`);
+      }
     }
+
     // Cleanup
-    editSessionStartContent.delete(id);
+    editSessionStart.delete(id);
+  } else {
+    console.log(`[commitEditSession] Cell ${id} not found or no start state`);
   }
 };
 
@@ -129,6 +190,7 @@ const [store, setStore] = createStore<NotebookState>({
 });
 
 export const notebookStore = store;
+const defaultStore = store; // Reference for commitEditSession
 
 // Helper to add to history
 const addToHistory = (entry: HistoryEntry) => {
@@ -192,6 +254,8 @@ export const actions = {
 
   changeCellType: (id: string, type: CellType) => {
     setStore("cells", (c) => c.id === id, "type", type);
+    // Clear incompatible editor state when changing cell type
+    actions.clearCellEditorState(id);
     // Autosave
     if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
@@ -209,6 +273,9 @@ export const actions = {
     if (idx !== -1 && cell) {
       // Clear UI state
       kernel.clearCellState(id);
+
+      // Clear editor state before deleting
+      actions.clearCellEditorState(id);
 
       // Add to history before deleting: "d|index|type|id|content"
       addToHistory(`d|${idx}|${cell.type}|${id}|${escapeContent(cell.content)}`);
@@ -288,8 +355,30 @@ export const actions = {
     } else if (action === 'u') {
       const updateData = parseUpdateEntry(entry);
       if (updateData) {
+        console.log(`[undo] Restoring cell ${updateData.id}: "${updateData.newContent}" -> "${updateData.oldContent}"`);
+
+        // Find the cell to get its pre-edit snapshot
+        const cell = store.cells.find(c => c.id === updateData.id);
+
+        // Restore content
         setStore("cells", (c) => c.id === updateData.id, "content", updateData.oldContent);
+
+        // Restore pre-edit editor state if available
+        if (cell?.preEditState) {
+          console.log(`[undo] Restoring editorState from preEditState for cell ${updateData.id}`);
+          setStore("cells", (c) => c.id === updateData.id, "editorState", cell.preEditState.editorState);
+        } else {
+          console.log(`[undo] No preEditState found for cell ${updateData.id}, clearing editorState`);
+          // No pre-edit snapshot, clear the editor state
+          actions.clearCellEditorState(updateData.id);
+        }
       }
+    } else if (action === 'h') {
+      // Code cell history position entry: "h|id|entryPosition|exitPosition"
+      const [, id, entryPosStr] = parts;
+      const entryPosition = parseInt(entryPosStr);
+      console.log(`[undo] Setting targetHistoryPosition to ${entryPosition} for code cell ${id}`);
+      actions.setCodeCellTargetPosition(id, entryPosition);
     }
     // Autosave after undo
     if ((actions as any).__autosaveCallback) {
@@ -335,8 +424,17 @@ export const actions = {
       const updateData = parseUpdateEntry(entry);
       if (updateData) {
         setStore("cells", (c) => c.id === updateData.id, "content", updateData.newContent);
+        // Clear pre-edit state on redo since we're moving forward past the edit
+        actions.clearCellEditorState(updateData.id);
       }
-    }    // Autosave after redo
+    } else if (action === 'h') {
+      // Code cell history position entry: "h|id|entryPosition|exitPosition"
+      const [, id, , exitPosStr] = parts;
+      const exitPosition = parseInt(exitPosStr);
+      console.log(`[redo] Setting targetHistoryPosition to ${exitPosition} for code cell ${id}`);
+      actions.setCodeCellTargetPosition(id, exitPosition);
+    }
+    // Autosave after redo
     if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
@@ -346,7 +444,11 @@ export const actions = {
     // Commit any active edit sessions before switching
     store.cells.forEach(cell => {
       if (cell.isEditing && cell.id !== id) {
-        commitEditSession(cell.id, cell.content);
+        // Only commit markdown cells directly here
+        // Code cells will be committed via CodeEditor's readOnly effect
+        if (cell.type === "markdown") {
+          commitEditSession(cell.id, cell.content);
+        }
       }
     });
 
@@ -364,14 +466,37 @@ export const actions = {
     const cell = store.cells.find(c => c.id === id);
     if (cell) {
       if (isEditing) {
-        // Start of edit session: Cache the current content
+        // Start of edit session
         // Only if not already tracking (avoid overwriting start state on double calls)
-        if (!editSessionStartContent.has(id)) {
-          editSessionStartContent.set(id, cell.content);
+        if (!editSessionStart.has(id)) {
+          console.log(`[setEditing] Starting edit session for ${id}, content: "${cell.content}"`);
+
+          if (cell.type === "code") {
+            // For code cells: Position will be set when editor reports it
+            editSessionStart.set(id, {}); // Placeholder, position set later
+            console.log(`[setEditing] Waiting for position report from CodeEditor for cell ${id}`);
+          } else {
+            // For markdown cells: Save content snapshot
+            editSessionStart.set(id, { content: cell.content });
+            setStore("cells", (c) => c.id === id, "preEditState", {
+              content: cell.content,
+              editorState: cell.editorState
+            });
+          }
+        } else {
+          console.log(`[setEditing] Already tracking edit session for ${id}`);
         }
       } else {
         // End of edit session: Check for changes
-        commitEditSession(id, cell.content);
+        console.log(`[setEditing] Ending edit session for ${id}, content: "${cell.content}"`);
+        // For code cells, position will be passed from CodeEditor via commitCodeCellEditSession
+        // For markdown cells, commit now with content
+        if (cell.type === "markdown") {
+          commitEditSession(id, cell.content);
+          // Cleanup for markdown (commitEditSession already deletes, but being explicit)
+          editSessionStart.delete(id);
+        }
+        // Note: For code cells, cleanup happens in commitCodeCellEditSession after it reads the Map
       }
     }
 
@@ -380,6 +505,39 @@ export const actions = {
     if (!isEditing && (actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
+  },
+
+  updateCellEditorState: (id: string, state: any) => {
+    setStore("cells", (c) => c.id === id, "editorState", state);
+    setStore("cells", (c) => c.id === id, "lastEditTimestamp", Date.now());
+  },
+
+  clearCellEditorState: (id: string) => {
+    setStore("cells", (c) => c.id === id, "editorState", undefined);
+    setStore("cells", (c) => c.id === id, "lastEditTimestamp", undefined);
+  },
+
+  // Called by CodeEditor when entering edit mode to save entry position
+  setCodeCellEntryPosition: (id: string, position: number) => {
+    console.log(`[setCodeCellEntryPosition] Cell ${id}: position ${position}`);
+    const existing = editSessionStart.get(id);
+    editSessionStart.set(id, { ...existing, position });
+  },
+
+  // Called by CodeEditor when exiting edit mode to commit with exit position
+  commitCodeCellEditSession: (id: string, exitPosition: number) => {
+    console.log(`[commitCodeCellEditSession] Cell ${id}: exit position ${exitPosition}`);
+    const cell = store.cells.find(c => c.id === id);
+    if (cell && cell.type === "code") {
+      commitEditSession(id, cell.content, exitPosition);
+    }
+  },
+
+  // Update the target history position (for navigation during undo/redo)
+  // This is called by global undo/redo handlers to tell the editor where to navigate
+  setCodeCellTargetPosition: (id: string, position: number | undefined) => {
+    console.log(`[setCodeCellTargetPosition] Cell ${id}: target position ${position}`);
+    setStore("cells", (c) => c.id === id, "targetHistoryPosition", position);
   },
 
   setCellRunning: (id: string, isRunning: boolean) => {
@@ -504,6 +662,27 @@ export const actions = {
       history: history || [],
       historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1)
     });
+
+    // Recovery Phase: Check for interrupted edits (orphaned preEditState)
+    // This happens if the page was reloaded/closed while a Markdown cell was in edit mode.
+    // The content is saved, but the history entry for the change wasn't committed.
+
+    store.cells.forEach(cell => {
+      if (cell.type === "markdown" && cell.preEditState && !cell.isEditing) {
+        const oldContent = cell.preEditState.content;
+        const newContent = cell.content;
+
+        // Only add history if there was an actual change
+        if (oldContent !== newContent) {
+          console.log(`[loadNotebook] Recovering interrupted edit for cell ${cell.id}`);
+          // Add to history so user can Undo the change they made before reload
+          addToHistory(`u|${cell.id}|${escapeContent(oldContent)}|${escapeContent(newContent)}`);
+        }
+
+        // Clean up the dangling state
+        setStore("cells", (c) => c.id === cell.id, "preEditState", undefined);
+      }
+    });
   },
 
   setPresentationMode: (enabled: boolean) => {
@@ -513,11 +692,27 @@ export const actions = {
       // Commit pending edits
       store.cells.forEach(cell => {
         if (cell.isEditing) {
-          commitEditSession(cell.id, cell.content);
+          // Only commit markdown cells directly here
+          // Code cells will be committed via CodeEditor's readOnly effect
+          if (cell.type === "markdown") {
+            commitEditSession(cell.id, cell.content);
+          }
         }
       });
       setStore("activeCellId", null);
       setStore("cells", () => true, "isEditing", false);
     }
+  },
+
+  dispatchEditorAction: (id: string, action: "undo" | "redo") => {
+    setStore("cells", (c) => c.id === id, "editorAction", action);
+  },
+
+  clearEditorAction: (id: string) => {
+    setStore("cells", (c) => c.id === id, "editorAction", undefined);
+  },
+
+  updateEditorCapabilities: (id: string, canUndo: boolean, canRedo: boolean) => {
+    setStore("cells", (c) => c.id === id, { canUndo, canRedo });
   }
 };
