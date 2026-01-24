@@ -2,7 +2,7 @@ import { type Component, createEffect, onCleanup, onMount } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { duotoneDark } from "@uiw/codemirror-theme-duotone";
-import { EditorView, keymap, drawSelection } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo } from "@codemirror/commands";
 import { bracketMatching } from "@codemirror/language";
 import { closeBrackets } from "@codemirror/autocomplete";
@@ -48,7 +48,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
     python(),
     duotoneDark,
     history(), // History MUST stay in base to persist the undo stack even when read-only
-    drawSelection(), // Keep selection visible/persistent even in ReadOnly mode
     EditorView.lineWrapping
   ];
 

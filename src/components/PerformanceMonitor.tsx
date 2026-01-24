@@ -75,6 +75,7 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
     // 1. Initial Measurement
     const startMemory = (performance as any).memory?.usedJSHeapSize;
     const startNodes = document.getElementsByTagName('*').length;
+    const startTime = performance.now(); // Start Timer
     
     console.log("Starting Stress Test...");
     
@@ -88,22 +89,35 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
         actions.setEditing(id, false);
     }
     
-    // 3. Wait for render
-    await new Promise(r => setTimeout(r, 1000));
+    // 3. Wait for render (force style recalc to be fair)
+    await new Promise(r => setTimeout(r, 100));
     
     // 4. Final Measurement
+    const endTime = performance.now(); // End Timer
+    
+    const duration = Math.round(endTime - startTime - 100); // Subtract roughly the wait time
     const endMemory = (performance as any).memory?.usedJSHeapSize;
     const endNodes = document.getElementsByTagName('*').length;
     
     const nodeDiff = endNodes - startNodes;
-    const memoryDiffMB = startMemory ? Math.round((endMemory - startMemory) / 1024 / 1024) : 0;
+    const memoryDiffBytes = endMemory - startMemory;
+    const memoryDiffMB = startMemory ? (memoryDiffBytes / 1024 / 1024).toFixed(2) : "N/A";
     
-    alert(`Stress Test Results (50 Cells added):
+    const memMessage = parseFloat(memoryDiffMB as string) < 0 
+        ? `${memoryDiffMB} MB (GC ran)` 
+        : `+${memoryDiffMB} MB`;
+
+    alert(`Stress Test Results (50 Cells):
     
-    DOM Nodes Added: ${nodeDiff} (Lower is better)
-    Memory Growth: ~${memoryDiffMB} MB (Lower is better)
+    ⏱️ Total Time: ${duration}ms (Lower is better)
+    ⚡ Avg per Cell: ${(duration/50).toFixed(1)}ms
     
-    Nodes per Cell: ${Math.round(nodeDiff / 50)}
+    DOM Nodes Added: ${nodeDiff} 
+    Memory Change: ${memMessage}
+    
+    Interpreting Results:
+    - "Total Time" detects CPU lag/sluggishness.
+    - Since we optimized 'event listeners' (which are invisible), DOM Nodes should be roughly equal between branches.
     `);
   };
 
@@ -170,7 +184,7 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
             <For each={resources()}>
                 {r => (
                     <div class="flex justify-between text-xs font-mono">
-                        <span class="truncate max-w-[180px]" title={r.name}>{r.name}</span>
+                        <span class="truncate max-w-45" title={r.name}>{r.name}</span>
                         <span class="text-secondary/70">{r.duration.toFixed(0)}ms</span>
                     </div>
                 )}
