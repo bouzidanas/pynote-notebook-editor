@@ -2,9 +2,11 @@ import { type Component, createEffect, onCleanup, onMount } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { duotoneDark } from "@uiw/codemirror-theme-duotone";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, drawSelection } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo } from "@codemirror/commands";
-import { EditorState } from "@codemirror/state";
+import { bracketMatching } from "@codemirror/language";
+import { closeBrackets } from "@codemirror/autocomplete";
+import { EditorState, Compartment } from "@codemirror/state";
 import { currentTheme } from "../lib/theme";
 import { type CellData, actions } from "../lib/store";
 
@@ -23,15 +25,52 @@ const CodeEditor: Component<EditorProps> = (props) => {
     value: props.value,
   });
 
-  // Store extensions configuration for state restoration
-  let extensionsConfig: any[] = [];
+  // Compartment for switching between "heavy" interactive extensions and "light" read-only ones
+  // We define this stable reference to allow dynamic reconfiguration
+  const interactionCompartment = new Compartment();
+
+  // Extensions that are ONLY needed when editing
+  // Removing these reduces event listeners and overhead when in read-only mode
+  const interactiveExtensions = [
+      keymap.of([
+        { key: "Mod-Enter", run: () => false },
+        indentWithTab,
+        ...defaultKeymap,
+        ...historyKeymap
+      ]),
+      // Visual writing aids that require DOM scans or extra styling
+      bracketMatching(),
+      closeBrackets(),
+  ];
+
+  // Base extensions that are always required (syntax highlighting, theme, history tracking)
+  const baseExtensions = [
+    python(),
+    duotoneDark,
+    history(), // History MUST stay in base to persist the undo stack even when read-only
+    drawSelection(), // Keep selection visible/persistent even in ReadOnly mode
+    EditorView.lineWrapping
+  ];
+
+  // Full configuration for referencing
+  const allExtensions = [
+    ...baseExtensions,
+    interactionCompartment.of(interactiveExtensions) // Default to interactive
+  ];
 
   // Restore editor state when component mounts (entering edit mode)
   onMount(() => {
     const savedState = props.cell.editorState;
     const view = editorView();
     
-    if (savedState && view && extensionsConfig.length > 0) {
+    // Create a specific restore config that respects the INITIAL read-only state
+    // This prevents a "flash" of interactive mode or missing undo stack on load
+    const restoreExtensions = [
+        ...baseExtensions,
+        interactionCompartment.of(props.readOnly ? [] : interactiveExtensions)
+    ];
+
+    if (savedState && view) {
       try {
         // Restore state from JSON using CodeMirror's fromJSON
         // This restores the history that corresponds to the current content
@@ -39,7 +78,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
           savedState,
           {
             doc: props.value, // Always use current content from props
-            extensions: extensionsConfig,
+            extensions: restoreExtensions,
           }
         );
         
@@ -58,15 +97,22 @@ const CodeEditor: Component<EditorProps> = (props) => {
     const view = editorView();
     if (view) {
       try {
-        // Serialize the editor state to JSON
+        // Prepare state for saving
         const stateJSON = view.state.toJSON();
         
-        // Optimization: Remove doc from saved state since it's already in cell.content
-        // This reduces memory usage by ~30-70% (doc is typically the largest part)
-        // We'll inject the doc from props.value when restoring
+        // Optimization: Remove doc from saved state
         const { doc, ...stateWithoutDoc } = stateJSON;
         
         actions.updateCellEditorState(props.cell.id, stateWithoutDoc);
+
+        // If we are unmounting while in edit mode (not readOnly), 
+        // we must commit the session just like we do when toggling readOnly
+        if (!props.readOnly) {
+           const position = undoDepth(view.state);
+           console.log(`[CodeEditor] Exiting edit mode (cleanup), exit position ${position} for cell ${props.cell.id}`);
+           actions.commitCodeCellEditSession(props.cell.id, position);
+        }
+
       } catch (err) {
         console.warn("Failed to save CodeMirror state:", err);
       }
@@ -78,7 +124,15 @@ const CodeEditor: Component<EditorProps> = (props) => {
     const view = editorView();
     const currentReadOnly = props.readOnly;
     
-    if (view && prevReadOnly !== undefined && prevReadOnly !== currentReadOnly) {
+    if (!view) return prevReadOnly;
+
+    if (prevReadOnly === undefined) {
+        if (!currentReadOnly) {
+            const position = undoDepth(view.state);
+            console.log(`[CodeEditor] Entering edit mode (mount), entry position ${position} for cell ${props.cell.id}`);
+            actions.setCodeCellEntryPosition(props.cell.id, position);
+        }
+    } else if (prevReadOnly !== currentReadOnly) {
       const position = undoDepth(view.state);
       
       if (currentReadOnly) {
@@ -93,7 +147,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
     
     return currentReadOnly;
-  }, props.readOnly);
+  });
 
   // Navigate to target history position when set by global undo/redo
   createEffect(() => {
@@ -178,20 +232,22 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
   }));
 
-  // Base extensions
-  extensionsConfig = [
-    python(),
-    duotoneDark,
-    history(),
-    keymap.of([
-      { key: "Mod-Enter", run: () => false },
-      indentWithTab,
-      ...defaultKeymap,
-      ...historyKeymap
-    ]),
-    EditorView.lineWrapping
-  ];
-  createExtension(extensionsConfig);
+  // Apply the extensions
+  createExtension(allExtensions);
+
+  // Dynamic switching of interactions based on readOnly
+  createEffect(() => {
+    const view = editorView();
+    if (view) {
+        // When readOnly, we empty the interaction compartment to remove listeners
+        // When editing, we restore them
+        view.dispatch({
+            effects: interactionCompartment.reconfigure(
+                props.readOnly ? [] : interactiveExtensions
+            )
+        });
+    }
+  });
 
   // Read-only state
   createExtension(() => EditorState.readOnly.of(!!props.readOnly));
