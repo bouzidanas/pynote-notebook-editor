@@ -1,5 +1,6 @@
 import { type Component, createSignal, onMount, For, Show } from "solid-js";
-import { X, Activity, Zap, Clock, Layout } from "lucide-solid";
+import { X, Activity, Zap, Clock, Layout, Gauge, Trash } from "lucide-solid";
+import { actions, notebookStore } from "../lib/store";
 
 interface Metric {
   name: string;
@@ -70,13 +71,71 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
       });
   };
 
+  const runStressTest = async () => {
+    // 1. Initial Measurement
+    const startMemory = (performance as any).memory?.usedJSHeapSize;
+    const startNodes = document.getElementsByTagName('*').length;
+    
+    console.log("Starting Stress Test...");
+    
+    // 2. Add 50 Code Cells
+    for (let i = 0; i < 50; i++) {
+        actions.addCell("code");
+        // Update content to trigger syntax highlighting work
+        const id = notebookStore.cells[notebookStore.cells.length - 1].id;
+        actions.updateCell(id, `def stress_test_${i}():\n    print("Loading optimized cell ${i}")\n    return ${i} * 2`);
+        // Deselect so they go to View mode (optimized) if applicable
+        actions.setEditing(id, false);
+    }
+    
+    // 3. Wait for render
+    await new Promise(r => setTimeout(r, 1000));
+    
+    // 4. Final Measurement
+    const endMemory = (performance as any).memory?.usedJSHeapSize;
+    const endNodes = document.getElementsByTagName('*').length;
+    
+    const nodeDiff = endNodes - startNodes;
+    const memoryDiffMB = startMemory ? Math.round((endMemory - startMemory) / 1024 / 1024) : 0;
+    
+    alert(`Stress Test Results (50 Cells added):
+    
+    DOM Nodes Added: ${nodeDiff} (Lower is better)
+    Memory Growth: ~${memoryDiffMB} MB (Lower is better)
+    
+    Nodes per Cell: ${Math.round(nodeDiff / 50)}
+    `);
+  };
+
+  const clearAll = () => {
+      // Delete all cells
+      const ids = notebookStore.cells.map(c => c.id);
+      ids.forEach(id => actions.deleteCell(id));
+  };
+
   return (
     <div class="fixed bottom-4 right-4 z-50 w-80 bg-background border border-foreground/20 shadow-xl rounded-md flex flex-col overflow-hidden animate-in slide-in-from-bottom-4">
       <div class="flex items-center justify-between p-3 bg-base-200 border-b border-foreground/10">
         <h3 class="font-bold text-sm flex items-center gap-2"><Activity size={16} class="text-accent" /> Performance</h3>
-        <button onClick={props.onClose} class="hover:bg-foreground/10 rounded-sm p-1">
-            <X size={14} />
-        </button>
+        <div class="flex gap-1">
+             <button 
+                onClick={runStressTest}
+                class="p-1 hover:bg-foreground/10 rounded-sm text-xs flex items-center gap-1 text-primary font-bold"
+                title="Add 50 cells to measure load"
+            >
+                <Gauge size={14} /> Test
+            </button>
+             <button 
+                onClick={clearAll}
+                class="p-1 hover:bg-foreground/10 rounded-sm text-xs flex items-center gap-1 text-red-500"
+                title="Clear All Cells"
+            >
+                <Trash size={14} />
+            </button>
+            <button onClick={props.onClose} class="hover:bg-foreground/10 rounded-sm p-1">
+                <X size={14} />
+            </button>
+        </div>
       </div>
       
       <div class="p-4 space-y-4 max-h-96 overflow-y-auto">
