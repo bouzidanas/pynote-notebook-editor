@@ -23,6 +23,27 @@ const CodeEditor: Component<EditorProps> = (props) => {
     value: props.value,
   });
 
+  // Synchronize external content changes (e.g. from store updates not initiated by user typing)
+  // This is a bug fix for "One-way binding". It ensures features like Find/Replace, Formatting, 
+  // or stress tests can update the editor programmatically.
+  createEffect(() => {
+    const view = editorView();
+    // We strictly track props.value to catch programmatic updates
+    const currentValue = props.value; 
+    
+    if (view) {
+      const doc = view.state.doc;
+      // Optimization: Check length first (O(1)) to avoid expensive toString() (O(N)) on every keystroke.
+      // Note: External updates that change content but NOT length (e.g. uppercasing) will still incur 
+      // the O(N) cost of toString() checking.
+      if (doc.length !== currentValue.length || doc.toString() !== currentValue) {
+        view.dispatch({
+          changes: { from: 0, to: doc.length, insert: currentValue }
+        });
+      }
+    }
+  });
+
   // Store extensions configuration for state restoration
   let extensionsConfig: any[] = [];
 
