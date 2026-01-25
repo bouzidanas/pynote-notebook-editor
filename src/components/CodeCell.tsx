@@ -1,4 +1,4 @@
-import { type Component, createSignal, Show } from "solid-js";
+import { type Component, createSignal, Show, createMemo } from "solid-js";
 import { type CellData, actions } from "../lib/store";
 import { kernel } from "../lib/pyodide";
 import { currentTheme } from "../lib/theme";
@@ -7,17 +7,45 @@ import { OutputResult, OutputStdoutUI, OutputStderr, OutputError } from "./Outpu
 import CellWrapper from "./CellWrapper";
 import { Play, Square, Trash2, Timer } from "lucide-solid";
 import clsx from "clsx";
+import { 
+  getEffectiveVisibility, 
+  hasHiddenElements, 
+  isCellShowingAll, 
+  toggleCellShowAll 
+} from "../lib/codeVisibility";
 
 interface CodeCellProps {
   cell: CellData;
   isActive: boolean;
   index: number;
+  prevCellId: string | null;
 }
 
 const CodeCell: Component<CodeCellProps> = (props) => {
   // Local running state replaced by store state
   // const [running, setRunning] = createSignal(false);
   const [hovered, setHovered] = createSignal(false);
+
+  // Get effective visibility for this cell (considers per-cell override)
+  const visibility = () => getEffectiveVisibility(props.cell.id);
+  const isShowingAll = () => isCellShowingAll(props.cell.id);
+
+  // Check if cell has any actual output content (regardless of visibility settings)
+  const hasAnyOutput = createMemo(() => {
+    const o = props.cell.outputs;
+    if (!o) return false;
+    return (o.stdout && o.stdout.length > 0) ||
+           (o.stderr && o.stderr.length > 0) ||
+           o.result ||
+           o.error;
+  });
+
+  // Show "code hidden" message only when code is hidden AND cell has no output at all
+  // This prevents confusion when the cell appears completely empty
+  const showHiddenMessage = createMemo(() => {
+    const v = visibility();
+    return !v.showCode && !hasAnyOutput();
+  });
 
   // We rely on the parent (Notebook) or store logic to handle the run
   // But CodeCell needs to invoke the store action directly now to participate in queue
@@ -86,16 +114,32 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       actionRunning={props.cell.isRunning}
       isQueued={props.cell.isQueued}
       hasError={!!props.cell.outputs?.error}
+      prevCellId={props.prevCellId}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      // Pass visibility toggle info for sidebar button
+      hasHiddenElements={hasHiddenElements()}
+      isShowingAll={isShowingAll()}
+      onToggleVisibility={() => toggleCellShowAll(props.cell.id)}
     >
       <div class="flex flex-col p-2.25 py-2.75">
+        {/* Hidden code message */}
+        <Show when={showHiddenMessage()}>
+          <div class="text-secondary/40 italic text-sm py-4 px-3 text-center">
+            Code is hidden — cell will still execute
+          </div>
+        </Show>
+
         {/* Output Logs (Stdout/UI) Above */}
-        <Show when={currentTheme.outputLayout === "above" && props.cell.outputs}>
+        <Show when={visibility().showStdout && currentTheme.outputLayout === "above" && props.cell.outputs}>
            <OutputStdoutUI outputs={props.cell.outputs} />
         </Show>
 
-        <div class={clsx("flex relative pl-1.75 z-10 p-2")}>
+        {/* Code Editor - use CSS to hide instead of unmounting to preserve editor state */}
+        <div class={clsx(
+          "flex relative pl-1.75 z-10 p-2",
+          !visibility().showCode && "hidden"
+        )}>
            {/* Line numbers gutter could go here */}
            <div class={clsx(
              "w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono",
@@ -125,8 +169,8 @@ const CodeCell: Component<CodeCellProps> = (props) => {
            </div>
         </div>
 
-        {/* Timeline Connector */}
-        <Show when={props.cell.outputs}>
+        {/* Timeline Connector - show based on status dot visibility setting */}
+        <Show when={visibility().showStatusDot && props.cell.outputs}>
            <div class="flex pl-1.5 relative z-0 h-5 -my-1.5">
               <div class="w-10 relative flex items-center justify-center">
                   <div class={clsx(
@@ -181,22 +225,22 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         </Show>
 
         {/* Stderr (Always Below Editor) */}
-        <Show when={props.cell.outputs}>
+        <Show when={visibility().showStderr && props.cell.outputs}>
           <OutputStderr outputs={props.cell.outputs} />
         </Show>
 
         {/* Result (Always Below Stderr) */}
-        <Show when={props.cell.outputs}>
+        <Show when={visibility().showResult && props.cell.outputs}>
           <OutputResult outputs={props.cell.outputs} />
         </Show>
 
         {/* Output Logs (Stdout/UI) Below (if layout is below) */}
-        <Show when={currentTheme.outputLayout === "below" && props.cell.outputs}>
+        <Show when={visibility().showStdout && currentTheme.outputLayout === "below" && props.cell.outputs}>
           <OutputStdoutUI outputs={props.cell.outputs} />
         </Show>
 
         {/* Error (Always Bottom Most) */}
-        <Show when={props.cell.outputs}>
+        <Show when={visibility().showError && props.cell.outputs}>
           <OutputError outputs={props.cell.outputs} />
         </Show>
       </div>

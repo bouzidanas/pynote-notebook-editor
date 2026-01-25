@@ -1,8 +1,46 @@
-import { type Component, type JSX, Show, createSignal, createEffect } from "solid-js";
+import { type Component, type JSX, Show, createSignal, createEffect, onCleanup } from "solid-js";
+import { createStore } from "solid-js/store";
 import { createSortable } from "@thisbeyond/solid-dnd";
-import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer } from "lucide-solid";
+import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff } from "lucide-solid";
 import clsx from "clsx";
 import { notebookStore } from "../lib/store";
+import { currentTheme } from "../lib/theme";
+
+// Reactive store for cell exit levels - tracks each cell's exit level
+// Each cell writes its exit level here, next cell reads via prevCellId prop
+// Only used when sectionScoping is enabled
+const [exitLevelStore, setExitLevelStore] = createStore<Record<string, number>>({});
+
+// Register/update a cell's exit level (no-op if scoping disabled)
+export const setCellExitLevel = (id: string, level: number) => {
+  if (!currentTheme.sectionScoping) return;
+  setExitLevelStore(id, level);
+};
+
+// Unregister when cell unmounts (no-op if scoping disabled)
+export const unregisterCellExitLevel = (id: string) => {
+  if (!currentTheme.sectionScoping) return;
+  setExitLevelStore(id, undefined as any);
+};
+
+// Get a cell's exit level by ID (O(1) lookup, returns 0 if scoping disabled)
+export const getCellExitLevel = (cellId: string | null): number => {
+  if (!currentTheme.sectionScoping || !cellId) return 0;
+  return exitLevelStore[cellId] ?? 0;
+};
+
+// Helper to find last header level in markdown content
+export const getLastHeaderLevel = (content: string): number => {
+  const lines = content.split('\n');
+  let lastLevel = 0;
+  for (const line of lines) {
+    const match = line.match(/^(#{1,6})\s/);
+    if (match) {
+      lastLevel = Math.min(match[1].length, 4);
+    }
+  }
+  return lastLevel;
+};
 
 interface CellWrapperProps {
   id: string;
@@ -22,6 +60,13 @@ interface CellWrapperProps {
   hasError?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  // For cross-cell section scoping
+  prevCellId?: string | null;  // ID of the previous cell (for entry level)
+  lastHeaderLevel?: number;    // Last header level in this cell (0 if none)
+  // For code visibility toggle (code cells only)
+  hasHiddenElements?: boolean; // Whether any visibility settings are hiding elements
+  isShowingAll?: boolean;      // Whether this cell is in "show all" override mode
+  onToggleVisibility?: () => void; // Toggle between show-all and user settings
 }
 
 const CellWrapper: Component<CellWrapperProps> = (props) => {
@@ -30,19 +75,53 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
   const presentationMode = () => notebookStore.presentationMode;
   let elementRef: HTMLDivElement | undefined;
 
+  // Section scoping logic - only active when sectionScoping is enabled
+  // When disabled, entryLevel() returns 0 and all store operations are no-ops
+  const entryLevel = () => getCellExitLevel(props.prevCellId ?? null);
+  
+  // Only set up exit level tracking when section scoping is enabled
+  if (currentTheme.sectionScoping) {
+    // Exit level = last header in this cell, or pass through entry level
+    const computeExitLevel = () => {
+      const lastHeader = props.lastHeaderLevel || 0;
+      return lastHeader > 0 ? lastHeader : entryLevel();
+    };
+    
+    // Register on mount with initial value
+    setCellExitLevel(props.id, computeExitLevel());
+    
+    // Update exit level when dependencies change (content or prev cell's exit)
+    createEffect(() => {
+      setCellExitLevel(props.id, computeExitLevel());
+    });
+    
+    // Cleanup on unmount
+    onCleanup(() => unregisterCellExitLevel(props.id));
+  }
+
   createEffect(() => {
     if (props.isActive && elementRef) {
       const rect = elementRef.getBoundingClientRect();
       const HEADER_HEIGHT = 100; // Safe area for sticky header + toolbar + padding
       const BOTTOM_MARGIN = 20;
+      const viewportHeight = window.innerHeight - HEADER_HEIGHT - BOTTOM_MARGIN;
 
-      // Check if hidden above
-      if (rect.top < HEADER_HEIGHT) {
-        window.scrollBy({ top: rect.top - HEADER_HEIGHT, behavior: "smooth" });
-      } 
-      // Check if hidden below
-      else if (rect.bottom > window.innerHeight - BOTTOM_MARGIN) {
-        window.scrollBy({ top: rect.bottom - window.innerHeight + BOTTOM_MARGIN, behavior: "smooth" });
+      const isAboveViewport = rect.bottom < HEADER_HEIGHT;
+      const isBelowViewport = rect.top > window.innerHeight - BOTTOM_MARGIN;
+      const isTallerThanViewport = rect.height > viewportHeight;
+
+      // Only scroll if the entire cell is out of view
+      if (isAboveViewport || isBelowViewport) {
+        if (isTallerThanViewport) {
+          // For tall cells, always show the top of the cell
+          window.scrollBy({ top: rect.top - HEADER_HEIGHT, behavior: "smooth" });
+        } else if (isAboveViewport) {
+          // Cell is above: bring top into view
+          window.scrollBy({ top: rect.top - HEADER_HEIGHT, behavior: "smooth" });
+        } else {
+          // Cell is below: bring bottom into view
+          window.scrollBy({ top: rect.bottom - window.innerHeight + BOTTOM_MARGIN, behavior: "smooth" });
+        }
       }
     }
   });
@@ -65,7 +144,8 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       style={{ 
         transform: `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)`,
         "margin-top": "var(--cell-margin)",
-        "margin-bottom": "var(--cell-margin)"
+        "margin-bottom": "var(--cell-margin)",
+        ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {})
       }}
       onClick={(e) => {
         if (!presentationMode()) {
@@ -124,6 +204,27 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
                       <Timer size={14} class="text-accent/70 animate-pulse" />
                     </Show>
                   </Show>
+                </Show>
+              </button>
+            </Show>
+
+            {/* Visibility Toggle (Code cells only, when elements are hidden) */}
+            <Show when={props.type === "code" && props.hasHiddenElements && props.onToggleVisibility}>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  props.onToggleVisibility?.(); 
+                }}
+                class={clsx(
+                  "p-2 -m-1 rounded-sm transition-colors",
+                  props.isShowingAll 
+                    ? "text-accent hover:text-accent/80" 
+                    : "text-foreground hover:text-accent"
+                )}
+                title={props.isShowingAll ? "Hide elements (use visibility settings)" : "Show all elements"}
+              >
+                <Show when={props.isShowingAll} fallback={<EyeOff size={14} />}>
+                  <Eye size={14} />
                 </Show>
               </button>
             </Show>

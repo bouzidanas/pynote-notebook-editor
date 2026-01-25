@@ -5,12 +5,13 @@ import { notebookStore, actions, defaultCells } from "../lib/store";
 import { tutorialCells } from "../lib/tutorial-notebook";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
-import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity } from "lucide-solid";
+import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
+const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 
 const SHORTCUTS = {
   global: [
@@ -20,6 +21,7 @@ const SHORTCUTS = {
     { label: "Export .ipynb", keys: "Ctrl + E" },
     { label: "Toggle Shortcuts", keys: "Ctrl + /" },
     { label: "Presentation Mode", keys: "Alt + P" },
+    { label: "Code Visibility", keys: "Alt + V" },
     { label: "Run All Cells", keys: "Alt + R" },
     { label: "Clear All Outputs", keys: "Alt + C" },
     { label: "Delete All Cells", keys: "Alt + D" },
@@ -217,6 +219,7 @@ const Notebook: Component = () => {
   const [showEscHint, setShowEscHint] = createSignal(false);
   const [showShortcuts, setShowShortcuts] = createSignal(false);
   const [showPerformance, setShowPerformance] = createSignal(false);
+  const [showCodeVisibility, setShowCodeVisibility] = createSignal(false);
   // Version signal to force re-mounting of the list on full reloads
   const [notebookVersion, ] = createSignal(0);
 
@@ -385,6 +388,9 @@ const Notebook: Component = () => {
       } else if (e.altKey && e.key === "p") {
         e.preventDefault();
         actions.setPresentationMode(!notebookStore.presentationMode);
+      } else if (e.altKey && e.key === "v") {
+        e.preventDefault();
+        setShowCodeVisibility(!showCodeVisibility());
       } else if (e.altKey && e.key === "r") {
         e.preventDefault();
         runAll();
@@ -790,6 +796,9 @@ const Notebook: Component = () => {
                    <DropdownItem onClick={() => actions.setPresentationMode(true)} shortcut="Alt+P">
                        <div class="flex items-center gap-2"><Eye size={18} /> Presentation</div>
                    </DropdownItem>
+                   <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
+                       <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
+                   </DropdownItem>
                    <DropdownItem onClick={() => setShowPerformance(true)}>
                        <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
                    </DropdownItem>
@@ -975,6 +984,9 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                          </DropdownItem>
                          <DropdownDivider />
+                         <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
+                             <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
+                         </DropdownItem>
                          <DropdownItem onClick={() => setShowPerformance(true)}>
                              <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
                          </DropdownItem>
@@ -1091,6 +1103,9 @@ const Notebook: Component = () => {
                      </DropdownItem>
                      <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                          <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
+                         <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
                      </DropdownItem>
                      <DropdownItem onClick={() => setShowPerformance(true)}>
                          <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
@@ -1267,14 +1282,17 @@ const Notebook: Component = () => {
                  <SortableProvider ids={notebookStore.cells.map((c) => c.id)}>
                    <TransitionGroup name="cell-list">
                      <For each={notebookStore.cells}>
-                       {(cell, index) => (
-                         <Show 
-                            when={cell.type === "code"} 
-                            fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />} 
-                         >
-                            <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />
-                         </Show>
-                       )}
+                       {(cell, index) => {
+                         const prevCellId = () => index() > 0 ? notebookStore.cells[index() - 1].id : null;
+                         return (
+                           <Show 
+                              when={cell.type === "code"} 
+                              fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />} 
+                           >
+                              <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />
+                           </Show>
+                         );
+                       }}
                      </For>
                    </TransitionGroup>
                  </SortableProvider>
@@ -1405,6 +1423,11 @@ const Notebook: Component = () => {
        {/* Performance Monitor */}
        <Show when={showPerformance()}>
           <PerformanceMonitor onClose={() => setShowPerformance(false)} />
+       </Show>
+
+       {/* Code Visibility Dialog */}
+       <Show when={showCodeVisibility()}>
+          <CodeVisibilityDialog onClose={() => setShowCodeVisibility(false)} />
        </Show>
     </div>
   );

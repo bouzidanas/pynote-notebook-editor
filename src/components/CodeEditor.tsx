@@ -1,12 +1,22 @@
 import { type Component, createEffect, onCleanup, onMount } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
-import { duotoneDark } from "@uiw/codemirror-theme-duotone";
+import { duotoneDarkInit } from "@uiw/codemirror-theme-duotone";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
+import { tags } from "@lezer/highlight";
 import { currentTheme } from "../lib/theme";
 import { type CellData, actions } from "../lib/store";
+
+// Create custom duotoneDark theme with green function calls
+// Using duotoneDarkInit() with custom styles is the most efficient approach -
+// single-pass highlighting with our color baked into the theme
+const customDuotoneDark = duotoneDarkInit({
+  styles: [
+    { tag: tags.function(tags.variableName), color: "#a6e3a1" },
+  ]
+});
 
 interface EditorProps {
   value: string;
@@ -202,7 +212,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Base extensions
   extensionsConfig = [
     python(),
-    duotoneDark,
+    customDuotoneDark,
     history(),
     keymap.of([
       { key: "Mod-Enter", run: () => false },
