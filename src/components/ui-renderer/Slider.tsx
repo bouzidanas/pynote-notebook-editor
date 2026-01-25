@@ -152,7 +152,7 @@ const Slider: Component<SliderProps> = (p) => {
       </style>
       <div class="flex items-center justify-between gap-3 px-3 py-2 bg-base-200/50 border-b-2 border-foreground">
         <span class="text-xs font-semibold uppercase tracking-wider text-secondary/70">{p.props.label}</span>
-        <span class="font-mono text-sm font-bold text-primary">{value()}</span>
+        <span class="font-mono text-sm font-bold text-[var(--primary)]">{value()}</span>
       </div>
       
       <div class="p-3 flex flex-col gap-1">

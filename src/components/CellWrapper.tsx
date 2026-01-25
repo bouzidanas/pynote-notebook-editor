@@ -8,19 +8,22 @@ import { currentTheme } from "../lib/theme";
 
 // Reactive store for cell exit levels - tracks each cell's exit level
 // Each cell writes its exit level here, next cell reads via prevCellId prop
+// Only used when sectionScoping is enabled
 const [exitLevelStore, setExitLevelStore] = createStore<Record<string, number>>({});
 
-// Register/update a cell's exit level
+// Register/update a cell's exit level (no-op if scoping disabled)
 export const setCellExitLevel = (id: string, level: number) => {
+  if (!currentTheme.sectionScoping) return;
   setExitLevelStore(id, level);
 };
 
-// Unregister when cell unmounts
+// Unregister when cell unmounts (no-op if scoping disabled)
 export const unregisterCellExitLevel = (id: string) => {
+  if (!currentTheme.sectionScoping) return;
   setExitLevelStore(id, undefined as any);
 };
 
-// Get a cell's exit level by ID (O(1) lookup)
+// Get a cell's exit level by ID (O(1) lookup, returns 0 if scoping disabled)
 export const getCellExitLevel = (cellId: string | null): number => {
   if (!currentTheme.sectionScoping || !cellId) return 0;
   return exitLevelStore[cellId] ?? 0;
@@ -68,25 +71,29 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
   const presentationMode = () => notebookStore.presentationMode;
   let elementRef: HTMLDivElement | undefined;
 
-  // Entry level = previous cell's exit level (O(1) lookup via prevCellId prop)
+  // Section scoping logic - only active when sectionScoping is enabled
+  // When disabled, entryLevel() returns 0 and all store operations are no-ops
   const entryLevel = () => getCellExitLevel(props.prevCellId ?? null);
   
-  // Exit level = last header in this cell, or pass through entry level
-  const computeExitLevel = () => {
-    const lastHeader = props.lastHeaderLevel || 0;
-    return lastHeader > 0 ? lastHeader : entryLevel();
-  };
-  
-  // Register on mount with initial value
-  setCellExitLevel(props.id, computeExitLevel());
-  
-  // Update exit level when dependencies change (content or prev cell's exit)
-  createEffect(() => {
+  // Only set up exit level tracking when section scoping is enabled
+  if (currentTheme.sectionScoping) {
+    // Exit level = last header in this cell, or pass through entry level
+    const computeExitLevel = () => {
+      const lastHeader = props.lastHeaderLevel || 0;
+      return lastHeader > 0 ? lastHeader : entryLevel();
+    };
+    
+    // Register on mount with initial value
     setCellExitLevel(props.id, computeExitLevel());
-  });
-  
-  // Cleanup on unmount
-  onCleanup(() => unregisterCellExitLevel(props.id));
+    
+    // Update exit level when dependencies change (content or prev cell's exit)
+    createEffect(() => {
+      setCellExitLevel(props.id, computeExitLevel());
+    });
+    
+    // Cleanup on unmount
+    onCleanup(() => unregisterCellExitLevel(props.id));
+  }
 
   createEffect(() => {
     if (props.isActive && elementRef) {

@@ -9,6 +9,7 @@ import katex from "katex";
 import DOMPurify from "dompurify";
 import { Edit2, Check, Trash2 } from "lucide-solid";
 import clsx from "clsx";
+import { highlightPython, isPythonLanguage, isSupportedLanguage, highlightWithHljs } from "../lib/syntax-highlighter";
 
 const displayMath = {
   name: 'displayMath',
@@ -31,6 +32,61 @@ const displayMath = {
 
 marked.use(markedKatex({ throwOnError: false, output: "html", trust: true }));
 marked.use({ extensions: [displayMath as any] });
+
+// Custom renderer for syntax-highlighted code blocks
+// Python uses Lezer (sync), other languages use placeholder for async hljs
+const renderer = new marked.Renderer();
+renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  
+  // Python: use Lezer for exact CodeMirror match (synchronous)
+  if (isPythonLanguage(lang)) {
+    const highlighted = highlightPython(text);
+    return `<pre><code class="language-python">${highlighted}</code></pre>`;
+  }
+  
+  // Other supported languages: mark for async highlighting
+  if (lang && isSupportedLanguage(lang)) {
+    // Store original code in data attribute for async processing
+    const base64Code = btoa(unescape(encodeURIComponent(text)));
+    return `<pre><code class="language-${lang}" data-hljs-lang="${lang}" data-hljs-code="${base64Code}">${escaped}</code></pre>`;
+  }
+  
+  // Unsupported: just escape
+  return `<pre><code${lang ? ` class="language-${lang}"` : ''}>${escaped}</code></pre>`;
+};
+marked.use({ renderer });
+
+// Post-process HTML to apply highlight.js to marked code blocks
+const applyAsyncHighlighting = async (html: string): Promise<string> => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const codeBlocks = doc.querySelectorAll('code[data-hljs-lang]');
+  
+  for (const block of codeBlocks) {
+    const lang = block.getAttribute('data-hljs-lang');
+    const base64Code = block.getAttribute('data-hljs-code');
+    if (lang && base64Code) {
+      try {
+        const code = decodeURIComponent(escape(atob(base64Code)));
+        const highlighted = await highlightWithHljs(code, lang);
+        if (highlighted) {
+          block.innerHTML = highlighted;
+        }
+      } catch (e) {
+        console.warn('Failed to decode/highlight code block', e);
+      }
+      // Clean up data attributes
+      block.removeAttribute('data-hljs-lang');
+      block.removeAttribute('data-hljs-code');
+    }
+  }
+  
+  return doc.body.innerHTML;
+};
 
 const purifyOptions = {
     ADD_TAGS: ["math", "maction", "maligngroup", "malignmark", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mlongdiv", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mscarries", "mscarry", "msgroup", "mstack", "msline", "mspace", "msqrt", "msrow", "mstack", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "semantics", "annotation", "annotation-xml"],
@@ -90,6 +146,9 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
           html = (result as any) instanceof Promise ? await result : result as string;
       }
 
+      // Apply async syntax highlighting for non-Python languages
+      html = await applyAsyncHighlighting(html);
+      
       setParsedContent(DOMPurify.sanitize(html, purifyOptions));
     } catch (e) {
       console.error("Markdown rendering error:", e);

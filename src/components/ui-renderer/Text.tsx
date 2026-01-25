@@ -10,6 +10,8 @@ interface TextProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    align_h?: "left" | "center" | "right";
+    align_v?: "top" | "center" | "bottom";
   };
 }
 
@@ -68,6 +70,18 @@ const Text: Component<TextProps> = (p) => {
         styles["min-height"] = h;
       }
     }
+    
+    // Text alignment (only matters when width/height is set or grow is used)
+    // Use flexbox for alignment so it works with any sizing mode
+    styles.display = "flex";
+    
+    // Horizontal alignment
+    const alignH = p.props.align_h ?? "left";
+    styles["justify-content"] = alignH === "center" ? "center" : alignH === "right" ? "flex-end" : "flex-start";
+    
+    // Vertical alignment
+    const alignV = p.props.align_v ?? "top";
+    styles["align-items"] = alignV === "center" ? "center" : alignV === "bottom" ? "flex-end" : "flex-start";
     
     return styles;
   };

@@ -3,14 +3,15 @@ import json
 import sys
 
 # Control character markers for stdout UI rendering
-# Using ASCII control chars that users can't accidentally type
-MARKER_START = "\x02PYNOTE_UI\x02"
-MARKER_END = "\x03"
+# Self-closing pattern: \x02TYPE\x02content\x02/TYPE\x02
+MARKER_UI_START = "\x02PYNOTE_UI\x02"
+MARKER_UI_END = "\x02/PYNOTE_UI\x02"
 
-# Markdown output markers
-MARKER_MD_START = "\x02PYNOTE_MD\x02"
-MARKER_MD_STYLED = "\x02PYNOTE_MD_STYLED\x02"
-MARKER_MD_PLAIN = "\x02PYNOTE_MD_PLAIN\x02"
+# Markdown output markers (self-closing)
+MARKER_MD_STYLED_START = "\x02PYNOTE_MD_STYLED\x02"
+MARKER_MD_STYLED_END = "\x02/PYNOTE_MD_STYLED\x02"
+MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02"
+MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02"
 
 class StateManager:
     _instances = {}
@@ -116,23 +117,32 @@ def clear_cell(cell_id):
 def register_comm_target(callback):
     StateManager.register_comm_target(callback)
 
-def display(*elements):
+def display(*elements, inline=False):
     """Display one or more UI elements in the output immediately.
     
     This allows showing UI elements at any point during cell execution,
     not just as the final result.
     
+    Args:
+        *elements: UI elements to display
+        inline: If True, display elements on the same line. Default False (separate lines).
+    
     Usage:
         slider = Slider(value=50)
-        display(slider)  # Shows immediately
+        display(slider)  # Shows on its own line
         
-        # Or display multiple elements:
+        # Multiple elements on separate lines (default):
         display(slider1, slider2, text)
+        
+        # Multiple elements on the same line:
+        display(slider1, slider2, inline=True)
     """
-    for element in elements:
+    for i, element in enumerate(elements):
         if hasattr(element, 'to_json'):
             payload = json.dumps(element.to_json())
             sys.stdout.write(f"{MARKER_UI_START}{payload}{MARKER_UI_END}")
+            if not inline:
+                print()  # Newline after each element
         else:
             # Fallback for non-UI elements
             print(element)

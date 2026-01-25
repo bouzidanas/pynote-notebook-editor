@@ -107,19 +107,19 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-ui",
     type: "code",
-    content: "from pynote_ui import Slider, Text, Group\n\n# Define widgets\nsquare_slider = Slider(min=0, max=20, value=5, label=\"Square this number\")\nsquare_output = Text(content=\"Result: 25\")\n\n# Define interaction\ndef square_update(data):\n    val = int(data['value'])\n    square_output.content = f\"Result: {val**2}\"\n\nsquare_slider.on_update(square_update)\nGroup([square_slider, square_output], border=True)"
+    content: "from pynote_ui import Slider, Text, Group\n\n# Define widgets\nsquare_slider = Slider(min=0, max=20, value=5, label=\"Square this number\")\nsquare_output = Text(content=\"Result: 25\")\n\n# Define interaction\ndef square_update(data):\n    val = int(data['value'])\n    square_output.content = f\"Result: {val**2}\"\n\nsquare_slider.on_update(square_update)\nGroup([square_slider, square_output])"
   },
 
   // --- Section 2.2: Component Layout ---
   {
     id: "tut-s2-layout",
     type: "markdown",
-    content: "### Grouping & Layout\n\nUse `Group` to arrange components in rows or columns. Groups can be **nested** to create complex layouts!"
+    content: "### Grouping & Layout\n\nUse `Group` to arrange components in rows or columns. Groups can be **nested** to create complex layouts!\n\n**Understanding `grow` vs `width`/`height`:**\n- `grow` controls sizing along the **container's direction** (horizontal in a row, vertical in a column)\n- `width`/`height` controls the **perpendicular direction**\n\nIn this example, the sliders use `grow=1` to share the row equally, while the text uses `width=\"100%\"` to stretch across the column."
   },
   {
     id: "tut-demo-layout",
     type: "code",
-    content: "from pynote_ui import Slider, Text, Group\n\n# Create some widgets\ncalc_a = Slider(value=30, label=\"A\")\ncalc_b = Slider(value=70, label=\"B\")\ncalc_result = Text(content=\"A + B = 100\")\n\ndef calc_update(data):\n    calc_result.content = f\"A + B = {int(calc_a.value + calc_b.value)}\"\ncalc_a.on_update(calc_update)\ncalc_b.on_update(calc_update)\n\n# Nested Groups: row of sliders inside a column\nGroup([\n    Group([calc_a, calc_b], layout=\"row\"),\n    calc_result\n], layout=\"col\", label=\"Calculator\", border=True)"
+    content: "from pynote_ui import Slider, Text, Group\n\n# Create some widgets\ncalc_a = Slider(value=30, label=\"A\", grow=1)\ncalc_b = Slider(value=70, label=\"B\", grow=1)\ncalc_result = Text(content=\"A + B = 100\", width=\"100%\", align_h=\"center\")\n\ndef calc_update(data):\n    calc_result.content = f\"A + B = {int(calc_a.value + calc_b.value)}\"\ncalc_a.on_update(calc_update)\ncalc_b.on_update(calc_update)\n\n# Nested Groups: row of sliders inside a column\nGroup([\n    Group([calc_a, calc_b], layout=\"row\"),\n    calc_result\n], layout=\"col\", label=\"Calculator\", border=True)"
   },
 
   // --- Section 2.2b: Flex Distribution ---
@@ -160,7 +160,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-s2-display",
     type: "markdown",
-    content: "## Displaying UI Anywhere\n\nBy default, UI elements only appear when they're the **last expression** in a cell. The `display()` function lets you render UI elements **at any point** during execution:"
+    content: "## Displaying UI Anywhere\n\nBy default, UI elements only appear when they're the **last expression** in a cell. The `display()` function lets you render UI elements **at any point** during execution.\n\n**Signature:** `display(*elements, inline=False, gap=1)`\n- `inline=False` (default): Each element on its own line\n- `inline=True`: Elements on the same line\n- `gap`: Spacing between elements (spaces if inline, blank lines if separate)"
   },
   {
     id: "tut-demo-display",
@@ -175,7 +175,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-print",
     type: "code",
-    content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\")\nvol_text = Text(content=\"75%\")\nvolume.on_update(lambda d: setattr(vol_text, 'content', f\"{int(d['value'])}%\"))\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
+    content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\")\nvol_text = Text(content=\"75%\")\n\ndef update_vol(data):\n    vol_text.content = f\"{int(data['value'])}%\"\nvolume.on_update(update_vol)\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
   },
 
   // --- Section 2.5: Print Markdown ---
@@ -255,7 +255,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-api-display",
     type: "markdown",
-    content: "### `display()`\n\nRender one or more UI elements immediately in the output stream.\n\n```python\ndisplay(*elements)\n```\n\n| Argument | Type                 | Description |\n|----------|----------------------|-------------|\n| `*elements` | `UIElement` | One or more UI elements to display |\n\n**Usage:**\n\n```python\nfrom pynote_ui import Slider, Text, display\n\nslider = Slider(value=50)\ntext = Text(content=\"Hello\")\n\ndisplay(slider)           # Display one element\ndisplay(slider, text)     # Display multiple elements\n```\n\n**Note:** Unlike the last-expression behavior, `display()` outputs widgets **immediately** during execution, allowing interleaved text and UI."
+    content: "### `display()`\n\nRender one or more UI elements immediately in the output stream.\n\n```python\ndisplay(*elements, inline=False, gap=1)\n```\n\n| Argument | Type | Default | Description |\n|----------|------|---------|-------------|\n| `*elements` | `UIElement` | *(required)* | One or more UI elements to display |\n| `inline` | `bool` | `False` | If `True`, display elements on the same line |\n| `gap` | `int` | `1` | Spacing between elements (spaces if inline, blank lines if separate) |\n\n**Usage:**\n\n```python\nfrom pynote_ui import Slider, Text, display\n\nslider = Slider(value=50)\ntext = Text(content=\"Hello\")\n\ndisplay(slider)                      # Single element\ndisplay(slider, text)                # Separate lines (default)\ndisplay(slider, text, inline=True)   # Same line\ndisplay(slider, text, gap=2)         # 2 blank lines between\n```\n\n**Note:** Unlike the last-expression behavior, `display()` outputs widgets **immediately** during execution, allowing interleaved text and UI."
   },
   {
     id: "tut-api-printmd",

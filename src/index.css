@@ -190,8 +190,8 @@ body {
 
 /* Code blocks (pre > code) - distinct block styling */
 .prose pre {
-    background-color: color-mix(in srgb, var(--accent) 8%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 5%, transparent) !important;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
     padding: 1em !important;
     margin: 1em 0 !important;
@@ -205,6 +205,60 @@ body {
     font-size: 0.875em !important;
     color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
     font-weight: normal !important;
+}
+
+/* highlight.js theme - Duotone Dark matching CodeMirror */
+.prose pre code .hljs-keyword,
+.prose pre code .hljs-selector-tag,
+.prose pre code .hljs-literal,
+.prose pre code .hljs-section,
+.prose pre code .hljs-link {
+    color: #ffcc99 !important;
+}
+.prose pre code .hljs-function .hljs-keyword {
+    color: #ffcc99 !important;
+}
+.prose pre code .hljs-string,
+.prose pre code .hljs-attr {
+    color: #ffb870 !important;
+}
+.prose pre code .hljs-number,
+.prose pre code .hljs-regexp,
+.prose pre code .hljs-type,
+.prose pre code .hljs-built_in,
+.prose pre code .hljs-builtin-name {
+    color: #ffcc99 !important;
+}
+.prose pre code .hljs-title,
+.prose pre code .hljs-name,
+.prose pre code .hljs-variable,
+.prose pre code .hljs-params {
+    color: #eeebff !important;
+}
+.prose pre code .hljs-comment,
+.prose pre code .hljs-quote {
+    color: #6c6783 !important;
+    font-style: italic;
+}
+.prose pre code .hljs-meta,
+.prose pre code .hljs-tag {
+    color: #6c6783 !important;
+}
+.prose pre code .hljs-attribute,
+.prose pre code .hljs-property {
+    color: #9a86fd !important;
+}
+.prose pre code .hljs-symbol,
+.prose pre code .hljs-bullet,
+.prose pre code .hljs-addition {
+    color: #ffb870 !important;
+}
+.prose pre code .hljs-deletion {
+    color: #ff6b6b !important;
+}
+.prose pre code .hljs-operator,
+.prose pre code .hljs-punctuation {
+    color: #e09142 !important;
 }
 
 /* Remove backticks from code in prose */

@@ -29,11 +29,12 @@ class Slider(UIElement):
         super().handle_interaction(data)
 
 class Text(UIElement):
-    def __init__(self, content="", width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+    def __init__(self, content="", width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top"):
         self._content = content
         super().__init__(
             content=content,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
+            align_h=align_h, align_v=align_v
         )
 
     @property

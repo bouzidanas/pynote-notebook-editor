@@ -228,9 +228,11 @@ function parseMarkdownWithUI(content: string): MarkdownSubSegment[] {
 }
 
 // Render markdown to sanitized HTML
-function renderMarkdown(content: string): string {
+// Always uses parseInline to maintain inline flow with UI components
+// Paragraph breaks (\n\n) are handled separately in the component
+function renderMarkdownInline(content: string): string {
   try {
-    const result = marked.parse(content);
+    const result = marked.parseInline(content);
     const html = typeof result === 'string' ? result : '';
     return DOMPurify.sanitize(html, purifyOptions);
   } catch (e) {
@@ -253,22 +255,50 @@ const MarkdownWithUI: Component<{ content: string; styled: boolean }> = (props) 
   const styledClass = "prose prose-invert max-w-none text-secondary";
   const plainClass = "font-mono text-sm text-secondary whitespace-pre-wrap";
   
+  // Render a text segment, handling paragraph breaks (\n\n) properly
+  // Text is rendered inline, but \n\n creates actual paragraph separations
+  // - For styled (print_md): uses --block-margin for markdown-like spacing
+  // - For plain (print): uses actual newlines preserved by whitespace-pre-wrap
+  const renderTextSegment = (content: string, styled: boolean) => {
+    if (!styled) {
+      // Plain print: just output the text, whitespace-pre-wrap handles newlines
+      return <span>{content}</span>;
+    }
+    
+    // Styled (markdown): split on paragraph breaks for proper inline flow with components
+    const paragraphs = content.split(/\n\n+/);
+    
+    if (paragraphs.length === 1) {
+      // No paragraph breaks - render fully inline
+      return <span innerHTML={renderMarkdownInline(content)} />;
+    }
+    
+    // Multiple paragraphs - render each inline, with --block-margin breaks between
+    return (
+      <>
+        <For each={paragraphs}>
+          {(para, index) => (
+            <>
+              <span innerHTML={renderMarkdownInline(para)} />
+              <Show when={index() < paragraphs.length - 1}>
+                <span class="block" style={{ height: "var(--block-margin)" }} />
+              </Show>
+            </>
+          )}
+        </For>
+      </>
+    );
+  };
+  
   return (
     <div class={props.styled ? styledClass : plainClass}>
       <For each={subSegments()}>
         {(segment) => (
           <Show
             when={segment.type === "ui"}
-            fallback={
-              <span 
-                innerHTML={props.styled 
-                  ? renderMarkdown((segment as { type: "text"; content: string }).content)
-                  : (segment as { type: "text"; content: string }).content
-                } 
-              />
-            }
+            fallback={renderTextSegment((segment as { type: "text"; content: string }).content, props.styled)}
           >
-            <span class="inline-block align-middle my-2">
+            <span class="inline-block align-middle">
               <UIOutputRenderer data={(segment as { type: "ui"; data: any }).data} />
             </span>
           </Show>
@@ -296,23 +326,24 @@ export const OutputStdoutUI: Component<OutputProps> = (props) => {
     <Show when={hasContent()}>
       <div class="first:pb-4 flex flex-col gap-5 font-mono text-sm p-2 pl-1.25 border-foreground">
           <Show when={segments().length > 0}>
-            <For each={segments()}>
-              {(segment) => {
-                if (segment.type === "ui") {
-                  return <UIOutputRenderer data={segment.data} />;
-                } else if (segment.type === "markdown") {
-                  return (
-                    <MarkdownWithUI content={segment.content} styled={segment.styled} />
-                  );
-                } else {
-                  return (
-                    <div class="text-secondary whitespace-pre-wrap">
-                      {segment.content}
-                    </div>
-                  );
-                }
-              }}
-            </For>
+            {/* Render all segments in one container for inline flow */}
+            <div class="text-secondary whitespace-pre-wrap">
+              <For each={segments()}>
+                {(segment) => {
+                  if (segment.type === "ui") {
+                    return (
+                      <span class="inline-block align-middle">
+                        <UIOutputRenderer data={segment.data} />
+                      </span>
+                    );
+                  } else if (segment.type === "markdown") {
+                    return <MarkdownWithUI content={segment.content} styled={segment.styled} />;
+                  } else {
+                    return <span>{segment.content}</span>;
+                  }
+                }}
+              </For>
+            </div>
           </Show>
           <Show when={props.outputs?.mimebundle && props.outputs.mimebundle['application/vnd.pynote.ui+json']}>
             <UIOutputRenderer data={props.outputs?.mimebundle['application/vnd.pynote.ui+json']} />
