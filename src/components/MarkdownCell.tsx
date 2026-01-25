@@ -1,7 +1,7 @@
-import { type Component, createSignal, Show, createEffect } from "solid-js";
+import { type Component, createSignal, Show, createEffect, createMemo } from "solid-js";
 import { type CellData, actions } from "../lib/store";
 import { currentTheme } from "../lib/theme";
-import CellWrapper from "./CellWrapper";
+import CellWrapper, { getLastHeaderLevel } from "./CellWrapper";
 import MarkdownEditor from "./MarkdownEditor";
 import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
@@ -41,11 +41,17 @@ interface MarkdownCellProps {
   cell: CellData;
   isActive: boolean;
   index: number;
+  prevCellId: string | null;
 }
 
 const MarkdownCell: Component<MarkdownCellProps> = (props) => {
   const [parsedContent, setParsedContent] = createSignal("");
   const [renderError, setRenderError] = createSignal(false);
+
+  // Compute the last header level in this cell's content
+  const lastHeaderLevel = createMemo(() => {
+    return getLastHeaderLevel(props.cell.content || "");
+  });
 
   createEffect(async () => {
     try {
@@ -135,6 +141,8 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
       type="markdown"
       onActionClick={toggleEdit}
       hasError={renderError()}
+      prevCellId={props.prevCellId}
+      lastHeaderLevel={lastHeaderLevel()}
     >
       <div 
         class="min-h-12.5 w-full"

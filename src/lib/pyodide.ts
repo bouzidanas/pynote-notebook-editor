@@ -68,7 +68,7 @@ class Kernel {
   }
 
   sendInteraction(uid: string, data: any) {
-    if (this.worker && this.status === "ready") {
+    if (this.worker && (this.status === "ready" || this.status === "running")) {
       this.worker.postMessage({ type: "interaction", uid, data });
     }
   }

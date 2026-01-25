@@ -1,5 +1,17 @@
 import uuid
 import json
+import sys
+
+# Control character markers for stdout UI rendering
+# Self-closing pattern: \x02TYPE\x02content\x02/TYPE\x02
+MARKER_UI_START = "\x02PYNOTE_UI\x02"
+MARKER_UI_END = "\x02/PYNOTE_UI\x02"
+
+# Markdown output markers (self-closing)
+MARKER_MD_STYLED_START = "\x02PYNOTE_MD_STYLED\x02"
+MARKER_MD_STYLED_END = "\x02/PYNOTE_MD_STYLED\x02"
+MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02"
+MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02"
 
 class StateManager:
     _instances = {}
@@ -70,7 +82,16 @@ class UIElement:
         return {
             "application/vnd.pynote.ui+json": self.to_json()
         }
-    
+
+    def __str__(self):
+        """Return marked string for print() support."""
+        payload = json.dumps(self.to_json())
+        return f"{MARKER_UI_START}{payload}{MARKER_UI_END}"
+
+    def __repr__(self):
+        """Return a readable representation for debugging."""
+        return f"<{self.__class__.__name__} id={self.id}>"
+
     def on_update(self, callback):
         self._on_update = callback
 
@@ -95,3 +116,52 @@ def clear_cell(cell_id):
 
 def register_comm_target(callback):
     StateManager.register_comm_target(callback)
+
+def display(*elements):
+    """Display one or more UI elements in the output immediately.
+    
+    This allows showing UI elements at any point during cell execution,
+    not just as the final result.
+    
+    Usage:
+        slider = Slider(value=50)
+        display(slider)  # Shows immediately
+        
+        # Or display multiple elements:
+        display(slider1, slider2, text)
+    """
+    for element in elements:
+        if hasattr(element, 'to_json'):
+            payload = json.dumps(element.to_json())
+            sys.stdout.write(f"{MARKER_UI_START}{payload}{MARKER_UI_END}")
+        else:
+            # Fallback for non-UI elements
+            print(element)
+
+def print_md(content, styled=True):
+    """Print markdown content with full formatting.
+    
+    Outputs markdown that will be rendered with the same styling as markdown
+    cells, including theme colors, typography, and spacing. Supports embedded
+    UI elements via f-strings.
+    
+    Args:
+        content: Markdown string (can be an f-string with UI elements)
+        styled: If True (default), renders with prose styling matching markdown cells.
+                If False, renders with monospace stdout-like appearance.
+    
+    Usage:
+        print_md("# Hello World")
+        print_md("**Bold** and *italic* text")
+        
+        # With UI elements:
+        slider = Slider(value=50)
+        print_md(f"## Controls\n\nAdjust value: {slider}\n\n**Done!**")
+        
+        # Plain style (monospace):
+        print_md("# Results", styled=False)
+    """
+    if styled:
+        sys.stdout.write(f"{MARKER_MD_STYLED_START}{content}{MARKER_MD_STYLED_END}")
+    else:
+        sys.stdout.write(f"{MARKER_MD_PLAIN_START}{content}{MARKER_MD_PLAIN_END}")

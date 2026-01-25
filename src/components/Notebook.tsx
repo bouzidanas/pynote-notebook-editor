@@ -1267,14 +1267,17 @@ const Notebook: Component = () => {
                  <SortableProvider ids={notebookStore.cells.map((c) => c.id)}>
                    <TransitionGroup name="cell-list">
                      <For each={notebookStore.cells}>
-                       {(cell, index) => (
-                         <Show 
-                            when={cell.type === "code"} 
-                            fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />} 
-                         >
-                            <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} />
-                         </Show>
-                       )}
+                       {(cell, index) => {
+                         const prevCellId = () => index() > 0 ? notebookStore.cells[index() - 1].id : null;
+                         return (
+                           <Show 
+                              when={cell.type === "code"} 
+                              fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />} 
+                           >
+                              <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />
+                           </Show>
+                         );
+                       }}
                      </For>
                    </TransitionGroup>
                  </SortableProvider>

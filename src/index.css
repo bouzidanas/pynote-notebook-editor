@@ -39,8 +39,8 @@ body {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -124,7 +124,7 @@ body {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    margin: 0;
+    margin: 1.25em 0 !important;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
     overflow: hidden;
@@ -181,12 +181,32 @@ body {
 .prose code {
     font-family: var(--font-mono) !important;
     font-size: 0.875em !important;
-    background-color: color-mix(in srgb, var(--foreground) 20%, transparent);
-    padding: 0.2em 0.4em;
+    background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+    padding: 0.2em 0.5em;
     border-radius: var(--radius-sm);
-    color: var(--secondary) !important;
+    color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
     font-weight: normal !important;
 }
+
+/* Code blocks (pre > code) - distinct block styling */
+.prose pre {
+    background-color: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+    border-radius: var(--radius-sm);
+    padding: 1em !important;
+    margin: 1em 0 !important;
+    overflow-x: auto;
+}
+.prose pre code {
+    background-color: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.875em !important;
+    color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
+    font-weight: normal !important;
+}
+
 /* Remove backticks from code in prose */
 .prose code::before,
 .prose code::after {

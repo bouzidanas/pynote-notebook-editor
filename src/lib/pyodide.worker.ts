@@ -34,6 +34,9 @@ sys.stderr = ContextAwareOutput("stderr")
 
 async def run_cell_code(code, cell_id):
     token = current_cell_id.set(cell_id)
+    # Also set StateManager context (for UI element registration)
+    from pynote_ui import set_current_cell
+    set_current_cell(cell_id)
     try:
         # Execute code in the global namespace
         res = await eval_code_async(code, globals=globals())
@@ -87,14 +90,39 @@ async function initPyodide() {
         // Optimisation: Pre-load pynote_ui directly into FS to skip HTTP/Micropip overhead
         pyodide.FS.mkdir("pynote_ui");
         pyodide.FS.writeFile("pynote_ui/__init__.py", `
-from .core import UIElement, StateManager, handle_interaction, set_current_cell, clear_cell, register_comm_target
+from .core import (
+    UIElement, StateManager, handle_interaction, set_current_cell, clear_cell, 
+    register_comm_target, display, print_md,
+    MARKER_UI_START, MARKER_UI_END, 
+    MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
+    MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END
+)
 from .elements import Slider, Text, Group
 
-__all__ = ["UIElement", "StateManager", "handle_interaction", "Slider", "Text", "Group", "set_current_cell", "clear_cell", "register_comm_target"]
+__all__ = [
+    "UIElement", "StateManager", "handle_interaction", 
+    "Slider", "Text", "Group", 
+    "set_current_cell", "clear_cell", "register_comm_target",
+    "display", "print_md",
+    "MARKER_UI_START", "MARKER_UI_END",
+    "MARKER_MD_STYLED_START", "MARKER_MD_STYLED_END",
+    "MARKER_MD_PLAIN_START", "MARKER_MD_PLAIN_END"
+]
 `);
         pyodide.FS.writeFile("pynote_ui/core.py", `
 import uuid
 import json
+import sys
+
+# Control character markers for stdout rendering
+# Using ASCII control char (STX) that users can't accidentally type
+# Self-closing pattern: \\x02TYPE\\x02content\\x02/TYPE\\x02
+MARKER_UI_START = "\x02PYNOTE_UI\x02"
+MARKER_UI_END = "\x02/PYNOTE_UI\x02"
+MARKER_MD_STYLED_START = "\x02PYNOTE_MD_STYLED\x02"
+MARKER_MD_STYLED_END = "\x02/PYNOTE_MD_STYLED\x02"
+MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02"
+MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02"
 
 class StateManager:
     _instances = {}
@@ -165,7 +193,16 @@ class UIElement:
         return {
             "application/vnd.pynote.ui+json": self.to_json()
         }
-    
+
+    def __str__(self):
+        """Return marked string for print() support."""
+        payload = json.dumps(self.to_json())
+        return f"{MARKER_UI_START}{payload}{MARKER_UI_END}"
+
+    def __repr__(self):
+        """Return a readable representation for debugging."""
+        return f"<{self.__class__.__name__} id={self.id}>"
+
     def on_update(self, callback):
         self._on_update = callback
 
@@ -190,18 +227,70 @@ def clear_cell(cell_id):
 
 def register_comm_target(callback):
     StateManager.register_comm_target(callback)
+
+def display(*elements):
+    """Display one or more UI elements in the output immediately.
+    
+    This allows showing UI elements at any point during cell execution,
+    not just as the final result.
+    
+    Usage:
+        slider = Slider(value=50)
+        display(slider)  # Shows immediately
+        
+        # Or display multiple elements:
+        display(slider1, slider2, text)
+    """
+    for element in elements:
+        if hasattr(element, 'to_json'):
+            payload = json.dumps(element.to_json())
+            sys.stdout.write(f"{MARKER_UI_START}{payload}{MARKER_UI_END}")
+        else:
+            # Fallback for non-UI elements
+            print(element)
+
+def print_md(content, styled=True):
+    """Print markdown content with full formatting.
+    
+    Outputs markdown that will be rendered with the same styling as markdown
+    cells, including theme colors, typography, and spacing. Supports embedded
+    UI elements via f-strings.
+    
+    Args:
+        content: Markdown string (can be an f-string with UI elements)
+        styled: If True (default), renders with prose styling matching markdown cells.
+                If False, renders with monospace stdout-like appearance.
+    
+    Usage:
+        print_md("# Hello World")
+        print_md("**Bold** and *italic* text")
+        
+        # With UI elements:
+        slider = Slider(value=50)
+        print_md(f"## Controls\\n\\nAdjust value: {slider}\\n\\n**Done!**")
+        
+        # Plain style (monospace):
+        print_md("# Results", styled=False)
+    """
+    if styled:
+        sys.stdout.write(f"{MARKER_MD_STYLED_START}{content}{MARKER_MD_STYLED_END}")
+    else:
+        sys.stdout.write(f"{MARKER_MD_PLAIN_START}{content}{MARKER_MD_PLAIN_END}")
 `);
         pyodide.FS.writeFile("pynote_ui/elements.py", `
 from .core import UIElement
 
 class Slider(UIElement):
-    def __init__(self, value=0, min=0, max=100, step=1, label="Slider"):
+    def __init__(self, value=0, min=0, max=100, step=1, label="Slider", width=None, height=None, grow=None, shrink=None, force_dimensions=False):
         self._value = value
         self.min = min
         self.max = max
         self.step = step
         self.label = label
-        super().__init__(value=value, min=min, max=max, step=step, label=label)
+        super().__init__(
+            value=value, min=min, max=max, step=step, label=label,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+        )
 
     @property
     def value(self):
@@ -220,9 +309,12 @@ class Slider(UIElement):
         super().handle_interaction(data)
 
 class Text(UIElement):
-    def __init__(self, content=""):
+    def __init__(self, content="", width=None, height=None, grow=None, shrink=None, force_dimensions=False):
         self._content = content
-        super().__init__(content=content)
+        super().__init__(
+            content=content,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+        )
 
     @property
     def content(self):
@@ -234,33 +326,21 @@ class Text(UIElement):
         self.send_update(content=value)
 
 class Group(UIElement):
-    def __init__(self, children, layout="col", label=None, width="full", align="center", basis=None, shrink=None, grow=None, fill=True):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, force_dimensions=False):
         self.children = children
-        
-        # Validation helper
-        def validate_list_arg(arg, name):
-            if arg:
-                if not isinstance(arg, list):
-                    print(f"Warning: {name} must be a list.")
-                    return None
-                if len(arg) > len(children):
-                    print(f"Warning: {name} list is longer than children list. Extra values will be ignored.")
-            return arg
-
-        basis = validate_list_arg(basis, "basis")
-        shrink = validate_list_arg(shrink, "shrink")
-        grow = validate_list_arg(grow, "grow")
 
         super().__init__(
             children=[c.to_json() for c in children], 
             layout=layout, 
             label=label, 
-            width=width, 
+            width=width,
+            height=height,
             align=align,
-            basis=basis,
-            shrink=shrink,
             grow=grow,
-            fill=fill
+            shrink=shrink,
+            border=border,
+            padding=padding,
+            force_dimensions=force_dimensions
         )
 
     @property
@@ -270,6 +350,14 @@ class Group(UIElement):
     @width.setter
     def width(self, value):
         self.send_update(width=value)
+
+    @property
+    def height(self):
+        return self.props.get("height")
+    
+    @height.setter
+    def height(self, value):
+        self.send_update(height=value)
 
     @property
     def align(self):

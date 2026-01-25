@@ -12,6 +12,7 @@ interface CodeCellProps {
   cell: CellData;
   isActive: boolean;
   index: number;
+  prevCellId: string | null;
 }
 
 const CodeCell: Component<CodeCellProps> = (props) => {
@@ -86,6 +87,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       actionRunning={props.cell.isRunning}
       isQueued={props.cell.isQueued}
       hasError={!!props.cell.outputs?.error}
+      prevCellId={props.prevCellId}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
