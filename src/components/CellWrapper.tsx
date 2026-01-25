@@ -1,7 +1,7 @@
 import { type Component, type JSX, Show, createSignal, createEffect, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 import { createSortable } from "@thisbeyond/solid-dnd";
-import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer } from "lucide-solid";
+import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff } from "lucide-solid";
 import clsx from "clsx";
 import { notebookStore } from "../lib/store";
 import { currentTheme } from "../lib/theme";
@@ -63,6 +63,10 @@ interface CellWrapperProps {
   // For cross-cell section scoping
   prevCellId?: string | null;  // ID of the previous cell (for entry level)
   lastHeaderLevel?: number;    // Last header level in this cell (0 if none)
+  // For code visibility toggle (code cells only)
+  hasHiddenElements?: boolean; // Whether any visibility settings are hiding elements
+  isShowingAll?: boolean;      // Whether this cell is in "show all" override mode
+  onToggleVisibility?: () => void; // Toggle between show-all and user settings
 }
 
 const CellWrapper: Component<CellWrapperProps> = (props) => {
@@ -200,6 +204,27 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
                       <Timer size={14} class="text-accent/70 animate-pulse" />
                     </Show>
                   </Show>
+                </Show>
+              </button>
+            </Show>
+
+            {/* Visibility Toggle (Code cells only, when elements are hidden) */}
+            <Show when={props.type === "code" && props.hasHiddenElements && props.onToggleVisibility}>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  props.onToggleVisibility?.(); 
+                }}
+                class={clsx(
+                  "p-2 -m-1 rounded-sm transition-colors",
+                  props.isShowingAll 
+                    ? "text-accent hover:text-accent/80" 
+                    : "text-foreground hover:text-accent"
+                )}
+                title={props.isShowingAll ? "Hide elements (use visibility settings)" : "Show all elements"}
+              >
+                <Show when={props.isShowingAll} fallback={<EyeOff size={14} />}>
+                  <Eye size={14} />
                 </Show>
               </button>
             </Show>
