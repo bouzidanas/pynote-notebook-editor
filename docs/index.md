@@ -1,32 +1,100 @@
-# PyNote Developer Documentation
+# PyNote Documentation
 
-Welcome to the developer documentation for PyNote, a client-side notebook editor that runs Python directly in the browser using WebAssembly.
+PyNote is a browser-based Python notebook. It runs Python entirely in the browser using Pyodide—no server needed. The app uses SolidJS for the UI and includes a custom component system (`pynote_ui`) for interactive widgets.
 
-## Table of Contents
+## Getting Started
+
+```bash
+npm install
+npm run dev
+# Open http://localhost:5173
+```
+
+## Documentation
 
 ### System Architecture
-1.  [Architecture & System Overview](./system-architecture/architecture-spec.md) (The master spec)
-2.  [Pyodide Execution Environment](./system-architecture/pyodide-execution.md)
-3.  [WASM Bridge (The Communication Protocol)](./system-architecture/wasm-bridge.md)
-4.  [State Management](./system-architecture/state-management.md)
 
-### UI System
-1.  [Custom UI System](./ui-system/index.md) (Master Spec)
-2.  [Adding New Components](./ui-system/adding-components.md)
-3.  [Rendering Protocol](./ui-system/protocol.md)
-4.  [State Synchronization](./ui-system/state-sync.md)
+| Doc | What it covers |
+|:----|:---------------|
+| [Architecture Overview](system-architecture/architecture-spec.md) | High-level system design, pynote_ui basics |
+| [WASM Bridge](system-architecture/wasm-bridge.md) | Message protocol between main thread and worker |
+| [Pyodide Execution](system-architecture/pyodide-execution.md) | How Python code runs, context-aware output |
+| [State Management](system-architecture/state-management.md) | SolidJS store, undo/redo, sessions |
 
-## Core Technologies
+### UI Component System
 
-*   **Frontend:** SolidJS, TailwindCSS, DaisyUI
-*   **Runtime:** Pyodide (Python 3.11+ compiled to WASM)
-*   **Language:** TypeScript (Frontend), Python (Runtime)
-*   **Bundler:** Vite
+| Doc | What it covers |
+|:----|:---------------|
+| [UI System Overview](ui-system/index.md) | How pynote_ui works, available components |
+| [Communication Protocol](ui-system/protocol.md) | Message format specification |
+| [State Synchronization](ui-system/state-sync.md) | Python ↔ SolidJS sync |
+| [Adding Components](ui-system/adding-components.md) | How to create new components |
 
-## Getting Started for Contributors
+### Other
 
-1.  **Install Dependencies:** `npm install`
-2.  **Build Python Package:** `./scripts/build_python_pkg.sh` (Required for UI components)
-3.  **Start Dev Server:** `npm run dev`
+- [Debugging Guide](../DEBUGGING_GUIDE.md) — Troubleshooting tips
+- [Tutorial Notebook](../src/lib/tutorial-notebook.ts) — Built-in examples
 
-The application runs entirely client-side. There is no backend server to configure.
+## Quick Reference
+
+### Cell Types
+
+- **Code cells:** Python with syntax highlighting (CodeMirror)
+- **Markdown cells:** Rich text with live preview
+
+### Execution Modes
+
+| Mode | What happens |
+|:-----|:-------------|
+| **hybrid** (default) | Queue if the previous cell is running/queued, otherwise run immediately |
+| **queue_all** | All cells queue, strict sequential execution |
+| **direct** | Run immediately, even if other cells running (can cause races) |
+
+### UI Components
+
+```python
+from pynote_ui import Slider, Text, Group
+
+slider = Slider(value=50, label="Volume")
+text = Text(content="Hello")
+
+def on_change(data):
+    text.content = f"Value: {data['value']}"
+
+slider.on_update(on_change)
+Group([slider, text], layout="col")
+```
+
+### Sessions
+
+- Auto-saved to localStorage
+- URL routing: `?session=<uuid>`
+- Max 10 sessions (oldest evicted)
+
+## Tech Stack
+
+| Layer | Tech |
+|:------|:-----|
+| UI | SolidJS |
+| Styling | TailwindCSS + DaisyUI |
+| Editor | CodeMirror 6 |
+| Python | Pyodide 0.26.0 |
+| Build | Vite |
+| Types | TypeScript |
+
+## Key Files
+
+```
+src/
+├── lib/
+│   ├── store.ts           # State management
+│   ├── pyodide.ts         # Kernel class (main thread)
+│   ├── pyodide.worker.ts  # Worker + embedded pynote_ui
+│   └── session.ts         # Persistence
+├── components/
+│   ├── Notebook.tsx       # Main container
+│   ├── CodeCell.tsx       # Code cell
+│   ├── Output.tsx         # Output parser/renderer
+│   └── ui-renderer/       # pynote_ui component renderers
+└── index.tsx              # Entry point
+```

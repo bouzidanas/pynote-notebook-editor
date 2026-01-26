@@ -14,6 +14,7 @@
   --radius-sm: var(--radius-sm);
   
   --breakpoint-xs: 30rem;
+  --breakpoint-menu: 35rem;
   --breakpoint-lg: 56.25rem;
 }
 
@@ -63,14 +64,15 @@ body {
 }
 
 /* Sidebar Container Query Logic */
+/* 
+ * When cell is short (toolbar doesn't fit), force center alignment.
+ * Uses CSS variables that transition smoothly.
+ * The JS sets base alignment, container query overrides to center when short.
+ */
 @container cell-sidebar (max-height: 125px) {
   .sidebar-inner-auto-center {
-    position: absolute !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    width: 100% !important;
+    --sidebar-top: 50% !important;
+    --sidebar-transform: translateY(-50%) !important;
   }
 }
 

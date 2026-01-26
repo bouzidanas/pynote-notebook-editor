@@ -171,13 +171,17 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
           )}
           style={{ "container-type": "size", "container-name": "cell-sidebar" }}
         >
-          <div class={clsx(
-            "flex flex-col items-center gap-2 pointer-events-auto py-2 transition-all duration-200 sidebar-inner-auto-center",
-            // Base alignment
-            notebookStore.sidebarAlignment === "top" ? "mt-0 mb-auto" : 
-            notebookStore.sidebarAlignment === "bottom" ? "mt-auto mb-0" : 
-            "my-auto"
-          )}>
+          <div 
+            class="flex flex-col items-center gap-2 pointer-events-auto py-2 sidebar-inner-auto-center absolute w-full transition-[top,transform] duration-200"
+            style={{
+              "--sidebar-top": notebookStore.sidebarAlignment === "top" ? "0%" : 
+                               notebookStore.sidebarAlignment === "bottom" ? "100%" : "50%",
+              "--sidebar-transform": notebookStore.sidebarAlignment === "top" ? "translateY(0)" :
+                                      notebookStore.sidebarAlignment === "bottom" ? "translateY(-100%)" : "translateY(-50%)",
+              "top": "var(--sidebar-top)",
+              "transform": "var(--sidebar-transform)"
+            }}
+          >
             {/* Action Button (Play for code, Edit for markdown) */}
             <Show when={props.onActionClick}>
               <button 

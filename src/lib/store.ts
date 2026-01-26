@@ -233,6 +233,17 @@ export const actions = {
 
     // Add to history: "a|index|type|id"
     addToHistory(`a|${insertIndex}|${type}|${id}`);
+
+    // Initialize edit session tracking since cell starts in edit mode
+    // This ensures any edits before exiting edit mode will be recorded
+    if (type === "code") {
+      // For code cells: position will be set when editor reports it
+      editSessionStart.set(id, {});
+    } else {
+      // For markdown cells: track empty content as starting point
+      editSessionStart.set(id, { content: "" });
+    }
+
     actions.setActiveCell(id);
     // Autosave after adding a cell
     if ((actions as any).__autosaveCallback) {

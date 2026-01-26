@@ -965,7 +965,7 @@ const Notebook: Component = () => {
                  }
                  fullWidthMobile={true}
                >
-                   {/* Nested on sm+, sectioned on max-sm */}
+                   {/* Nested on sm+, sectioned on max-sm (mobile/small tablet) */}
                    <div class="hidden sm:block">
                      <DropdownNested label={<div class="flex items-center gap-2"><Save size={18} /> File</div>}>
                          <DropdownItem onClick={() => {
@@ -1085,7 +1085,7 @@ const Notebook: Component = () => {
                          </DropdownItem>
                      </DropdownNested>
                    </div>
-                   {/* Sectioned layout on max-sm */}
+                   {/* Sectioned layout on max-sm (mobile/small tablet) */}
                    <div class="block sm:hidden">
                      {/* File Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
@@ -1104,6 +1104,32 @@ const Notebook: Component = () => {
                      <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                          <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                      </DropdownItem>
+                     
+                     <DropdownDivider />
+                     {/* Execution Section */}
+                     <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Execution</div>
+                     <DropdownItem onClick={() => actions.setExecutionMode("queue_all")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "queue_all" ? "bg-accent" : ""}`}></div>
+                             Sequential
+                         </div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => actions.setExecutionMode("hybrid")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "hybrid" ? "bg-accent" : ""}`}></div>
+                             Hybrid
+                         </div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => actions.setExecutionMode("direct")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
+                             Concurrent
+                         </div>
+                     </DropdownItem>
+                     
+                     <DropdownDivider />
+                     {/* View Section */}
+                     <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">View</div>
                      <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
                          <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
                      </DropdownItem>
@@ -1120,10 +1146,107 @@ const Notebook: Component = () => {
                      <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
                          <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                      </DropdownItem>
+                   </div>
+               </Dropdown>
+
+               {/* Actions Dropdown (Add + Undo/Redo) */}
+               <Dropdown 
+                 trigger={
+                   <button class="btn-toolbar flex items-center gap-1">
+                       Actions <ChevronDown size={18} />
+                   </button>
+                 }
+                 fullWidthMobile={true}
+                 stayWide={true}
+               >
+                   {/* Desktop/tablet: compact menu (sm+) */}
+                   <div class="hidden sm:block">
+                     <DropdownItem onClick={() => {
+                       const idx = (() => {
+                         const activeId = notebookStore.activeCellId;
+                         if (!activeId) return undefined;
+                         const i = notebookStore.cells.findIndex(c => c.id === activeId);
+                         if (i === -1) return undefined;
+                         return i + 1;
+                       })();
+                       actions.addCell("code", idx);
+                     }}>
+                         <div class="flex items-center gap-2"><Code size={18} /> Add Code Cell</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => {
+                       const idx = (() => {
+                         const activeId = notebookStore.activeCellId;
+                         if (!activeId) return undefined;
+                         const i = notebookStore.cells.findIndex(c => c.id === activeId);
+                         if (i === -1) return undefined;
+                         return i + 1;
+                       })();
+                       actions.addCell("markdown", idx);
+                     }}>
+                         <div class="flex items-center gap-2"><FileText size={18} /> Add Markdown Cell</div>
+                     </DropdownItem>
                      <DropdownDivider />
+                     <DropdownItem 
+                       onClick={handleUndo}
+                       disabled={getUndoDisabled()}
+                     >
+                         <div class="flex items-center gap-2"><Undo2 size={16} /> Undo</div>
+                     </DropdownItem>
+                     <DropdownItem 
+                       onClick={handleRedo}
+                       disabled={getRedoDisabled()}
+                     >
+                         <div class="flex items-center gap-2"><Redo2 size={16} /> Redo</div>
+                     </DropdownItem>
+                   </div>
+                   {/* Mobile/small tablet: expanded menu with kernel actions (max-sm) */}
+                   <div class="block sm:hidden">
+                     {/* Undo/Redo at top */}
+                     <DropdownItem 
+                       onClick={handleUndo}
+                       disabled={getUndoDisabled()}
+                     >
+                         <div class="flex items-center gap-2"><Undo2 size={16} /> Undo</div>
+                     </DropdownItem>
+                     <DropdownItem 
+                       onClick={handleRedo}
+                       disabled={getRedoDisabled()}
+                     >
+                         <div class="flex items-center gap-2"><Redo2 size={16} /> Redo</div>
+                     </DropdownItem>
+                     
+                     <DropdownDivider />
+                     
+                     {/* Add Cells */}
+                     <DropdownItem onClick={() => {
+                       const idx = (() => {
+                         const activeId = notebookStore.activeCellId;
+                         if (!activeId) return undefined;
+                         const i = notebookStore.cells.findIndex(c => c.id === activeId);
+                         if (i === -1) return undefined;
+                         return i + 1;
+                       })();
+                       actions.addCell("code", idx);
+                     }}>
+                         <div class="flex items-center gap-2"><Code size={18} /> Add Code Cell</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => {
+                       const idx = (() => {
+                         const activeId = notebookStore.activeCellId;
+                         if (!activeId) return undefined;
+                         const i = notebookStore.cells.findIndex(c => c.id === activeId);
+                         if (i === -1) return undefined;
+                         return i + 1;
+                       })();
+                       actions.addCell("markdown", idx);
+                     }}>
+                         <div class="flex items-center gap-2"><FileText size={18} /> Add Markdown Cell</div>
+                     </DropdownItem>
+                     
+                     <DropdownDivider />
+                     
                      {/* Kernel Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Kernel</div>
-                     
                      <DropdownItem 
                           onClick={runSelected}
                           disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
@@ -1136,7 +1259,6 @@ const Notebook: Component = () => {
                           disabled={kernel.status !== "ready" || !notebookStore.activeCellId || (() => {
                               const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                               return !c || !c.outputs;
-                              
                           })()}
                           shortcut="Alt+Backspace"
                      >
@@ -1151,7 +1273,7 @@ const Notebook: Component = () => {
                      </DropdownItem>
 
                      <DropdownDivider />
-
+                     
                      <DropdownItem 
                           onClick={runAll} 
                           disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
@@ -1176,28 +1298,6 @@ const Notebook: Component = () => {
 
                      <DropdownDivider />
                      
-                     <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Execution</div>
-                     <DropdownItem onClick={() => actions.setExecutionMode("queue_all")}>
-                         <div class="flex items-center gap-2">
-                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "queue_all" ? "bg-accent" : ""}`}></div>
-                             Sequential
-                         </div>
-                     </DropdownItem>
-                     <DropdownItem onClick={() => actions.setExecutionMode("hybrid")}>
-                         <div class="flex items-center gap-2">
-                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "hybrid" ? "bg-accent" : ""}`}></div>
-                             Hybrid
-                         </div>
-                     </DropdownItem>
-                     <DropdownItem onClick={() => actions.setExecutionMode("direct")}>
-                         <div class="flex items-center gap-2">
-                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
-                             Concurrent
-                         </div>
-                     </DropdownItem>
-
-                     <DropdownDivider />
-
                      <DropdownItem onClick={() => { kernel.restart(); actions.resetExecutionState(); }} shortcut="Alt+K">
                          <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
                      </DropdownItem>
@@ -1205,51 +1305,6 @@ const Notebook: Component = () => {
                          <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                      </DropdownItem>
                    </div>
-               </Dropdown>
-
-               {/* Actions Dropdown (Add + Undo/Redo) */}
-               <Dropdown trigger={
-                   <button class="btn-toolbar flex items-center gap-1">
-                       Actions <ChevronDown size={18} />
-                   </button>
-               }>
-                   <DropdownItem onClick={() => {
-                     const idx = (() => {
-                       const activeId = notebookStore.activeCellId;
-                       if (!activeId) return undefined;
-                       const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                       if (i === -1) return undefined;
-                       return i + 1;
-                     })();
-                     actions.addCell("code", idx);
-                   }}>
-                       <div class="flex items-center gap-2"><Code size={18} /> Add Code Cell</div>
-                   </DropdownItem>
-                   <DropdownItem onClick={() => {
-                     const idx = (() => {
-                       const activeId = notebookStore.activeCellId;
-                       if (!activeId) return undefined;
-                       const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                       if (i === -1) return undefined;
-                       return i + 1;
-                     })();
-                     actions.addCell("markdown", idx);
-                   }}>
-                       <div class="flex items-center gap-2"><FileText size={18} /> Add Markdown Cell</div>
-                   </DropdownItem>
-                   <DropdownDivider />
-                   <DropdownItem 
-                     onClick={handleUndo}
-                     disabled={getUndoDisabled()}
-                   >
-                       <div class="flex items-center gap-2"><Undo2 size={16} /> Undo</div>
-                   </DropdownItem>
-                   <DropdownItem 
-                     onClick={handleRedo}
-                     disabled={getRedoDisabled()}
-                   >
-                       <div class="flex items-center gap-2"><Redo2 size={16} /> Redo</div>
-                   </DropdownItem>
                </Dropdown>
              </div>
              

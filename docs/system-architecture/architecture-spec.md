@@ -1,117 +1,202 @@
-# PyNote Architecture & UI System Specification
+# Architecture Overview
 
-**Status:** Draft / Active Implementation
-**Date:** January 19, 2026
-**Context:** Client-side WASM Notebook Editor
+PyNote is a browser-based Python notebook. It runs Python entirely in the browser using Pyodide (Python compiled to WebAssembly), with no backend server needed. The app uses SolidJS for the UI, TailwindCSS + DaisyUI for styling, and a custom UI component system called `pynote_ui` that lets Python code create interactive widgets.
 
-## 1. High-Level Overview
+<details>
+<summary><strong>Background: Why run Python in the browser?</strong></summary>
 
-PyNote is a browser-based notebook environment that executes Python code client-side using Pyodide (WebAssembly). Unlike traditional Jupyter notebooks that rely on a WebSocket connection to a backend server, PyNote runs entirely within the user's browser.
+Traditional notebooks (Jupyter) run Python on a server and communicate via WebSocket. That means:
+- You need a server running somewhere
+- Your code and data travel over the network
+- Latency depends on connection quality
 
-The core distinction of PyNote is its custom UI system (`pynote_ui`), which allows Python code to render native SolidJS components rather than injecting raw HTML. This creates a bridge between Python's state management and SolidJS's fine-grained reactivity.
+PyNote runs everything client-side. The Python interpreter itself runs in your browser as WebAssembly. Benefits:
+- **No server needed** — works offline, no infrastructure to maintain
+- **Privacy** — code and data never leave your machine
+- **Instant startup** — no kernel connection to establish
 
-### Core Components
+The tradeoff is initial load time (a few seconds to download and initialize Pyodide, cached after first visit) and some packages that need native C extensions won't work unless they've been compiled for WASM.
 
-1.  **Frontend (Main Thread):** SolidJS + TailwindCSS + DaisyUI. Handles rendering, user events, and cell management.
-2.  **Kernel (Web Worker):** Pyodide. Executes Python code, manages `pynote_ui` state, and communicates via `postMessage`.
-3.  **Bridge:** A messaging protocol that marshals execution requests, stdout/stderr streams, and UI interaction events between the Main Thread and Worker.
+</details>
 
----
+## System Map
 
-## 2. The `pynote_ui` Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Browser                              │
+│  ┌──────────────────────┐    ┌────────────────────────┐    │
+│  │   Main Thread (UI)   │    │   Web Worker           │    │
+│  │                      │    │                        │    │
+│  │  SolidJS + DaisyUI   │◄──►│  Pyodide + pynote_ui   │    │
+│  │  Store (state)       │    │  Python execution      │    │
+│  │  CodeMirror          │    │  Package management    │    │
+│  │  Session persistence │    │                        │    │
+│  └──────────────────────┘    └────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-The `pynote_ui` package is a custom Python library installed dynamically into the Pyodide environment. It implements a **Remote Handle Pattern**, where Python objects act as proxies for UI components living in the frontend.
+**Main Thread:** Renders the notebook UI. SolidJS components, CodeMirror editors, cell management, undo/redo, session persistence. This is what users see and interact with.
 
-### 2.1. The Rendering Protocol
-Instead of returning HTML string representations (which is common in `ipywidgets` or standard `_repr_html_`), `pynote_ui` elements implement `_repr_mimebundle_`.
+**Web Worker:** Runs Pyodide and executes Python code. Lives in a separate thread so Python can compute without freezing the UI. Hosts the `pynote_ui` module that Python code uses to create widgets.
 
-*   **Format:** `application/vnd.pynote.ui+json`
-*   **Payload:**
-    ```json
-    {
-      "id": "uuid-v4-string",
-      "type": "Slider",
-      "props": { "min": 0, "max": 100, "value": 50 }
-    }
-    ```
-*   **Justification:**
-    *   **Security:** Eliminates XSS risks associated with rendering raw HTML from execution results.
-    *   **Performance:** React/SolidJS are faster at mounting components from data than parsing HTML strings and hydrating them.
-    *   **Theming:** The UI is rendered using the app's native component library (DaisyUI), ensuring perfect visual consistency without inline styles in Python.
+**The Bridge:** Messages sent via `postMessage()` between threads. The `Kernel` class (main thread) manages this communication. See [wasm-bridge.md](wasm-bridge.md) for the full protocol spec.
 
-### 2.2. State Management (Python Side)
-A singleton `StateManager` exists in the Python kernel.
-*   **Registry:** Maps unique UUIDs to Python object instances.
-*   **Context Awareness:** Tracks which Cell ID is currently executing (`_current_cell_id`).
-*   **Garbage Collection:** Maintains a map of `Cell ID -> [Component UUIDs]`. When a cell is re-executed or deleted, the `StateManager` prunes instances associated with that cell to prevent memory leaks.
+## The pynote_ui System
 
-### 2.3. Two-Way Binding & Reactivity
+`pynote_ui` is a Python package that lets users create interactive UI components from Python code. When you write `Slider(value=50)`, it creates a Python object that tells the frontend to render a slider.
 
-**JS → Python (User Interaction):**
-When a user moves a slider:
-1.  SolidJS component catches the event.
-2.  Calls `kernel.sendInteraction(id, { value: 55 })`.
-3.  Worker receives message `type: "interaction"`.
-4.  Python calls `StateManager.update(id, data)`.
-5.  The specific Python instance updates its internal state (`self.value = 55`).
+<details>
+<summary><strong>Background: Why not just use ipywidgets?</strong></summary>
 
-**Python → JS (Programmatic Update):**
-When code executes `slider.value = 80`:
-1.  Property setter in Python class triggers.
-2.  Calls `StateManager.send_update(id, { value: 80 })`.
-3.  Message sent to Main Thread `type: "component_update"`.
-4.  `Kernel` class in TS routes message to the specific SolidJS component listener.
-5.  SolidJS Signal updates, refreshing *only* the specific DOM node (Fine-grained reactivity).
+ipywidgets is the standard Jupyter widget library, but it:
+- Has a massive dependency tree
+- Relies on the Jupyter Comms protocol (designed for server-client, not worker-main-thread)
+- Would require significant adaptation for a Pyodide environment
 
----
+We built `pynote_ui` from scratch to be lightweight and fit the worker↔main-thread architecture naturally.
 
-## 3. Frontend Architecture
+</details>
 
-### 3.1. Cell Execution Lifecycle
-1.  **Preparation:** Frontend calls `kernel.clearCellState(cellId)` to instruct Python to GC old widgets for this cell.
-2.  **Context Setting:** Frontend calls `kernel.setCellContext(cellId)`. Any UI element created in Python during the next run step will be tagged with this ID.
-3.  **Execution:** Code runs.
-4.  **Rendering:** If the result contains the custom mime type, `UIOutputRenderer` looks up the component in `ComponentRegistry`.
+### How it works
 
-### 3.2. Lazy Loading
-The `ComponentRegistry` utilizes `lazy(() => import(...))` for UI components.
-*   **Motivation:** Keeps the initial bundle size small. A user who never plots a graph or uses a slider shouldn't pay the network cost for those libraries.
+1. **Python creates an object:** `slider = Slider(value=50)` creates a Python instance with a UUID
+2. **Object registers itself:** The `StateManager` tracks all active UI objects and which cell created them
+3. **Display produces JSON:** When the cell result is displayed, `_repr_mimebundle_()` emits JSON describing the component
+4. **Frontend renders it:** `UIOutputRenderer` reads the JSON and mounts the corresponding SolidJS component
+5. **Two-way sync:** User interactions go back to Python; Python property changes push to the frontend
 
----
+### Why JSON instead of HTML?
 
-## 4. Critical Analysis & Alternatives
+The component's `_repr_mimebundle_()` returns JSON like:
+```json
+{
+  "id": "abc123",
+  "type": "Slider",
+  "props": { "min": 0, "max": 100, "value": 50 }
+}
+```
 
-### 4.1. Pros of Current Approach
-1.  **Zero Latency UI:** Once mounted, the UI interaction (dragging a slider) feels native because it *is* native DOM, not an iframe or canvas.
-2.  **Privacy & Offline Capable:** Everything runs in the browser. No data leaves the user's machine.
-3.  **Developer Experience:** Extending the library is easy. Define a Python class, define a Solid component, register the mapping. No complex build chains (like typical Jupyter Widgets extensions require).
+Not HTML. Reasons:
+- **Security:** No XSS risk from Python code injecting arbitrary HTML
+- **Performance:** SolidJS mounts components from data faster than parsing HTML strings
+- **Consistency:** Components use DaisyUI styling automatically, no inline styles needed
 
-### 4.2. Cons & Hurdles
-1.  **Serialization Overhead:**
-    *   *Issue:* Every update requires serializing JSON and crossing the Worker boundary via `postMessage`.
-    *   *Impact:* High-frequency updates (e.g., dragging a slider sending updates every 16ms) can congest the bridge.
-    *   *Mitigation:* Debouncing on the frontend or batching updates.
-2.  **State Desynchronization:**
-    *   *Issue:* If the Python kernel crashes or is restarted, the Frontend components might still exist but be "orphaned" (pointing to non-existent Python objects).
-    *   *Mitigation:* The frontend needs to listen for "restart" events and gray out or disable interactive widgets.
-3.  **Memory Management Complexity:**
-    *   *Issue:* Explicitly managing GC via `clear_cell` is robust but relies on the frontend behaving correctly. If the frontend fails to send the clear signal, Python memory grows indefinitely.
+### StateManager and cell ownership
 
-### 4.3. Alternative Approaches Considered
+`StateManager` is a module-level registry in `pynote_ui/core.py`. It tracks:
+- `_instances`: UUID → Python object mapping
+- `_instances_by_cell`: Cell ID → list of component UUIDs
 
-#### A. Standard ipywidgets
-*   *Approach:* Port the full `ipywidgets` protocol to Pyodide.
-*   *Why Rejected:* It is extremely heavy, relies deeply on the Jupyter Comms protocol (which assumes a server), and brings in a massive dependency tree. It is overkill for a lightweight, client-side notebook.
+When you re-run a cell, the frontend tells the worker to clear that cell's components (`clear_cell_context`). StateManager removes all objects associated with that cell, preventing memory leaks from accumulating widgets.
 
-#### B. HTML Injection (e.g., `ipyvuetify` style)
-*   *Approach:* Python generates Vue/React template strings and injects them.
-*   *Why Rejected:* Hard to style consistently with the outer application. Security risks (XSS). Harder to maintain bidirectional state (parsing DOM vs. structured data).
+<details>
+<summary><strong>Background: Why track cell ownership?</strong></summary>
 
-#### C. SharedArrayBuffer
-*   *Approach:* Use a shared memory buffer for state syncing instead of `postMessage`.
-*   *Why Rejected:* Requires `Cross-Origin-Opener-Policy` (COOP) and `Cross-Origin-Embedder-Policy` (COEP) headers, which makes deploying the app (e.g., on GitHub Pages or simple hosting) much more difficult and restricts loading external resources (images/scripts) from non-compliant CDNs.
+Without cell tracking, if you run `Slider()` 100 times, you'd have 100 slider objects in memory with no way to clean them up. By associating each component with the cell that created it, we can garbage collect them when the cell is re-run or deleted.
 
-## 5. Future Roadmap
-1.  **Binary Data Transfer:** Optimize image/plot transfer using `Transferable` objects in `postMessage` to avoid base64 string overhead.
-2.  **Debounced Sync:** Add automatic debouncing for continuous inputs (sliders) in the `pynote_ui` base class.
-3.  **Reactive DAG:** Extend `StateManager` to trigger re-execution of downstream cells when a UI element updates (Reactive Notebook pattern).
+The current cell ID is stored in a `contextvars.ContextVar`, which correctly handles async code—if you `await` something in the middle of creating widgets, the cell ID is preserved in that async context.
+
+</details>
+
+## Frontend State
+
+<details>
+<summary><strong>Background: SolidJS stores</strong></summary>
+
+SolidJS uses fine-grained reactivity. Instead of re-rendering entire component trees (like React), it tracks exactly which DOM nodes depend on which pieces of state and updates only those nodes.
+
+`createStore` creates a reactive object. When you modify it (via the setter function), only components that read the modified properties re-render. This makes the UI very efficient even with frequent updates.
+
+</details>
+
+All notebook state lives in `src/lib/store.ts`. The main pieces:
+
+**CellData** — one cell's state:
+```typescript
+{
+  id: string,              // UUIDv4
+  type: "code" | "markdown",
+  content: string,         // source code or markdown text
+  outputs: { ... },        // stdout, stderr, result, timing info
+  isRunning: boolean,
+  isQueued: boolean,
+  // ... editor state, undo tracking
+}
+```
+
+**NotebookState** — the whole notebook:
+```typescript
+{
+  cells: CellData[],
+  filename: string,
+  activeCellId: string | null,
+  history: HistoryEntry[],  // undo/redo log
+  executionMode: "queue_all" | "hybrid" | "direct",
+  executionQueue: string[], // cells waiting to run
+  // ...
+}
+```
+
+### Execution modes
+
+| Mode | What happens when you run a cell |
+|:-----|:---------------------------------|
+| **Queue All** | Cell joins a queue. Cells run one at a time, in queue order. |
+| **Hybrid** (default) | Cell queues only if the **immediately previous** cell (above it) is running or queued. Otherwise runs immediately. This preserves top-to-bottom order while allowing parallel execution of non-adjacent cells. |
+| **Direct** | Cell runs immediately, even if other cells are running. Can cause race conditions. |
+
+### Undo/Redo
+
+The notebook maintains a compact action log. Each entry is a pipe-delimited string:
+
+| Code | Meaning |
+|:-----|:--------|
+| `a\|index\|type\|id` | Cell added |
+| `d\|index\|type\|id\|content` | Cell deleted (stores content for restore) |
+| `m\|from\|to\|id` | Cell moved |
+| `u\|id\|old\|new` | Markdown content changed |
+| `h\|id\|entry\|exit` | Code cell editor history position changed |
+
+This is compact because undo/redo gets saved to localStorage with each session.
+
+## Session Persistence
+
+`src/lib/session.ts` saves notebooks to localStorage:
+- Up to 10 sessions stored
+- URL routing via `?session=uuid` query parameter  
+- Autosave on cell add/edit/delete/move
+- LRU eviction when limit exceeded
+
+## File Layout
+
+Key files and what they do:
+
+| File | Purpose |
+|:-----|:--------|
+| `src/lib/store.ts` | SolidJS store, all state and actions |
+| `src/lib/pyodide.ts` | `Kernel` class, main-thread side of the bridge |
+| `src/lib/pyodide.worker.ts` | Worker script, Pyodide setup, `pynote_ui` module |
+| `src/lib/session.ts` | localStorage session management |
+| `src/components/Notebook.tsx` | Main notebook component |
+| `src/components/CodeCell.tsx` | Code cell rendering and execution |
+| `src/components/Output.tsx` | Parses and renders cell output (text, UI, markdown) |
+| `src/components/ui-renderer/` | SolidJS components for `pynote_ui` widgets |
+
+## Available UI Components
+
+From Python:
+```python
+from pynote_ui import Slider, Text, Group, display, print_md
+```
+
+| Component | What it does |
+|:----------|:-------------|
+| `Slider` | Range input with optional label |
+| `Text` | Text display box with alignment options |
+| `Group` | Container for layout (row/column), can have label and border |
+
+All components support layout props: `width`, `height`, `grow`, `shrink`, `force_dimensions`
+
+Utility functions:
+- `display(a, b, ...)` — output multiple components inline
+- `print_md("# Heading")` — output styled markdown

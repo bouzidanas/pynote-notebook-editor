@@ -113,6 +113,11 @@ __all__ = [
 import uuid
 import json
 import sys
+from contextvars import ContextVar
+
+# Context variable to track which cell is currently executing (for UI element ownership)
+# This is separate from the stream routing contextvar in INIT_CODE, but serves a similar purpose
+_current_cell_id = ContextVar("pynote_ui_cell_id", default=None)
 
 # Control character markers for stdout rendering
 # Using ASCII control char (STX) that users can't accidentally type
@@ -127,12 +132,11 @@ MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02"
 class StateManager:
     _instances = {}
     _instances_by_cell = {}
-    _current_cell_id = None
     _comm_target = None
 
     @classmethod
     def set_current_cell(cls, cell_id):
-        cls._current_cell_id = cell_id
+        _current_cell_id.set(cell_id)
 
     @classmethod
     def clear_cell(cls, cell_id):
@@ -145,10 +149,11 @@ class StateManager:
     @classmethod
     def register(cls, instance):
         cls._instances[instance.id] = instance
-        if cls._current_cell_id:
-            if cls._current_cell_id not in cls._instances_by_cell:
-                cls._instances_by_cell[cls._current_cell_id] = []
-            cls._instances_by_cell[cls._current_cell_id].append(instance.id)
+        cell_id = _current_cell_id.get()
+        if cell_id:
+            if cell_id not in cls._instances_by_cell:
+                cls._instances_by_cell[cell_id] = []
+            cls._instances_by_cell[cell_id].append(instance.id)
 
     @classmethod
     def get(cls, uid):
