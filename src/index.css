@@ -375,6 +375,84 @@ body {
   transform: translateX(20px);
 }
 
+/* Chart container styles - ensure consistent border-radius with UI components */
+.pynote-plot,
+.pynote-chart,
+.pynote-timeseries {
+    border-radius: var(--radius-sm) !important;
+}
+
+/* 
+ * Chart text DEFAULT styling - high specificity but NO !important
+ * This allows inline styles (from user props) to override these defaults
+ */
+
+/* Default font family for all chart text */
+.pynote-plot svg text,
+.pynote-chart svg text,
+.pynote-timeseries canvas + * text,
+.frappe-chart svg text {
+    font-family: var(--font-mono);
+}
+
+/* Default tick/number size: 12px, secondary at 40% */
+.pynote-plot svg text,
+.frappe-chart svg .axis text,
+.frappe-chart svg .chart-label {
+    font-size: 12px;
+    fill: color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+
+/* Observable Plot axis labels (x-axis label, y-axis label text) 
+ * These are the actual label text elements in the axis groups
+ * xs font size (0.75rem), same color as title (70%), semi-bold
+ */
+.pynote-plot svg g[aria-label="x-axis"] > text:first-of-type,
+.pynote-plot svg g[aria-label="y-axis"] > text:first-of-type,
+.pynote-plot svg [aria-label*="axis label"] {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    fill: color-mix(in srgb, var(--secondary) 70%, transparent) !important;
+}
+
+/* Frappe Charts axis labels */
+.frappe-chart svg .y-axis-title,
+.frappe-chart svg .x-axis-title {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    fill: color-mix(in srgb, var(--secondary) 70%, transparent) !important;
+}
+
+/* Default title size: 15px, semi-bold, title color */
+.pynote-plot svg text[aria-label="title"],
+.pynote-plot svg [aria-label="title"] text,
+.frappe-chart svg .title {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    fill: color-mix(in srgb, var(--secondary) 70%, transparent) !important;
+}
+
+/* Frappe Charts grid lines - match Observable Plot dim grid (10% accent) */
+.frappe-chart svg .chart-strokes line,
+.frappe-chart svg .y-axis line.dashed,
+.frappe-chart svg line.dashed {
+    stroke: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+/* uPlot axis styling defaults */
+.pynote-timeseries .u-axis {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+
+.pynote-timeseries .u-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--secondary) 70%, transparent);
+}
+
 /* Remove bottom margin from last header to prevent double spacing */
 .prose > :where(h1, h2, h3, h4):last-child,
 .prose > .section-scope:last-child > :where(h1, h2, h3, h4):last-child,

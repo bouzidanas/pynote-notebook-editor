@@ -212,6 +212,195 @@ export const tutorialCells: CellData[] = [
     content: "# Cell 2: Create a text that responds to the slider from Cell 1\nfrom pynote_ui import Text, display\n\ncross_text = Text(content=\"Waiting for slider...\")\n\n# Connect to the slider defined in Cell 1\ndef on_slider_change(data):\n    cross_text.content = f\"Received: {int(data['value'])} from Cell 1!\"\n\ncross_slider.on_update(on_slider_change)\ndisplay(cross_text)\nprint(\"☝️ Now move the slider above - this text updates!\")"
   },
 
+  // ============================================================================
+  // PART 3: INTERACTIVE CHARTS
+  // ============================================================================
+  {
+    id: "tut-part3",
+    type: "markdown",
+    content: "# Part 3: Interactive Charts\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | General purpose (line, scatter, bar) | ~55KB |\n| `TimeSeries` | uPlot | High-performance time data | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, heatmap | ~16KB |"
+  },
+
+  // --- Section 3.1: Basic Plotting ---
+  {
+    id: "tut-s3-plot",
+    type: "markdown",
+    content: "## Basic Plotting with `Plot`\n\n`Plot` uses Observable Plot under the hood — a modern, declarative charting library. Just pass your data as a list of dictionaries and specify which columns to use for x and y."
+  },
+  {
+    id: "tut-demo-plot-basic",
+    type: "code",
+    content: "from pynote_ui import Plot\nimport numpy as np\n\n# Generate sine wave data\nx = np.linspace(0, 4 * np.pi, 100)\ndata = [{\"x\": xi, \"y\": np.sin(xi)} for xi in x]\n\nPlot(data, x=\"x\", y=\"y\", mark=\"line\", title=\"Sine Wave\")"
+  },
+  {
+    id: "tut-demo-plot-scatter",
+    type: "code",
+    content: "from pynote_ui import Plot\nimport numpy as np\n\n# Scatter plot with color encoding and custom styling\nnp.random.seed(42)\nn = 50\ndata = [\n    {\"x\": np.random.randn(), \"y\": np.random.randn(), \"category\": \"A\" if i < 25 else \"B\"}\n    for i in range(n)\n]\n\nPlot(\n    data, x=\"x\", y=\"y\", mark=\"dot\", color=\"category\",\n    title=\"Custom Styled Scatter\",\n    titleStyle={\"fontSize\": \"18px\", \"color\": \"#8b5cf6\"},  # Purple title\n    gridStyle={\"stroke\": \"#e2e8f0\", \"strokeOpacity\": 0.5}  # Subtle grid\n)"
+  },
+
+  // --- Section 3.2: Interactive Plot with Slider ---
+  {
+    id: "tut-s3-interactive",
+    type: "markdown",
+    content: "## Interactive Charts with UI Controls\n\nThe real power comes from combining charts with `pynote_ui` sliders. When the slider changes, we update the plot's data — the chart re-renders automatically!\n\n**Try it:** Move the frequency slider below to see the sine wave change in real-time."
+  },
+  {
+    id: "tut-demo-plot-interactive",
+    type: "code",
+    content: "from pynote_ui import Plot, Slider, Group\nimport numpy as np\n\n# Create frequency slider with fine steps for smooth animation\nfreq_slider = Slider(min=1, max=10, value=2, step=0.1, label=\"Frequency\")\n\n# Generate initial data\nx = np.linspace(0, 2 * np.pi, 200)\ninitial_data = [{\"x\": xi, \"y\": np.sin(2 * xi)} for xi in x]\n\n# Create the plot (full width)\nwave_plot = Plot(\n    initial_data, \n    x=\"x\", y=\"y\", \n    mark=\"line\",\n    title=\"Interactive Sine Wave\",\n    width=\"full\",\n    yDomain=[-1.5, 1.5]  # Fix y-axis so it doesn't jump around\n)\n\n# Update plot when slider changes\ndef update_wave(data):\n    freq = data[\"value\"]\n    new_data = [{\"x\": xi, \"y\": np.sin(freq * xi)} for xi in x]\n    wave_plot.data = new_data  # This triggers a re-render!\n\nfreq_slider.on_update(update_wave)\n\n# Display together\nGroup([freq_slider, wave_plot], layout=\"col\")"
+  },
+
+  // --- Section 3.3: Multiple Controls ---
+  {
+    id: "tut-s3-multicontrol",
+    type: "markdown",
+    content: "### Multiple Parameters\n\nYou can control multiple aspects of a visualization simultaneously. Here's a wave with both **frequency** and **amplitude** controls."
+  },
+  {
+    id: "tut-demo-plot-multi",
+    type: "code",
+    content: `from pynote_ui import Plot, Slider, Group, Text
+import numpy as np
+
+# Create sliders with fine steps for smooth animation
+freq = Slider(min=1, max=8, value=3.0, step=0.1, label="Frequency", grow=1)
+amp = Slider(min=0.1, max=2.0, value=1.0, step=0.05, label="Amplitude", grow=1)
+info = Text(content="f=3.0, A=1.0", width="100%", align_h="center")
+
+# X values (constant)
+x = np.linspace(0, 2 * np.pi, 200)
+
+# Create the plot with initial wave
+wave = Plot(
+    [{"x": xi, "y": 1.0 * np.sin(3.0 * xi)} for xi in x],
+    x="x", y="y", mark="area",
+    title="Amplitude × sin(Frequency × x)",
+    width="full",
+    yDomain=[-2.5, 2.5]
+)
+
+# Update functions - each slider triggers a full recalculation
+def update_freq(data):
+    f = data["value"]  # Get new freq from event
+    a = amp.value      # Get current amplitude
+    wave.data = [{"x": xi, "y": a * np.sin(f * xi)} for xi in x]
+    info.content = f"f={f:.1f}, A={a:.1f}"
+
+def update_amp(data):
+    f = freq.value     # Get current frequency
+    a = data["value"]  # Get new amp from event
+    wave.data = [{"x": xi, "y": a * np.sin(f * xi)} for xi in x]
+    info.content = f"f={f:.1f}, A={a:.1f}"
+
+freq.on_update(update_freq)
+amp.on_update(update_amp)
+
+Group([
+    Group([freq, amp], layout="row"),
+    info,
+    wave
+], layout="col", border=True, label="Wave Generator")`
+  },
+
+  // --- Section 3.4: Bar Charts ---
+  {
+    id: "tut-s3-bar",
+    type: "markdown",
+    content: "## Bar Charts\n\nBar charts work great for categorical data. Use the `Chart` component with `type=\"bar\"`."
+  },
+  {
+    id: "tut-demo-bar",
+    type: "code",
+    content: "from pynote_ui import Chart, Slider, Group\n\n# Interactive bar chart with custom styling\nbar_slider = Slider(min=0, max=100, value=50, step=1, label=\"Adjust 'Product B'\")\n\nbar_chart = Chart(\n    type=\"bar\",\n    data={\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, 50, 20, 40]}]\n    },\n    title=\"Product Sales\",\n    titleStyle={\"fontWeight\": \"700\"},  # Extra bold title\n    width=\"full\",\n    height=280\n)\n\ndef update_bar(data):\n    new_val = int(data[\"value\"])\n    bar_chart.data = {\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, new_val, 20, 40]}]\n    }\n\nbar_slider.on_update(update_bar)\nGroup([bar_slider, bar_chart], layout=\"col\")"
+  },
+
+  // --- Section 3.5: Pie Charts ---
+  {
+    id: "tut-s3-pie",
+    type: "markdown",
+    content: "## Pie & Donut Charts\n\nPerfect for showing proportions. Try `type=\"pie\"` or `type=\"donut\"`."
+  },
+  {
+    id: "tut-demo-pie",
+    type: "code",
+    content: "from pynote_ui import Chart, Slider, Text, Group\n\n# Budget allocation pie chart\nbudget_slider = Slider(min=10, max=60, value=35, step=1, label=\"Marketing Budget %\")\nremaining = Text(content=\"Engineering: 39%, Operations: 26%\")\n\npie = Chart(\n    type=\"donut\",\n    data={\"labels\": [\"Marketing\", \"Engineering\", \"Operations\"], \"values\": [35, 39, 26]},\n    title=\"Budget Allocation\",\n    width=\"full\",\n    height=300\n)\n\ndef update_pie(data):\n    marketing = int(data[\"value\"])\n    other = 100 - marketing\n    # Split remaining between Engineering (60%) and Operations (40%)\n    eng = int(other * 0.6)\n    ops = other - eng\n    pie.data = {\"labels\": [\"Marketing\", \"Engineering\", \"Operations\"], \"values\": [marketing, eng, ops]}\n    remaining.content = f\"Engineering: {eng}%, Operations: {ops}%\"\n\nbudget_slider.on_update(update_pie)\nGroup([budget_slider, remaining, pie], layout=\"col\")"
+  },
+
+  // --- Section 3.6: Time Series ---
+  {
+    id: "tut-s3-timeseries",
+    type: "markdown",
+    content: "## High-Performance Time Series\n\n`TimeSeries` uses uPlot — the fastest chart library for time data. It can handle **100,000+ points** smoothly!"
+  },
+  {
+    id: "tut-demo-timeseries",
+    type: "code",
+    content: "from pynote_ui import TimeSeries, Slider, Group\nimport numpy as np\nimport time\n\n# Generate 5000 data points (fast!)\nn = 5000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Random walk stock price simulation\nnp.random.seed(42)\nreturns = np.random.randn(n) * 0.02  # 2% daily volatility\nprice = 100 * np.exp(np.cumsum(returns))  # Geometric random walk\n\n# Volatility slider with fine steps\nvol_slider = Slider(min=1, max=5, value=2, step=0.1, label=\"Volatility (%)\")\n\nts = TimeSeries(\n    data={\"x\": timestamps, \"price\": price.tolist()},\n    series=[{\"label\": \"Stock Price\"}],  # Uses theme accent color by default\n    yLabel=\"Price ($)\",\n    title=\"Simulated Stock Price (5,000 points)\",\n    width=\"full\",\n    height=320\n)\n\ndef regenerate(data):\n    vol = data[\"value\"] / 100\n    new_returns = np.random.randn(n) * vol\n    new_price = 100 * np.exp(np.cumsum(new_returns))\n    ts.data = {\"x\": timestamps, \"price\": new_price.tolist()}\n\nvol_slider.on_update(regenerate)\nGroup([vol_slider, ts], layout=\"col\")"
+  },
+  {
+    id: "tut-demo-timeseries-2",
+    type: "code",
+    content: "from pynote_ui import TimeSeries\nimport numpy as np\nimport time\n\n# Simple sine wave example\nn = 1000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Generate sine and cosine waves\nt = np.linspace(0, 4 * np.pi, n)\nsine_wave = np.sin(t).tolist()\ncosine_wave = np.cos(t).tolist()\n\nTimeSeries(\n    data={\"x\": timestamps, \"sin\": sine_wave, \"cos\": cosine_wave},\n    series=[{\"label\": \"Sine\"}, {\"label\": \"Cosine\"}],\n    title=\"Trigonometric Functions\",\n    width=\"full\",\n    height=280\n)"
+  },
+
+  // --- Section 3.7: Chart API Reference ---
+  {
+    id: "tut-s3-api",
+    type: "markdown",
+    content: `## Chart API Quick Reference
+
+### \`Plot\` (Observable Plot)
+\`\`\`python
+Plot(data, x, y, mark="line", stroke=None, fill=None, title=None, 
+     width=600, height=380, border=True, titleStyle=None, ...)
+\`\`\`
+- \`data\`: List of dicts \`[{"x": 1, "y": 2}, ...]\`
+- \`mark\`: \`"line"\`, \`"dot"\`, \`"bar"\`, \`"area"\`, \`"barY"\`, \`"barX"\`
+- \`width\`: Number (pixels), \`"full"\`, or \`"100%"\`
+- \`stroke\`: Override line/point color (default: theme accent)
+- \`border\`: Show container border (default: True)
+- Update via \`plot.data = new_data\`
+
+### \`TimeSeries\` (uPlot)
+\`\`\`python
+TimeSeries(data, series=None, title=None, xType="time", 
+           width="full", height=350, border=True, titleStyle=None, ...)
+\`\`\`
+- \`data\`: Dict \`{"x": [...], "y": [...]}\` or nested arrays \`[[x], [y1], [y2]]\`
+- \`series\`: List of \`{"label": ..., "stroke": "#color"}\` (stroke optional, uses theme)
+- \`xType\`: \`"time"\` (Unix timestamps) or \`"numeric"\`
+- \`width\`: Number, \`"full"\`, or \`"100%"\` (default: \`"full"\`)
+
+### \`Chart\` (Frappe)
+\`\`\`python
+Chart(type, data, title=None, width="full", height=300, 
+      colors=None, border=True, titleStyle=None, ...)
+\`\`\`
+- \`type\`: \`"pie"\`, \`"donut"\`, \`"percentage"\`, \`"bar"\`, \`"line"\`, \`"heatmap"\`
+- \`data\` for pie: \`{"labels": [...], "values": [...]}\`
+- \`data\` for bar/line: \`{"labels": [...], "datasets": [{"values": [...]}]}\`
+- \`colors\`: Custom palette (default: auto-generated from theme accent)
+
+### Common Props (all chart types)
+- \`border\`: Show border (default: True)
+- \`borderRadius\`, \`borderWidth\`, \`borderColor\`: Customize border
+
+### Style Customization (all chart types)
+All charts accept style dicts to override defaults:
+- \`titleStyle\`: Title text, e.g., \`{"fontSize": "18px", "fontWeight": "bold"}\`
+- \`xLabelStyle\`, \`yLabelStyle\`: Axis label styles
+- \`tickStyle\`: Tick/number label style
+- \`gridStyle\`: Grid lines, e.g., \`{"stroke": "#ccc", "strokeOpacity": 0.5}\`
+- \`axisStyle\`: Axis line style
+
+Example:
+\`\`\`python
+Plot(data, x="x", y="y", title="My Chart",
+     titleStyle={"fontSize": "20px", "fontWeight": "bold"},
+     gridStyle={"stroke": "#eee"})
+\`\`\``
+  },
+
   // --- Section 2.7: Pyodide Features ---
   {
     id: "tut-s2-pyodide",

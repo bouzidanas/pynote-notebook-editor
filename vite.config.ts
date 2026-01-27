@@ -12,6 +12,25 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            // =================================================================
+            // CHART LIBRARIES - Lazy loaded, separate chunks
+            // These are only loaded when user creates a chart component
+            // =================================================================
+
+            // Observable Plot - keep only the plot library in its own chunk
+            // d3 modules go to vendor (they're shared and tree-shaken anyway)
+            if (id.includes('@observablehq/plot')) return 'chart-observable';
+
+            // uPlot - high-performance time-series
+            if (id.includes('uplot')) return 'chart-uplot';
+
+            // Frappe Charts - pie, donut, heatmap
+            if (id.includes('frappe-charts')) return 'chart-frappe';
+
+            // =================================================================
+            // CORE LIBRARIES - Always loaded
+            // =================================================================
+
             // KaTeX - math rendering (large, rarely changes)
             if (id.includes('katex')) return 'katex';
 
