@@ -97,11 +97,13 @@ from .core import (
     MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
     MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END
 )
-from .elements import Slider, Text, Group, Plot, TimeSeries, Chart
+from .elements import Slider, Text, Group
+from . import oplot, uplot, fplot
 
 __all__ = [
     "UIElement", "StateManager", "handle_interaction", 
-    "Slider", "Text", "Group", "Plot", "TimeSeries", "Chart",
+    "Slider", "Text", "Group", 
+    "oplot", "uplot", "fplot",
     "set_current_cell", "clear_cell", "register_comm_target",
     "display", "print_md",
     "MARKER_UI_START", "MARKER_UI_END",
@@ -357,7 +359,7 @@ class Text(UIElement):
         self.send_update(content=value)
 
 class Group(UIElement):
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, force_dimensions=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False):
         self.children = children
 
         super().__init__(
@@ -371,6 +373,8 @@ class Group(UIElement):
             shrink=shrink,
             border=border,
             padding=padding,
+            gap=gap,
+            overflow=overflow,
             force_dimensions=force_dimensions
         )
 
@@ -414,95 +418,227 @@ class Group(UIElement):
     def label(self, value):
         self.send_update(label=value)
 
+    @property
+    def grow(self):
+        return self.props.get("grow")
+    
+    @grow.setter
+    def grow(self, value):
+        self.send_update(grow=value)
 
-# =============================================================================
-# Chart Components
-# =============================================================================
+    @property
+    def shrink(self):
+        return self.props.get("shrink")
+    
+    @shrink.setter
+    def shrink(self, value):
+        self.send_update(shrink=value)
+
+    @property
+    def border(self):
+        return self.props.get("border")
+    
+    @border.setter
+    def border(self, value):
+        self.send_update(border=value)
+
+    @property
+    def padding(self):
+        return self.props.get("padding")
+    
+    @padding.setter
+    def padding(self, value):
+        self.send_update(padding=value)
+
+    @property
+    def gap(self):
+        return self.props.get("gap")
+    
+    @gap.setter
+    def gap(self, value):
+        self.send_update(gap=value)
+
+    @property
+    def overflow(self):
+        return self.props.get("overflow")
+    
+    @overflow.setter
+    def overflow(self, value):
+        self.send_update(overflow=value)
+`);
+        pyodide.FS.writeFile("pynote_ui/oplot.py", `
+"""
+Observable Plot-based plotting functions.
+
+Observable Plot supports many mark types for creating rich visualizations:
+- line, lineX, lineY: connected lines
+- dot: scatter plots
+- bar, barX, barY: bar charts  
+- area, areaX, areaY: filled areas
+- rect, rectX, rectY: rectangles (histograms, heatmaps)
+- cell: categorical heatmaps
+- rule: reference lines
+- text: labels
+- box, boxX, boxY: boxplots
+- density: smooth density estimation
+- contour: contour lines
+- And many more!
+
+This module provides convenient high-level functions for common plot types.
+"""
+
+from .core import UIElement
 
 class Plot(UIElement):
     """
     General-purpose plotting using Observable Plot.
     
-    Supports: line, dot (scatter), bar, area, cell, rect charts.
+    Exposes the full flexibility of Observable Plot mark types and options.
     
     Args:
         data: List of dicts, e.g., [{"x": 1, "y": 2}, {"x": 2, "y": 4}, ...]
-        x: Column name for x-axis
-        y: Column name for y-axis
-        mark: Chart type - "line", "dot", "bar", "barY", "barX", "area", "areaY", "cell", "rect"
-        color: Column name for color encoding (optional)
-        stroke: Static stroke color (optional, defaults to theme accent)
-        fill: Static fill color (optional)
-        series: Column name for series grouping (optional)
-        title: Chart title (optional)
-        width: Chart width - number (pixels), "full", or "100%" (default: 600)
-        height: Chart height in pixels (default: 380)
-        grid: Show grid lines (default: True for y-axis)
+        
+        # Required/Primary
+        mark: Mark type - "line", "lineX", "lineY", "dot", "bar", "barY", "barX", 
+              "area", "areaY", "areaX", "rect", "rectY", "rectX", "cell", "rule", 
+              "ruleX", "ruleY", "text", "boxX", "boxY", "density", etc.
+        
+        # Position channels (most marks)
+        x, y: Column names or values for position
+        x1, x2, y1, y2: Explicit bounds for rect/area marks
+        
+        # Visual encoding channels
+        fill: Column or color for fill (can vary per point)
+        stroke: Column or color for stroke (can vary per point)
+        opacity: Column or value for opacity
+        strokeWidth: Column or value for stroke width
+        fillOpacity: Column or value for fill opacity
+        strokeOpacity: Column or value for stroke opacity
+        
+        # Dot-specific
+        r: Column or value for radius/size (dot marks)
+        symbol: Column or symbol type - "circle", "square", "diamond", "triangle", etc.
+        
+        # Series grouping
+        z: Column for grouping into separate series (line, area marks)
+        
+        # Scale customization
         xLabel, yLabel: Axis labels
-        xType, yType: Axis type - "linear", "log", "time", "band", "point"
+        xDomain, yDomain: Explicit scale domains [min, max]
+        xType, yType: Scale type - "linear", "log", "sqrt", "pow", "time", "utc", 
+                      "band", "point", "ordinal"
+        
+        # Transforms
+        sort: Column or {channel: "x", order: "ascending"} for sorting
+        filter: Function to filter data points
+        bin: Binning specification for histograms
+        thresholds: Number of bins or bin edges
+        interval: Time/numeric interval for regularization ("day", "hour", 1, etc.)
+        reduce: Reducer function for binning - "count", "sum", "mean", "median", etc.
+        curve: Interpolation curve - "linear", "step", "step-before", "step-after", 
+               "basis", "cardinal", "catmull-rom", "monotone-x", "monotone-y", "natural"
+        
+        # Mark styling
+        marker: Add markers to line endpoints - "dot", "arrow", "circle", etc.
+        inset: Spacing between bars/rects (number in pixels)
+        insetTop, insetRight, insetBottom, insetLeft: Individual insets
+        
+        # Chart appearance (app-specific)
+        title: Chart title
+        width: Chart width - number (pixels), "full", or "100%" (default: "full")
+        height: Chart height in pixels (default: 380)
+        grid: Show grid - True (y-axis), "both", "x", "y", False
         border: Show border (default: True)
-        borderRadius: Border radius (optional, defaults to theme)
+        borderRadius: Border radius
         
-        Style customization (all optional, override defaults):
-        titleStyle: dict - Title text style, e.g., {"fontSize": "18px", "fontWeight": "bold"}
-        xLabelStyle: dict - X-axis label style
-        yLabelStyle: dict - Y-axis label style  
-        tickStyle: dict - Tick/number label style
-        gridStyle: dict - Grid line style
-        axisStyle: dict - Axis line style
-    
-    Example:
-        import numpy as np
-        from pynote_ui import Plot
+        # Layout (app-specific)
+        grow, shrink: Flex properties for responsive sizing
+        force_dimensions: Override flex with fixed dimensions
         
-        x = np.linspace(0, 10, 100)
-        data = [{"x": xi, "y": np.sin(xi)} for xi in x]
-        Plot(data, x="x", y="y", mark="line", title="Sine Wave")
+        # Style customization (all optional, override defaults)
+        titleStyle: Title text style dict
+        xLabelStyle, yLabelStyle: Axis label style dicts
+        tickStyle: Tick/number label style dict
+        gridStyle: Grid line style dict
+        axisStyle: Axis line style dict
         
-        # Full width plot with custom title
-        Plot(data, x="x", y="y", width="full",
-             titleStyle={"fontSize": "20px", "fontWeight": "bold"})
+        # Advanced: Any other Observable Plot option
+        **kwargs: Any additional Observable Plot options are passed through
     """
     def __init__(
         self,
         data,
-        x,
-        y,
+        # Position channels (most accept None, making them optional)
+        x=None,
+        y=None,
+        # Mark type
         mark="line",
-        color=None,
-        size=None,
-        opacity=None,
+        # Visual encoding channels
+        color=None,  # legacy: maps to fill or stroke
         fill=None,
         stroke=None,
-        series=None,
+        opacity=None,
+        strokeWidth=None,
+        fillOpacity=None,
+        strokeOpacity=None,
+        # Dimension channels
+        size=None,  # legacy: maps to r for dots
+        r=None,
+        symbol=None,
+        # Series grouping
+        series=None,  # legacy: maps to z
+        z=None,
+        # Position bounds (for rect/area marks)
+        x1=None, x2=None, y1=None, y2=None,
+        # Scale options
         xLabel=None,
         yLabel=None,
         xDomain=None,
         yDomain=None,
         xType=None,
         yType=None,
+        # Transforms
+        sort=None,
+        filter=None,
+        bin=None,
+        thresholds=None,
+        interval=None,
+        reduce=None,
+        curve=None,
+        # Mark styling
+        marker=None,
+        inset=None,
+        insetTop=None,
+        insetRight=None,
+        insetBottom=None,
+        insetLeft=None,
+        # Grid & margins
         grid=None,
-        width=600,
-        height=380,
         marginTop=None,
         marginRight=None,
         marginBottom=None,
         marginLeft=None,
+        # Chart appearance (app-specific)
+        width="full",
+        height=380,
         title=None,
         border=True,
         borderWidth=None,
         borderRadius=None,
         borderColor=None,
-        # Style customization dicts
+        # Style customization dicts (app-specific)
         titleStyle=None,
         xLabelStyle=None,
         yLabelStyle=None,
         tickStyle=None,
         gridStyle=None,
         axisStyle=None,
+        # Layout (app-specific)
         grow=None,
         shrink=None,
-        force_dimensions=False
+        force_dimensions=False,
+        # Pass-through for any other Observable Plot options
+        **kwargs
     ):
         # Convert numpy arrays to lists if needed
         if hasattr(data, 'tolist'):
@@ -516,23 +652,54 @@ class Plot(UIElement):
             ]
         
         self._data = data
+        
+        # Handle legacy parameters: map old names to new channels
+        if series is not None and z is None:
+            z = series
+        if size is not None and r is None:
+            r = size
+        
+        # Pass all parameters to parent UIElement
         super().__init__(
             data=data,
             x=x,
             y=y,
+            x1=x1,
+            x2=x2,
+            y1=y1,
+            y2=y2,
             mark=mark,
             color=color,
-            size=size,
-            opacity=opacity,
             fill=fill,
             stroke=stroke,
+            opacity=opacity,
+            strokeWidth=strokeWidth,
+            fillOpacity=fillOpacity,
+            strokeOpacity=strokeOpacity,
+            size=size,
+            r=r,
+            symbol=symbol,
             series=series,
+            z=z,
             xLabel=xLabel,
             yLabel=yLabel,
             xDomain=xDomain,
             yDomain=yDomain,
             xType=xType,
             yType=yType,
+            sort=sort,
+            filter=filter,
+            bin=bin,
+            thresholds=thresholds,
+            interval=interval,
+            reduce=reduce,
+            curve=curve,
+            marker=marker,
+            inset=inset,
+            insetTop=insetTop,
+            insetRight=insetRight,
+            insetBottom=insetBottom,
+            insetLeft=insetLeft,
             grid=grid,
             width=width,
             height=height,
@@ -553,7 +720,8 @@ class Plot(UIElement):
             axisStyle=axisStyle,
             grow=grow,
             shrink=shrink,
-            force_dimensions=force_dimensions
+            force_dimensions=force_dimensions,
+            **kwargs  # Pass through any additional Observable Plot options
         )
 
     @property
@@ -567,6 +735,74 @@ class Plot(UIElement):
         self._data = value
         self.send_update(data=value)
 
+
+# =============================================================================
+# Convenience Functions for Common Plot Types
+# =============================================================================
+
+def scatter(data, x=None, y=None, fill=None, stroke=None, r=None, symbol=None, 
+            opacity=None, title=None, **kwargs):
+    """Create a scatter plot (dot mark)."""
+    return Plot(data, x=x, y=y, mark="dot", fill=fill, stroke=stroke, r=r, 
+                symbol=symbol, opacity=opacity, title=title, **kwargs)
+
+def line(data, x=None, y=None, stroke=None, z=None, curve="linear", 
+         marker=None, strokeWidth=None, title=None, **kwargs):
+    """Create a line plot."""
+    return Plot(data, x=x, y=y, mark="line", stroke=stroke, z=z, curve=curve,
+                marker=marker, strokeWidth=strokeWidth, title=title, **kwargs)
+
+def area(data, x=None, y=None, y1=None, y2=None, fill=None, z=None, 
+         curve="linear", title=None, **kwargs):
+    """Create an area chart."""
+    return Plot(data, x=x, y=y, y1=y1, y2=y2, mark="areaY", fill=fill, z=z, 
+                curve=curve, title=title, **kwargs)
+
+def bar(data, x=None, y=None, fill=None, sort=None, orientation="vertical", 
+        inset=0, title=None, **kwargs):
+    """Create a bar chart."""
+    mark = "barY" if orientation == "vertical" else "barX"
+    return Plot(data, x=x, y=y, mark=mark, fill=fill, sort=sort, inset=inset, 
+                title=title, **kwargs)
+
+def histogram(data, x=None, y=None, bins=None, fill=None, 
+              stat="count", orientation="vertical", title=None, **kwargs):
+    """
+    Create a histogram using rectY/rectX with binning.
+    
+    Args:
+        bins: Number of bins (int) or explicit bin edges (list)
+        stat: Statistic - "count", "proportion", "percent", "density", "sum", "mean", etc.
+    """
+    mark = "rectY" if orientation == "vertical" else "rectX"
+    # Map user-friendly names to Observable Plot's internal names
+    return Plot(data, x=x, y=y, mark=mark, fill=fill, thresholds=bins, 
+                reduce=stat, title=title, **kwargs)
+
+def boxplot(data, x=None, y=None, fill=None, orientation="vertical", title=None, **kwargs):
+    """Create a box plot."""
+    mark = "boxY" if orientation == "vertical" else "boxX"
+    return Plot(data, x=x, y=y, mark=mark, fill=fill, title=title, **kwargs)
+
+def heatmap(data, x=None, y=None, fill=None, stroke=None, inset=0.5, title=None, **kwargs):
+    """Create a heatmap."""
+    return Plot(data, x=x, y=y, mark="cell", fill=fill, stroke=stroke, 
+                inset=inset, title=title, **kwargs)
+
+def density(data, x=None, y=None, fill=None, stroke=None, 
+            thresholds=None, bandwidth=None, title=None, **kwargs):
+    """Create a smooth density contour plot."""
+    return Plot(data, x=x, y=y, mark="density", fill=fill, stroke=stroke, 
+                thresholds=thresholds, bandwidth=bandwidth, title=title, **kwargs)
+
+def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1, 
+         strokeDasharray="4 2", title=None, **kwargs):
+    """Create reference lines."""
+    return Plot(data, x=x, y=y, mark="rule", stroke=stroke, strokeWidth=strokeWidth,
+                strokeDasharray=strokeDasharray, title=title, **kwargs)
+`);
+        pyodide.FS.writeFile("pynote_ui/uplot.py", `
+from .core import UIElement
 
 class TimeSeries(UIElement):
     """
@@ -600,7 +836,7 @@ class TimeSeries(UIElement):
     
     Example:
         import numpy as np
-        from pynote_ui import TimeSeries
+        from pynote_ui.uplot import TimeSeries
         import time
         
         # 10,000 points - renders instantly!
@@ -614,7 +850,7 @@ class TimeSeries(UIElement):
             xType="time",
             title="Random Walk",
             width="full",
-            titleStyle={"fontSize": "18px"}
+            titleStyle={"fontSize": "18px", "color": "#333"}
         )
     """
     def __init__(
@@ -705,7 +941,9 @@ class TimeSeries(UIElement):
     def data(self, value):
         self._data = self._normalize_data(value)
         self.send_update(data=self._data)
-
+`);
+        pyodide.FS.writeFile("pynote_ui/fplot.py", `
+from .core import UIElement
 
 class Chart(UIElement):
     """
@@ -719,7 +957,7 @@ class Chart(UIElement):
         data: Data format depends on type:
             - pie/donut/percentage: {"labels": [...], "values": [...]}
             - heatmap: {"dataPoints": {"timestamp": count, ...}}
-            - bar/line: {"labels": [...], "datasets": [{"values": [...]}, ...]}
+            - bar/line: {"labels": [...], "datasets": [{"values": [...]}, ...]}}
         title: Chart title
         colors: Custom color palette (optional, auto-generated from theme accent)
         width: Chart width - number (pixels), "full", or "100%" (default: fills container)
@@ -742,15 +980,26 @@ class Chart(UIElement):
         - lineOptions: {"dotSize": 4, "regionFill": False, "spline": False}
     
     Example:
-        from pynote_ui import Chart
+        from pynote_ui.fplot import Chart
         
-        # Pie chart with custom title
+        # Pie chart with custom title style
         Chart(
             type="pie",
             data={"labels": ["A", "B", "C"], "values": [40, 35, 25]},
             title="Distribution",
             width="full",
             titleStyle={"fontSize": "20px", "fontWeight": "bold"}
+        )
+        
+        # Bar chart with custom grid
+        Chart(
+            type="bar",
+            data={
+                "labels": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+                "datasets": [{"name": "Sales", "values": [10, 20, 15, 25, 30]}]
+            },
+            title="Weekly Sales",
+            gridStyle={"stroke": "#ddd"}
         )
     """
     def __init__(

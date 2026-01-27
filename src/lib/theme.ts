@@ -29,6 +29,7 @@ export interface Theme {
     maxCodeHeight: string;
   };
   sectionScoping: boolean;
+  tableOverflow: "scroll" | "wrap";
   outputLayout: "above" | "below";
   saveToExport: boolean;
 }
@@ -48,19 +49,20 @@ export const defaultTheme: Theme = {
   },
   spacing: {
     line: "1.75",
-    cell: "0.90rem",
-    block: "1.25rem",
+    cell: "1rem",
+    block: "1.5rem",
   },
   typography: {
     fontSize: "1rem",
     headerDelta: "0.225rem",
     headerColors: ["#f38ba8", "#fab387", "#f9e2af", "#a6e3a1"],
-    headerMarginBottom: "1.5rem",
+    headerMarginBottom: "1.75rem",
   },
   editor: {
     maxCodeHeight: "none",
   },
   sectionScoping: true,
+  tableOverflow: "scroll",
   outputLayout: "above",
   saveToExport: false,
 };
@@ -146,6 +148,8 @@ export const initTheme = () => {
     root.style.setProperty("--header-color-2", h2Color);
     root.style.setProperty("--header-color-3", h3Color);
     root.style.setProperty("--header-color-4", h4Color);
+
+    root.style.setProperty("--table-overflow", theme.tableOverflow);
 
     // Update meta theme color for browser UI (avoids white flash in new tabs)
     const metaTheme = document.getElementById('meta-theme-color');

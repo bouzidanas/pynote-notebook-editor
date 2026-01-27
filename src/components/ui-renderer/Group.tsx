@@ -14,6 +14,8 @@ interface GroupProps {
     shrink?: number | null;
     border?: boolean;
     padding?: string | number;
+    gap?: string | number;
+    overflow?: "visible" | "hidden" | "scroll" | "auto" | "scroll-x" | "scroll-y";
     force_dimensions?: boolean;
   };
 }   
@@ -66,6 +68,24 @@ const Group: Component<GroupProps> = (p) => {
     return "0"; // no padding
   };
 
+  // Compute gap based on explicit value or default (3 for both row and col)
+  const computeGap = (): string => {
+    const gapValue = p.props.gap;
+    
+    // If gap explicitly provided
+    if (gapValue !== undefined && gapValue !== null) {
+      // Number: use Tailwind class (gap-1, gap-2, gap-3, etc.)
+      if (typeof gapValue === 'number') {
+        return `gap-${gapValue}`;
+      }
+      // String: return as-is for custom CSS
+      return gapValue;
+    }
+    
+    // Default: gap-3 for both row and col
+    return "gap-3";
+  };
+
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
@@ -108,17 +128,33 @@ const Group: Component<GroupProps> = (p) => {
       }
     }
     
+    // Overflow handling
+    const overflow = p.props.overflow;
+    if (overflow) {
+      if (overflow === "scroll-x") {
+        styles["overflow-x"] = "auto";
+        styles["overflow-y"] = "visible";
+      } else if (overflow === "scroll-y") {
+        styles["overflow-x"] = "visible";
+        styles["overflow-y"] = "auto";
+      } else {
+        // visible, hidden, scroll, auto
+        styles.overflow = overflow;
+      }
+    }
+    
     return styles;
   };
     
   // Inner Group Container class - includes alignment for children
   const groupClass = () => {
     const isRow = p.props.layout === "row";
-    const layout = isRow ? "flex-row gap-4" : "flex-col gap-2";
+    const direction = isRow ? "flex-row" : "flex-col";
+    const gap = computeGap();
     // For row: items-stretch makes children fill vertical space (cross axis)
     // alignClass handles: row → justify (horizontal), col → items (horizontal)
     const verticalStretch = isRow ? "items-stretch" : "";
-    return `flex ${layout} w-full ${verticalStretch} ${alignClass()}`;
+    return `flex ${direction} ${gap} w-full ${verticalStretch} ${alignClass()}`;
   };
 
   const content = (

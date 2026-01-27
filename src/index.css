@@ -125,17 +125,73 @@ body {
     margin-left: 0.5rem !important;
 }
 
-/* Modern Table Styling for Editor and Prose */
-.milkdown .editor table,
-.prose table {
+/* Table wrapper with border and overflow scrolling */
+.milkdown .editor .table-wrapper,
+.prose .table-wrapper {
     display: block;
-    width: 100%;
     overflow-x: auto;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin: 1.25em 0 !important;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
+    margin: 1.25em 0 !important;
+}
+
+/* Table inside wrapper stretches to fit or overflow */
+.milkdown .editor .table-wrapper table,
+.prose .table-wrapper table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0 !important;
+}
+
+/* Wrap mode overrides using CSS variable */
+:root:has([style*="--table-overflow: wrap"]) .prose .table-wrapper {
+    overflow-x: visible;
+}
+
+:root:has([style*="--table-overflow: wrap"]) .prose .table-wrapper table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+:root:has([style*="--table-overflow: wrap"]) .prose .table-wrapper table th,
+:root:has([style*="--table-overflow: wrap"]) .prose .table-wrapper table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* For Milkdown editor tables without wrapper, apply styles directly */
+.milkdown .editor table:not(.table-wrapper table) {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border-radius: var(--radius-sm);
+    margin: 1.25em 0 !important;
+}
+
+.milkdown .editor table:not(.table-wrapper table) > * {
+    display: table;
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* Milkdown wrap mode overrides using CSS variable */
+:root:has([style*="--table-overflow: wrap"]) .milkdown .editor table:not(.table-wrapper table) {
+    display: table;
+    overflow-x: visible;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+:root:has([style*="--table-overflow: wrap"]) .milkdown .editor table th,
+:root:has([style*="--table-overflow: wrap"]) .milkdown .editor table td {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .milkdown .editor th,
@@ -197,15 +253,18 @@ body {
 }
 
 /* Code blocks (pre > code) - distinct block styling */
-.prose pre {
+.prose pre,
+.milkdown .editor pre {
     background-color: color-mix(in srgb, var(--accent) 5%, transparent) !important;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
     padding: 1em !important;
-    margin: 1em 0 !important;
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
     overflow-x: auto;
 }
-.prose pre code {
+.prose pre code,
+.milkdown .editor pre code {
     background-color: transparent !important;
     padding: 0 !important;
     border-radius: 0 !important;

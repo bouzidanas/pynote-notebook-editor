@@ -20,6 +20,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
     typography: { ...currentTheme.typography },
     editor: { ...currentTheme.editor },
     sectionScoping: currentTheme.sectionScoping,
+    tableOverflow: currentTheme.tableOverflow,
     outputLayout: currentTheme.outputLayout,
     saveToExport: currentTheme.saveToExport,
   };
@@ -700,6 +701,17 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 value={currentTheme.sectionScoping}
                 onChange={() => updateTheme({ sectionScoping: !currentTheme.sectionScoping })}
               />
+              <div class="space-y-1">
+                <label class="text-xs font-semibold text-secondary/80">Table Overflow</label>
+                <select
+                  value={currentTheme.tableOverflow}
+                  onChange={(e) => updateTheme({ tableOverflow: e.currentTarget.value as "scroll" | "wrap" })}
+                  class="w-full h-9 px-2 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors"
+                >
+                  <option value="scroll">Horizontal Scroll</option>
+                  <option value="wrap">Force 100% Width (Wrap)</option>
+                </select>
+              </div>
             </div>
           </div>
 

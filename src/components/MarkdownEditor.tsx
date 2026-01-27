@@ -1,9 +1,9 @@
 import { type Component, onMount, onCleanup, createEffect } from "solid-js";
 import { TextSelection } from "@milkdown/kit/prose/state"; // Standard state handling
+import { actions, type CellData } from "../lib/store";
 
 // Core Framework
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, schemaCtx } from "@milkdown/kit/core";
-import { type CellData, actions } from "../lib/store";
 
 // Theme (remains separate)
 import { nord } from "@milkdown/theme-nord";

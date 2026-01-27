@@ -165,7 +165,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-display",
     type: "code",
-    content: "from pynote_ui import Slider, Text, display\n\nprint(\"Creating interactive widgets...\")\n\ndisplay_slider = Slider(value=50, min=0, max=100, label=\"Adjustable Value\")\ndisplay_output = Text(content=\"Value: 50\")\n\ndef display_change(data):\n    display_output.content = f\"Value: {int(data['value'])}\"\ndisplay_slider.on_update(display_change)\n\ndisplay(display_slider, display_output)\n\nprint(\"☝️ Try moving the slider - the text updates in real-time!\")"
+    content: "from pynote_ui import Slider, Text, display\n\nprint(\"Creating interactive widgets...\")\n\ndisplay_slider = Slider(value=50, min=0, max=100, label=\"Adjustable Value\", width=\"100%\")\ndisplay_output = Text(content=\"Value: 50\", width=\"100%\")\n\ndef display_change(data):\n    display_output.content = f\"Value: {int(data['value'])}\"\ndisplay_slider.on_update(display_change)\n\ndisplay(display_slider, display_output)\n\nprint(\"☝️ Try moving the slider - the text updates in real-time!\")"
   },
   {
     id: "tut-s2-print",
@@ -175,7 +175,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-print",
     type: "code",
-    content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\")\nvol_text = Text(content=\"75%\")\n\ndef update_vol(data):\n    vol_text.content = f\"{int(data['value'])}%\"\nvolume.on_update(update_vol)\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
+    content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\", width=\"100%\")\nvol_text = Text(content=\"75%\", width=\"100%\")\n\ndef update_vol(data):\n    vol_text.content = f\"{int(data['value'])}%\"\nvolume.on_update(update_vol)\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
   },
 
   // --- Section 2.5: Print Markdown ---
@@ -187,7 +187,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-printmd",
     type: "code",
-    content: "from pynote_ui import print_md, Slider, Text\n\nintensity_slider = Slider(value=50, min=0, max=100, label=\"Intensity\")\nintensity_text = Text(content=\"50%\")\nintensity_slider.on_update(lambda d: setattr(intensity_text, 'content', f\"{int(d['value'])}%\"))\n\nprint_md(f\"\"\"\n## Control Panel\n\nAdjust the **intensity** level:\n\n{intensity_slider}\n\nCurrent value: {intensity_text}\n\n---\n*Move the slider - the text updates in real-time!*\n\"\"\")"
+    content: "from pynote_ui import print_md, Slider, Text\n\nintensity_slider = Slider(value=50, min=0, max=100, label=\"Intensity\", width=\"100%\")\nintensity_text = Text(content=\"50%\", width=\"100%\")\nintensity_slider.on_update(lambda d: setattr(intensity_text, 'content', f\"{int(d['value'])}%\"))\n\nprint_md(f\"\"\"\n## Control Panel\n\nAdjust the **intensity** level:\n\n{intensity_slider}\n\nCurrent value: {intensity_text}\n\n---\n*Move the slider - the text updates in real-time!*\n\"\"\")"
   },
   {
     id: "tut-s2-printmd-note",
@@ -204,12 +204,12 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-crosscell1",
     type: "code",
-    content: "# Cell 1: Create the source slider\nfrom pynote_ui import Slider, display\n\ncross_slider = Slider(value=0, min=0, max=100, label=\"Source Slider\")\ndisplay(cross_slider)\nprint(\"☝️ This slider will control the text in the next cell\")"
+    content: "# Cell 1: Create the source slider\nfrom pynote_ui import Slider, display\n\ncross_slider = Slider(value=0, min=0, max=100, label=\"Source Slider\", width=\"100%\")\ndisplay(cross_slider)\nprint(\"☝️ This slider will control the text in the next cell\")"
   },
   {
     id: "tut-demo-crosscell2",
     type: "code",
-    content: "# Cell 2: Create a text that responds to the slider from Cell 1\nfrom pynote_ui import Text, display\n\ncross_text = Text(content=\"Waiting for slider...\")\n\n# Connect to the slider defined in Cell 1\ndef on_slider_change(data):\n    cross_text.content = f\"Received: {int(data['value'])} from Cell 1!\"\n\ncross_slider.on_update(on_slider_change)\ndisplay(cross_text)\nprint(\"☝️ Now move the slider above - this text updates!\")"
+    content: "# Cell 2: Create a text that responds to the slider from Cell 1\nfrom pynote_ui import Text, display\n\ncross_text = Text(content=\"Waiting for slider...\", width=\"100%\")\n\n# Connect to the slider defined in Cell 1\ndef on_slider_change(data):\n    cross_text.content = f\"Received: {int(data['value'])} from Cell 1!\"\n\ncross_slider.on_update(on_slider_change)\ndisplay(cross_text)\nprint(\"☝️ Now move the slider above - this text updates!\")"
   },
 
   // ============================================================================
@@ -218,24 +218,53 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-part3",
     type: "markdown",
-    content: "# Part 3: Interactive Charts\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | General purpose (line, scatter, bar) | ~55KB |\n| `TimeSeries` | uPlot | High-performance time data | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, heatmap | ~16KB |"
+    content: "# Part 3: Interactive Charts\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | Flexible, declarative plots with channels, transforms, scales | ~55KB |\n| `TimeSeries` | uPlot | High-performance time series (100K+ points) | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, percentage charts | ~16KB |\n\nObservable Plot is particularly powerful with support for **15+ mark types**, data **channels** (position, color, size), **transforms** (sort, bin, stack), and smooth **curve interpolation**."
   },
 
   // --- Section 3.1: Basic Plotting ---
   {
     id: "tut-s3-plot",
     type: "markdown",
-    content: "## Basic Plotting with `Plot`\n\n`Plot` uses Observable Plot under the hood — a modern, declarative charting library. Just pass your data as a list of dictionaries and specify which columns to use for x and y."
+    content: "## Basic Plotting with `Plot`\n\n`Plot` uses Observable Plot — a modern, declarative charting library. Pass your data as a list of dictionaries and use **channels** to map data columns to visual properties.\n\nYou can also use convenience functions: `scatter()`, `line()`, `area()`, `bar()`, `histogram()`, `boxplot()`, `heatmap()`, `density()`, and `rule()`."
   },
   {
     id: "tut-demo-plot-basic",
     type: "code",
-    content: "from pynote_ui import Plot\nimport numpy as np\n\n# Generate sine wave data\nx = np.linspace(0, 4 * np.pi, 100)\ndata = [{\"x\": xi, \"y\": np.sin(xi)} for xi in x]\n\nPlot(data, x=\"x\", y=\"y\", mark=\"line\", title=\"Sine Wave\")"
+    content: "from pynote_ui.oplot import Plot\nimport numpy as np\n\n# Generate sine wave data\nx = np.linspace(0, 4 * np.pi, 100)\ndata = [{\"x\": xi, \"y\": np.sin(xi)} for xi in x]\n\nPlot(data, x=\"x\", y=\"y\", mark=\"line\", title=\"Sine Wave\")"
   },
   {
     id: "tut-demo-plot-scatter",
     type: "code",
-    content: "from pynote_ui import Plot\nimport numpy as np\n\n# Scatter plot with color encoding and custom styling\nnp.random.seed(42)\nn = 50\ndata = [\n    {\"x\": np.random.randn(), \"y\": np.random.randn(), \"category\": \"A\" if i < 25 else \"B\"}\n    for i in range(n)\n]\n\nPlot(\n    data, x=\"x\", y=\"y\", mark=\"dot\", color=\"category\",\n    title=\"Custom Styled Scatter\",\n    titleStyle={\"fontSize\": \"18px\", \"color\": \"#8b5cf6\"},  # Purple title\n    gridStyle={\"stroke\": \"#e2e8f0\", \"strokeOpacity\": 0.5}  # Subtle grid\n)"
+    content: "from pynote_ui.oplot import scatter\nimport numpy as np\n\n# Scatter plot with multiple visual encodings\nnp.random.seed(42)\nn = 50\ndata = [\n    {\n        \"x\": np.random.randn(), \n        \"y\": np.random.randn(), \n        \"size\": np.random.uniform(2, 10),  # Varying size\n        \"category\": \"A\" if i < 25 else \"B\"\n    }\n    for i in range(n)\n]\n\n# Using convenience function with channels\nscatter(\n    data, x=\"x\", y=\"y\", \n    fill=\"category\",  # Color by category\n    r=\"size\",           # Size by data\n    opacity=0.7,\n    title=\"Multi-Channel Scatter\",\n    titleStyle={\"fontSize\": \"18px\", \"color\": \"#8b5cf6\"},\n    gridStyle={\"stroke\": \"#e2e8f0\", \"strokeOpacity\": 0.5}\n)"
+  },
+
+  // --- Section 3.1b: Plot vs Convenience Functions ---
+  {
+    id: "tut-s3-plot-vs-convenience",
+    type: "markdown",
+    content: "### `Plot()` vs Convenience Functions\n\nYou have two ways to create plots:\n\n**1. `Plot()` - The General Class**\n- Specify the `mark` type explicitly (`\"line\"`, `\"dot\"`, `\"barY\"`, etc.)\n- Access to all parameters and options\n- Most flexible for any plot type\n\n```python\nPlot(data, x=\"x\", y=\"y\", mark=\"dot\", fill=\"category\")\nPlot(data, x=\"x\", y=\"y\", mark=\"line\", curve=\"catmull-rom\")\n```\n\n**2. Convenience Functions - Specialized Shortcuts**\n- Pre-set mark types: `scatter()`, `line()`, `area()`, `bar()`, `histogram()`, etc.\n- More readable and self-documenting code\n- Still accept `**kwargs` for full flexibility\n\n```python\nscatter(data, x=\"x\", y=\"y\", fill=\"category\")  # Same as Plot with mark=\"dot\"\nline(data, x=\"x\", y=\"y\", curve=\"catmull-rom\")  # Same as Plot with mark=\"line\"\n```\n\n**Under the hood**, convenience functions just call `Plot()` with specific defaults. Use whichever feels clearer for your code!"
+  },
+
+  // --- Section 3.1c: Advanced Plot Features ---
+  {
+    id: "tut-s3-plot-advanced",
+    type: "markdown",
+    content: "### Advanced Observable Plot Features\n\nObservable Plot supports powerful features:\n- **Channels**: Map data to visual properties (`fill`, `stroke`, `r`, `symbol`, `opacity`)\n- **Transforms**: Sort, filter, bin data (`sort`, `thresholds`, `reduce`)\n- **Curves**: Smooth interpolation (`curve=\"catmull-rom\"`, `\"basis\"`, `\"step\"`)\n- **Mark Types**: 15+ types including `line`, `dot`, `bar`, `area`, `rect`, `cell`, `rule`, `box`, `density`"
+  },
+  {
+    id: "tut-demo-plot-curves",
+    type: "code",
+    content: "from pynote_ui.oplot import line\nimport numpy as np\n\n# Demonstrate different curve interpolations\nx = np.linspace(0, 10, 20)  # Only 20 points!\ndata = []\nfor curve_type in [\"linear\", \"step\", \"basis\", \"catmull-rom\"]:\n    data.extend([\n        {\"x\": xi, \"y\": np.sin(xi), \"curve\": curve_type}\n        for xi in x\n    ])\n\n# Use z channel for series grouping\nline(data, x=\"x\", y=\"y\", z=\"curve\", stroke=\"curve\",\n     strokeWidth=2, marker=\"dot\",\n     title=\"Curve Interpolation Comparison\")"
+  },
+  {
+    id: "tut-demo-plot-bar-sorted",
+    type: "code",
+    content: "from pynote_ui.oplot import bar\nimport numpy as np\n\n# Sorted bar chart with transform\nnp.random.seed(42)\nproducts = [f\"Product {chr(65+i)}\" for i in range(8)]\ndata = [\n    {\"product\": p, \"sales\": int(np.random.uniform(100, 1000))}\n    for p in products\n]\n\n# Sort by descending sales using transform\nbar(data, x=\"product\", y=\"sales\",\n    sort={\"x\": \"-y\"},  # Sort x by negative y (descending)\n    fill=\"#8b5cf6\", inset=4,\n    title=\"Top Products (Auto-Sorted)\")"
+  },
+  {
+    id: "tut-demo-plot-histogram",
+    type: "code",
+    content: "from pynote_ui.oplot import histogram\nimport numpy as np\n\n# Grouped histogram with binning\nnp.random.seed(42)\ndata = []\nfor sex in [\"Male\", \"Female\"]:\n    heights = np.random.normal(170 if sex == \"Male\" else 165, 8, 200)\n    data.extend([{\"height\": h, \"sex\": sex} for h in heights])\n\nhistogram(data, x=\"height\", fill=\"sex\",\n          bins=30, stat=\"proportion\",\n          title=\"Height Distribution by Sex\",\n          xLabel=\"Height (cm)\",\n          yLabel=\"Proportion\",\n          yDomain=[0, 0.15])"
   },
 
   // --- Section 3.2: Interactive Plot with Slider ---
@@ -247,7 +276,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-plot-interactive",
     type: "code",
-    content: "from pynote_ui import Plot, Slider, Group\nimport numpy as np\n\n# Create frequency slider with fine steps for smooth animation\nfreq_slider = Slider(min=1, max=10, value=2, step=0.1, label=\"Frequency\")\n\n# Generate initial data\nx = np.linspace(0, 2 * np.pi, 200)\ninitial_data = [{\"x\": xi, \"y\": np.sin(2 * xi)} for xi in x]\n\n# Create the plot (full width)\nwave_plot = Plot(\n    initial_data, \n    x=\"x\", y=\"y\", \n    mark=\"line\",\n    title=\"Interactive Sine Wave\",\n    width=\"full\",\n    yDomain=[-1.5, 1.5]  # Fix y-axis so it doesn't jump around\n)\n\n# Update plot when slider changes\ndef update_wave(data):\n    freq = data[\"value\"]\n    new_data = [{\"x\": xi, \"y\": np.sin(freq * xi)} for xi in x]\n    wave_plot.data = new_data  # This triggers a re-render!\n\nfreq_slider.on_update(update_wave)\n\n# Display together\nGroup([freq_slider, wave_plot], layout=\"col\")"
+    content: "from pynote_ui.oplot import Plot\nfrom pynote_ui import Slider, Group\nimport numpy as np\n\n# Create frequency slider with fine steps for smooth animation\nfreq_slider = Slider(min=1, max=10, value=2, step=0.1, label=\"Frequency\", width=\"100%\")\n\n# Generate initial data\nx = np.linspace(0, 2 * np.pi, 200)\ninitial_data = [{\"x\": xi, \"y\": np.sin(2 * xi)} for xi in x]\n\n# Create the plot (full width)\nwave_plot = Plot(\n    initial_data, \n    x=\"x\", y=\"y\", \n    mark=\"line\",\n    title=\"Interactive Sine Wave\",\n    width=\"full\",\n    yDomain=[-1.5, 1.5]  # Fix y-axis so it doesn't jump around\n)\n\n# Update plot when slider changes\ndef update_wave(data):\n    freq = data[\"value\"]\n    new_data = [{\"x\": xi, \"y\": np.sin(freq * xi)} for xi in x]\n    wave_plot.data = new_data  # This triggers a re-render!\n\nfreq_slider.on_update(update_wave)\n\n# Display together\nGroup([freq_slider, wave_plot], layout=\"col\")"
   },
 
   // --- Section 3.3: Multiple Controls ---
@@ -259,7 +288,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-plot-multi",
     type: "code",
-    content: `from pynote_ui import Plot, Slider, Group, Text
+    content: `from pynote_ui.oplot import Plot\nfrom pynote_ui import Slider, Group, Text
 import numpy as np
 
 # Create sliders with fine steps for smooth animation
@@ -299,7 +328,7 @@ Group([
     Group([freq, amp], layout="row"),
     info,
     wave
-], layout="col", border=True, label="Wave Generator")`
+], layout="col", label="Wave Generator")`
   },
 
   // --- Section 3.4: Bar Charts ---
@@ -311,7 +340,7 @@ Group([
   {
     id: "tut-demo-bar",
     type: "code",
-    content: "from pynote_ui import Chart, Slider, Group\n\n# Interactive bar chart with custom styling\nbar_slider = Slider(min=0, max=100, value=50, step=1, label=\"Adjust 'Product B'\")\n\nbar_chart = Chart(\n    type=\"bar\",\n    data={\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, 50, 20, 40]}]\n    },\n    title=\"Product Sales\",\n    titleStyle={\"fontWeight\": \"700\"},  # Extra bold title\n    width=\"full\",\n    height=280\n)\n\ndef update_bar(data):\n    new_val = int(data[\"value\"])\n    bar_chart.data = {\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, new_val, 20, 40]}]\n    }\n\nbar_slider.on_update(update_bar)\nGroup([bar_slider, bar_chart], layout=\"col\")"
+    content: "from pynote_ui.fplot import Chart\nfrom pynote_ui import Slider, Group\n\n# Interactive bar chart with custom styling\nbar_slider = Slider(min=0, max=100, value=50, step=1, label=\"Adjust 'Product B'\", width=\"100%\")\n\nbar_chart = Chart(\n    type=\"bar\",\n    data={\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, 50, 20, 40]}]\n    },\n    title=\"Product Sales\",\n    titleStyle={\"fontWeight\": \"700\"},  # Extra bold title\n    width=\"full\",\n    height=280\n)\n\ndef update_bar(data):\n    new_val = int(data[\"value\"])\n    bar_chart.data = {\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, new_val, 20, 40]}]\n    }\n\nbar_slider.on_update(update_bar)\nGroup([bar_slider, bar_chart], layout=\"col\")"
   },
 
   // --- Section 3.5: Pie Charts ---
@@ -323,7 +352,7 @@ Group([
   {
     id: "tut-demo-pie",
     type: "code",
-    content: "from pynote_ui import Chart, Slider, Text, Group\n\n# Budget allocation pie chart\nbudget_slider = Slider(min=10, max=60, value=35, step=1, label=\"Marketing Budget %\")\nremaining = Text(content=\"Engineering: 39%, Operations: 26%\")\n\npie = Chart(\n    type=\"donut\",\n    data={\"labels\": [\"Marketing\", \"Engineering\", \"Operations\"], \"values\": [35, 39, 26]},\n    title=\"Budget Allocation\",\n    width=\"full\",\n    height=300\n)\n\ndef update_pie(data):\n    marketing = int(data[\"value\"])\n    other = 100 - marketing\n    # Split remaining between Engineering (60%) and Operations (40%)\n    eng = int(other * 0.6)\n    ops = other - eng\n    pie.data = {\"labels\": [\"Marketing\", \"Engineering\", \"Operations\"], \"values\": [marketing, eng, ops]}\n    remaining.content = f\"Engineering: {eng}%, Operations: {ops}%\"\n\nbudget_slider.on_update(update_pie)\nGroup([budget_slider, remaining, pie], layout=\"col\")"
+    content: "from pynote_ui.fplot import Chart\nfrom pynote_ui import Slider, Text, Group\n\n# Budget allocation pie chart\nbudget_slider = Slider(min=10, max=60, value=35, step=1, label=\"Marketing Budget %\", width=\"100%\")\nremaining = Text(content=\"Engineering: 39%, Operations: 26%\", width=\"100%\", align_h=\"center\")\n\npie = Chart(\n    type=\"donut\",\n    data={\"labels\": [\"Marketing\", \"Engineering\", \"Operations\"], \"values\": [35, 39, 26]},\n    title=\"Budget Allocation\",\n    width=\"full\",\n    height=300\n)\n\ndef update_pie(data):\n    marketing = int(data[\"value\"])\n    other = 100 - marketing\n    # Split remaining between Engineering (60%) and Operations (40%)\n    eng = int(other * 0.6)\n    ops = other - eng\n    pie.data = {\"labels\": [\"Marketing\", \"Engineering\", \"Operations\"], \"values\": [marketing, eng, ops]}\n    remaining.content = f\"Engineering: {eng}%, Operations: {ops}%\"\n\nbudget_slider.on_update(update_pie)\nGroup([budget_slider, remaining, pie], layout=\"col\")"
   },
 
   // --- Section 3.6: Time Series ---
@@ -335,12 +364,12 @@ Group([
   {
     id: "tut-demo-timeseries",
     type: "code",
-    content: "from pynote_ui import TimeSeries, Slider, Group\nimport numpy as np\nimport time\n\n# Generate 5000 data points (fast!)\nn = 5000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Random walk stock price simulation\nnp.random.seed(42)\nreturns = np.random.randn(n) * 0.02  # 2% daily volatility\nprice = 100 * np.exp(np.cumsum(returns))  # Geometric random walk\n\n# Volatility slider with fine steps\nvol_slider = Slider(min=1, max=5, value=2, step=0.1, label=\"Volatility (%)\")\n\nts = TimeSeries(\n    data={\"x\": timestamps, \"price\": price.tolist()},\n    series=[{\"label\": \"Stock Price\"}],  # Uses theme accent color by default\n    yLabel=\"Price ($)\",\n    title=\"Simulated Stock Price (5,000 points)\",\n    width=\"full\",\n    height=320\n)\n\ndef regenerate(data):\n    vol = data[\"value\"] / 100\n    new_returns = np.random.randn(n) * vol\n    new_price = 100 * np.exp(np.cumsum(new_returns))\n    ts.data = {\"x\": timestamps, \"price\": new_price.tolist()}\n\nvol_slider.on_update(regenerate)\nGroup([vol_slider, ts], layout=\"col\")"
+    content: "from pynote_ui.uplot import TimeSeries\nfrom pynote_ui import Slider, Group\nimport numpy as np\nimport time\n\n# Generate 5000 data points (fast!)\nn = 5000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Random walk stock price simulation\nnp.random.seed(42)\nreturns = np.random.randn(n) * 0.02  # 2% daily volatility\nprice = 100 * np.exp(np.cumsum(returns))  # Geometric random walk\n\n# Volatility slider with fine steps\nvol_slider = Slider(min=1, max=5, value=2, step=0.1, label=\"Volatility (%)\", width=\"100%\")\n\nts = TimeSeries(\n    data={\"x\": timestamps, \"price\": price.tolist()},\n    series=[{\"label\": \"Stock Price\"}],  # Uses theme accent color by default\n    yLabel=\"Price ($)\",\n    title=\"Simulated Stock Price (5,000 points)\",\n    width=\"full\",\n    height=320\n)\n\ndef regenerate(data):\n    vol = data[\"value\"] / 100\n    new_returns = np.random.randn(n) * vol\n    new_price = 100 * np.exp(np.cumsum(new_returns))\n    ts.data = {\"x\": timestamps, \"price\": new_price.tolist()}\n\nvol_slider.on_update(regenerate)\nGroup([vol_slider, ts], layout=\"col\")"
   },
   {
     id: "tut-demo-timeseries-2",
     type: "code",
-    content: "from pynote_ui import TimeSeries\nimport numpy as np\nimport time\n\n# Simple sine wave example\nn = 1000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Generate sine and cosine waves\nt = np.linspace(0, 4 * np.pi, n)\nsine_wave = np.sin(t).tolist()\ncosine_wave = np.cos(t).tolist()\n\nTimeSeries(\n    data={\"x\": timestamps, \"sin\": sine_wave, \"cos\": cosine_wave},\n    series=[{\"label\": \"Sine\"}, {\"label\": \"Cosine\"}],\n    title=\"Trigonometric Functions\",\n    width=\"full\",\n    height=280\n)"
+    content: "from pynote_ui.uplot import TimeSeries\nimport numpy as np\nimport time\n\n# Simple sine wave example\nn = 1000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Generate sine and cosine waves\nt = np.linspace(0, 4 * np.pi, n)\nsine_wave = np.sin(t).tolist()\ncosine_wave = np.cos(t).tolist()\n\nTimeSeries(\n    data={\"x\": timestamps, \"sin\": sine_wave, \"cos\": cosine_wave},\n    series=[{\"label\": \"Sine\"}, {\"label\": \"Cosine\"}],\n    title=\"Trigonometric Functions\",\n    width=\"full\",\n    height=280\n)"
   },
 
   // --- Section 3.7: Chart API Reference ---
@@ -351,15 +380,20 @@ Group([
 
 ### \`Plot\` (Observable Plot)
 \`\`\`python
-Plot(data, x, y, mark="line", stroke=None, fill=None, title=None, 
-     width=600, height=380, border=True, titleStyle=None, ...)
+Plot(data, x=None, y=None, mark="line", fill=None, stroke=None, 
+     z=None, r=None, symbol=None, curve="linear", sort=None,
+     thresholds=None, title=None, width="full", height=380, 
+     border=True, titleStyle=None, **kwargs)
 \`\`\`
 - \`data\`: List of dicts \`[{"x": 1, "y": 2}, ...]\`
-- \`mark\`: \`"line"\`, \`"dot"\`, \`"bar"\`, \`"area"\`, \`"barY"\`, \`"barX"\`
-- \`width\`: Number (pixels), \`"full"\`, or \`"100%"\`
-- \`stroke\`: Override line/point color (default: theme accent)
-- \`border\`: Show container border (default: True)
+- \`mark\`: \`"line"\`, \`"dot"\`, \`"bar"\`/\`"barY"\`/\`"barX"\`, \`"area"\`, \`"rect"\`, \`"cell"\`, \`"rule"\`, \`"box"\`, \`"density"\`
+- **Channels** (data → visual): \`x\`, \`y\`, \`z\` (series), \`fill\`, \`stroke\`, \`opacity\`, \`r\` (size), \`symbol\`
+- **Transforms**: \`sort\` (order), \`thresholds\` (bins), \`reduce\` (aggregate), \`interval\` (regularize)
+- **Curve**: \`"linear"\`, \`"step"\`, \`"basis"\`, \`"catmull-rom"\`, \`"monotone-x"\`, \`"natural"\`
+- \`width\`: Number (pixels), \`"full"\`, or \`"100%"\` (default: \`"full"\`)
 - Update via \`plot.data = new_data\`
+
+**Convenience functions**: \`scatter()\`, \`line()\`, \`area()\`, \`bar()\`, \`histogram()\`, \`boxplot()\`, \`heatmap()\`, \`density()\`, \`rule()\`
 
 ### \`TimeSeries\` (uPlot)
 \`\`\`python
@@ -382,6 +416,8 @@ Chart(type, data, title=None, width="full", height=300,
 - \`colors\`: Custom palette (default: auto-generated from theme accent)
 
 ### Common Props (all chart types)
+- \`width\`, \`height\`: Component dimensions (numbers → pixels, strings → CSS values)
+- \`force_dimensions\`: If \`True\`, sets exact dimensions. If \`False\` (default), dimensions are minimums
 - \`border\`: Show border (default: True)
 - \`borderRadius\`, \`borderWidth\`, \`borderColor\`: Customize border
 

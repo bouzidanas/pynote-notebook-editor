@@ -5,11 +5,13 @@ from .core import (
     MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
     MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END
 )
-from .elements import Slider, Text, Group, Plot, TimeSeries, Chart
+from .elements import Slider, Text, Group
+from . import oplot, uplot, fplot
 
 __all__ = [
     "UIElement", "StateManager", "handle_interaction", 
-    "Slider", "Text", "Group", "Plot", "TimeSeries", "Chart",
+    "Slider", "Text", "Group", 
+    "oplot", "uplot", "fplot",
     "set_current_cell", "clear_cell", "register_comm_target",
     "display", "print_md",
     "MARKER_UI_START", "MARKER_UI_END",

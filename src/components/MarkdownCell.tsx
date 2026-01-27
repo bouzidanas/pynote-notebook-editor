@@ -88,6 +88,21 @@ const applyAsyncHighlighting = async (html: string): Promise<string> => {
   return doc.body.innerHTML;
 };
 
+// Wrap tables in a container div for overflow scrolling
+const wrapTablesInContainer = (html: string): string => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const tables = doc.querySelectorAll('table');
+  
+  tables.forEach(table => {
+    const wrapper = doc.createElement('div');
+    wrapper.className = 'table-wrapper';
+    table.parentNode?.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+  
+  return doc.body.innerHTML;
+};
+
 const purifyOptions = {
     ADD_TAGS: ["math", "maction", "maligngroup", "malignmark", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mlongdiv", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mscarries", "mscarry", "msgroup", "mstack", "msline", "mspace", "msqrt", "msrow", "mstack", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "semantics", "annotation", "annotation-xml"],
     ADD_ATTR: ["xmlns", "display", "mathvariant", "columnalign", "columnspacing", "rowspacing", "groupalign", "class", "style", "data-level"] 
@@ -148,6 +163,9 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
 
       // Apply async syntax highlighting for non-Python languages
       html = await applyAsyncHighlighting(html);
+      
+      // Wrap tables in container divs for overflow scrolling
+      html = wrapTablesInContainer(html);
       
       setParsedContent(DOMPurify.sanitize(html, purifyOptions));
     } catch (e) {

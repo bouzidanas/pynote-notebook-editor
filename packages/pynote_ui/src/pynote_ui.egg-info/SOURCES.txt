@@ -2,6 +2,9 @@ pyproject.toml
 src/pynote_ui/__init__.py
 src/pynote_ui/core.py
 src/pynote_ui/elements.py
+src/pynote_ui/fplot.py
+src/pynote_ui/oplot.py
+src/pynote_ui/uplot.py
 src/pynote_ui.egg-info/PKG-INFO
 src/pynote_ui.egg-info/SOURCES.txt
 src/pynote_ui.egg-info/dependency_links.txt

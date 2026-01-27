@@ -62,7 +62,7 @@ The JSON + message approach solves all of these: sanitized data only, explicit i
 
 | File | What it does |
 |:-----|:-------------|
-| `src/lib/pyodide.worker.ts` | Contains embedded `pynote_ui` Python code (core.py, elements.py) |
+| `src/lib/pyodide.worker.ts` | Contains embedded `pynote_ui` Python code (core.py, elements.py, oplot.py, uplot.py, fplot.py) |
 | `src/components/ui-renderer/UIOutputRenderer.tsx` | Receives JSON, looks up component, mounts it |
 | `src/components/ui-renderer/ComponentRegistry.tsx` | Maps type names ("Slider") to SolidJS components |
 | `src/components/ui-renderer/Slider.tsx`, etc. | Individual component implementations |

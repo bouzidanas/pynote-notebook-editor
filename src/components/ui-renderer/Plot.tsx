@@ -25,7 +25,9 @@ import { getObservablePlotTheme, getChartContainerStyles, getChartTitleStyles, w
 import { currentTheme } from "../../lib/theme";
 
 // Supported mark types
-type MarkType = "line" | "dot" | "bar" | "barY" | "barX" | "area" | "areaY" | "cell" | "rect" | "rule" | "text";
+type MarkType = "line" | "lineX" | "lineY" | "dot" | "bar" | "barY" | "barX" | 
+                "area" | "areaY" | "areaX" | "cell" | "rect" | "rectY" | "rectX" | 
+                "rule" | "ruleY" | "ruleX" | "text" | "box" | "boxX" | "boxY";
 
 // Style dict type for user customization
 type StyleDict = Record<string, string | number>;
@@ -61,6 +63,34 @@ interface PlotProps {
     
     // Grid
     grid?: boolean;
+    
+    // Transforms and binning
+    reduce?: string;                // "count", "sum", "proportion", "mean", etc.
+    thresholds?: number | number[]; // Number of bins or explicit bin edges
+    bin?: any;                      // Explicit binning specification
+    curve?: string;                 // "linear", "step", "basis", "cardinal", "catmull-rom", "monotone-x", etc.
+    sort?: any;                     // Sort specification {x: "-y"} or column name
+    interval?: any;                 // Time/numeric interval
+    
+    // Mark styling
+    inset?: number;                 // Spacing between bars/rects
+    insetTop?: number;
+    insetRight?: number;
+    insetBottom?: number;
+    insetLeft?: number;
+    marker?: string;                // Line markers: "dot", "arrow", etc.
+    r?: number | string;            // Radius for dots
+    symbol?: string;                // Symbol type for dots
+    strokeWidth?: number;           // Stroke width
+    fillOpacity?: number;           // Fill opacity
+    strokeOpacity?: number;         // Stroke opacity
+    
+    // Additional position channels
+    x1?: string;
+    x2?: string;
+    y1?: string;
+    y2?: string;
+    z?: string;                     // Series grouping
     
     // Dimensions (width can be number, string like "100%" or "full")
     width?: number | string;
@@ -124,16 +154,46 @@ const Plot: Component<PlotProps> = (p) => {
 
   // Build mark function based on type
   const buildMark = (markType: MarkType, plotData: any[], theme: ReturnType<typeof getObservablePlotTheme>) => {
-    const markOptions: Record<string, any> = {
-      x: p.props.x,
-      y: p.props.y,
-    };
+    const markOptions: Record<string, any> = {};
+    
+    // Only set x/y if they're actually defined (not null/undefined)
+    // For histograms with binning, y is computed by the reduce operation
+    if (p.props.x !== undefined && p.props.x !== null) markOptions.x = p.props.x;
+    if (p.props.y !== undefined && p.props.y !== null) markOptions.y = p.props.y;
+    
+    // Additional position channels
+    if (p.props.x1 !== undefined) markOptions.x1 = p.props.x1;
+    if (p.props.x2 !== undefined) markOptions.x2 = p.props.x2;
+    if (p.props.y1 !== undefined) markOptions.y1 = p.props.y1;
+    if (p.props.y2 !== undefined) markOptions.y2 = p.props.y2;
     
     // Apply encodings
     if (p.props.color) markOptions.stroke = p.props.color;
     if (p.props.size) markOptions.r = p.props.size;
+    if (p.props.r !== undefined) markOptions.r = p.props.r;
     if (p.props.opacity) markOptions.opacity = p.props.opacity;
     if (p.props.series) markOptions.z = p.props.series;
+    if (p.props.z) markOptions.z = p.props.z;
+    if (p.props.symbol) markOptions.symbol = p.props.symbol;
+    
+    // Transforms and binning
+    if (p.props.reduce !== undefined) markOptions.reduce = p.props.reduce;
+    if (p.props.thresholds !== undefined) markOptions.thresholds = p.props.thresholds;
+    if (p.props.bin !== undefined) markOptions.bin = p.props.bin;
+    if (p.props.curve !== undefined) markOptions.curve = p.props.curve;
+    if (p.props.sort !== undefined) markOptions.sort = p.props.sort;
+    if (p.props.interval !== undefined) markOptions.interval = p.props.interval;
+    
+    // Mark styling
+    if (p.props.inset !== undefined) markOptions.inset = p.props.inset;
+    if (p.props.insetTop !== undefined) markOptions.insetTop = p.props.insetTop;
+    if (p.props.insetRight !== undefined) markOptions.insetRight = p.props.insetRight;
+    if (p.props.insetBottom !== undefined) markOptions.insetBottom = p.props.insetBottom;
+    if (p.props.insetLeft !== undefined) markOptions.insetLeft = p.props.insetLeft;
+    if (p.props.marker !== undefined) markOptions.marker = p.props.marker;
+    if (p.props.strokeWidth !== undefined) markOptions.strokeWidth = p.props.strokeWidth;
+    if (p.props.fillOpacity !== undefined) markOptions.fillOpacity = p.props.fillOpacity;
+    if (p.props.strokeOpacity !== undefined) markOptions.strokeOpacity = p.props.strokeOpacity;
     
     // Static color overrides
     if (p.props.stroke && !p.props.color) {
@@ -146,8 +206,10 @@ const Plot: Component<PlotProps> = (p) => {
       markOptions.fill = p.props.fill;
     }
     
-    // Stroke width
-    markOptions.strokeWidth = theme.marks.strokeWidth;
+    // Stroke width (only set default if not provided)
+    if (markOptions.strokeWidth === undefined) {
+      markOptions.strokeWidth = theme.marks.strokeWidth;
+    }
 
     // Select mark function
     switch (markType) {
@@ -189,8 +251,41 @@ const Plot: Component<PlotProps> = (p) => {
         markOptions.fill = markOptions.fill || withAlpha(theme.marks.stroke, 0.4);
         return OPlot.rect(plotData, markOptions);
       
+      case "rectY":
+        markOptions.fill = markOptions.fill || markOptions.stroke || theme.marks.stroke;
+        delete markOptions.stroke;
+        return OPlot.rectY(plotData, markOptions);
+      
+      case "rectX":
+        markOptions.fill = markOptions.fill || markOptions.stroke || theme.marks.stroke;
+        delete markOptions.stroke;
+        return OPlot.rectX(plotData, markOptions);
+      
       case "rule":
         return OPlot.ruleY(plotData, markOptions);
+      
+      case "ruleY":
+        return OPlot.ruleY(plotData, markOptions);
+      
+      case "ruleX":
+        return OPlot.ruleX(plotData, markOptions);
+      
+      case "lineX":
+        return OPlot.lineX(plotData, markOptions);
+      
+      case "lineY":
+        return OPlot.lineY(plotData, markOptions);
+      
+      case "areaX":
+        markOptions.fill = markOptions.fill || withAlpha(theme.marks.stroke, 0.4);
+        markOptions.stroke = markOptions.stroke || theme.marks.stroke;
+        return OPlot.areaX(plotData, markOptions);
+      
+      case "boxX":
+        return OPlot.boxX(plotData, markOptions);
+      
+      case "boxY":
+        return OPlot.boxY(plotData, markOptions);
       
       case "text":
         markOptions.fill = theme.axes.labelColor;
@@ -303,8 +398,43 @@ const Plot: Component<PlotProps> = (p) => {
       marks.push(OPlot.ruleY([0], { stroke: theme.axes.stroke, strokeOpacity: 0.5 }));
     }
     
-    // Main data mark
-    marks.push(buildMark(markType, plotData, theme));
+    // Main data mark (with optional binning transform)
+    let mark = buildMark(markType, plotData, theme);
+    
+    // Apply binning transform if thresholds/reduce are specified
+    // Observable Plot requires binX/binY wrapper for histograms
+    if (p.props.thresholds !== undefined || p.props.reduce !== undefined) {
+      const outputs: Record<string, any> = {};
+      const binOptions: Record<string, any> = {};
+      
+      // Determine bin orientation based on mark type
+      const binOnX = markType === "rectY" || markType === "barY";
+      const binOnY = markType === "rectX" || markType === "barX";
+      
+      if (binOnX) {
+        // binX: bin on x, output y
+        outputs.y = p.props.reduce || "count";
+        if (p.props.x) binOptions.x = p.props.x;
+        if (p.props.fill) binOptions.fill = p.props.fill;
+        if (p.props.stroke) binOptions.stroke = p.props.stroke;
+        if (p.props.thresholds) binOptions.thresholds = p.props.thresholds;
+        if (p.props.inset !== undefined) binOptions.inset = p.props.inset;
+        
+        mark = OPlot.rectY(plotData, OPlot.binX(outputs, binOptions));
+      } else if (binOnY) {
+        // binY: bin on y, output x
+        outputs.x = p.props.reduce || "count";
+        if (p.props.y) binOptions.y = p.props.y;
+        if (p.props.fill) binOptions.fill = p.props.fill;
+        if (p.props.stroke) binOptions.stroke = p.props.stroke;
+        if (p.props.thresholds) binOptions.thresholds = p.props.thresholds;
+        if (p.props.inset !== undefined) binOptions.inset = p.props.inset;
+        
+        mark = OPlot.rectX(plotData, OPlot.binY(outputs, binOptions));
+      }
+    }
+    
+    marks.push(mark);
     
     plotOptions.marks = marks;
 
