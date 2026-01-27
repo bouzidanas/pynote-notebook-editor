@@ -1064,6 +1064,9 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
                          </DropdownItem>
                          <DropdownDivider />
+                         <DropdownItem onClick={() => actions.setPresentationMode(true)} shortcut="Alt+P">
+                             <div class="flex items-center gap-2"><Eye size={18} /> Presentation</div>
+                         </DropdownItem>
                          <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
                              <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
                          </DropdownItem>
@@ -1217,6 +1220,9 @@ const Notebook: Component = () => {
                      <DropdownDivider />
                      {/* View Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">View</div>
+                     <DropdownItem onClick={() => actions.setPresentationMode(true)} shortcut="Alt+P">
+                       <div class="flex items-center gap-2"><Eye size={18} /> Presentation</div>
+                     </DropdownItem>
                      <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
                          <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
                      </DropdownItem>

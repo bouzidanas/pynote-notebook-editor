@@ -128,13 +128,14 @@ body {
 /* Modern Table Styling for Editor and Prose */
 .milkdown .editor table,
 .prose table {
+    display: block;
     width: 100%;
+    overflow-x: auto;
     border-collapse: separate;
     border-spacing: 0;
     margin: 1.25em 0 !important;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
-    overflow: hidden;
 }
 
 .milkdown .editor th,
