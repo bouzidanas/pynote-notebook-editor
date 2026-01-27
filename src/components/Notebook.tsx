@@ -10,7 +10,7 @@ import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, saveVisibilitySettings, type CodeVisibilitySettings } from "../lib/codeVisibility";
-import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, type Theme } from "../lib/theme";
+import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));

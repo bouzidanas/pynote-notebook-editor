@@ -1,4 +1,4 @@
-import { type Component, createSignal, createEffect, Show, For, onCleanup } from "solid-js";
+import { type Component, createSignal, createEffect, Show, onCleanup } from "solid-js";
 import { X, Palette, ChevronDown, Pipette, ChevronUp, RotateCcw, Sparkles } from "lucide-solid";
 import clsx from "clsx";
 import { currentTheme, updateTheme, defaultTheme } from "../lib/theme";
@@ -459,29 +459,29 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
     );
   };
 
-  // Select component
-  const SelectField: Component<{
-    label: string;
-    value: string;
-    options: string[];
-    onChange: (value: string) => void;
-  }> = (itemProps) => (
-    <div class="space-y-1">
-      <label class="text-xs font-semibold text-secondary/80">{itemProps.label}</label>
-      <div class="relative">
-        <select
-          value={itemProps.value}
-          onChange={(e) => itemProps.onChange(e.currentTarget.value)}
-          class="w-full px-2 py-1.5 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors appearance-none cursor-pointer pr-8"
-        >
-          <For each={itemProps.options}>
-            {(option) => <option value={option}>{option}</option>}
-          </For>
-        </select>
-        <ChevronDown size={16} class="absolute right-2 top-1/2 -translate-y-1/2 text-secondary/50 pointer-events-none" />
-      </div>
-    </div>
-  );
+  // // Select component
+  // const SelectField: Component<{
+  //   label: string;
+  //   value: string;
+  //   options: string[];
+  //   onChange: (value: string) => void;
+  // }> = (itemProps) => (
+  //   <div class="space-y-1">
+  //     <label class="text-xs font-semibold text-secondary/80">{itemProps.label}</label>
+  //     <div class="relative">
+  //       <select
+  //         value={itemProps.value}
+  //         onChange={(e) => itemProps.onChange(e.currentTarget.value)}
+  //         class="w-full px-2 py-1.5 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors appearance-none cursor-pointer pr-8"
+  //       >
+  //         <For each={itemProps.options}>
+  //           {(option) => <option value={option}>{option}</option>}
+  //         </For>
+  //       </select>
+  //       <ChevronDown size={16} class="absolute right-2 top-1/2 -translate-y-1/2 text-secondary/50 pointer-events-none" />
+  //     </div>
+  //   </div>
+  // );
 
   // Toggle component
   const ToggleField: Component<{
