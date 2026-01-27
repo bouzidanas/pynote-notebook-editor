@@ -511,7 +511,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
 
   return (
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
       onClick={handleCancel}
     >
       <div
@@ -533,7 +533,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
               <RotateCcw size={18} />
             </button>
             <button
-              onClick={() => updateTheme(defaultTheme)}
+              onClick={() => updateTheme({ ...defaultTheme })}
               class="p-1.5 text-secondary/50 hover:text-accent transition-colors rounded-sm"
               title="Reset to App Defaults"
             >
