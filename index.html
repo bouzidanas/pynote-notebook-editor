@@ -4,17 +4,26 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Critical for preventing white flash on new tabs -->
+    <meta name="theme-color" id="meta-theme-color" content="#1e1e2e" />
     <title>PyNote</title>
     <script>
       (function() {
         try {
           var bg = localStorage.getItem('theme_bg') || '#1e1e2e';
           var text = localStorage.getItem('theme_text') || '#cdd6f4';
+          
+          // Set CSS variables so they're available immediately
+          document.documentElement.style.setProperty('--background', bg);
+          document.documentElement.style.setProperty('--secondary', text);
+          
+          // Also set direct styles as fallback
           document.documentElement.style.backgroundColor = bg;
           document.documentElement.style.color = text;
-          var style = document.createElement('style');
-          style.innerHTML = 'body { background-color: ' + bg + '; color: ' + text + '; margin: 0; }';
-          document.head.appendChild(style);
+          
+          // Update meta theme color immediately
+          var metaTheme = document.getElementById('meta-theme-color');
+          if (metaTheme) metaTheme.setAttribute('content', bg);
         } catch (e) {}
       })();
     </script>

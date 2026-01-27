@@ -7,6 +7,7 @@ export interface CodeVisibilitySettings {
     showResult: boolean;
     showError: boolean;
     showStatusDot: boolean;
+    saveToExport: boolean;
 }
 
 const STORAGE_KEY = "pynote-code-visibility";
@@ -19,6 +20,7 @@ const defaultSettings: CodeVisibilitySettings = {
     showResult: true,
     showError: true,
     showStatusDot: true,
+    saveToExport: false,
 };
 
 // Load from localStorage

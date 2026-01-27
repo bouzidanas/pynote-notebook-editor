@@ -5,13 +5,16 @@ import { notebookStore, actions, defaultCells } from "../lib/store";
 import { tutorialCells } from "../lib/tutorial-notebook";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
-import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff } from "lucide-solid";
+import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
+import { codeVisibility, setVisibilitySettings, saveVisibilitySettings, type CodeVisibilitySettings } from "../lib/codeVisibility";
+import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, type Theme } from "../lib/theme";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
+const ThemeDialog = lazy(() => import("./ThemeDialog"));
 
 const SHORTCUTS = {
   global: [
@@ -220,6 +223,8 @@ const Notebook: Component = () => {
   const [showShortcuts, setShowShortcuts] = createSignal(false);
   const [showPerformance, setShowPerformance] = createSignal(false);
   const [showCodeVisibility, setShowCodeVisibility] = createSignal(false);
+  const [showThemeDialog, setShowThemeDialog] = createSignal(false);
+  const [sessionHasTheme, setSessionHasTheme] = createSignal(false);
   // Version signal to force re-mounting of the list on full reloads
   const [notebookVersion, ] = createSignal(0);
 
@@ -540,7 +545,8 @@ const Notebook: Component = () => {
       filename: notebookStore.filename,
       history: notebookStore.history,
       historyIndex: notebookStore.historyIndex,
-      activeCellId: notebookStore.activeCellId
+      activeCellId: notebookStore.activeCellId,
+      theme: sessionHasTheme() ? { ...currentTheme } : undefined
     };
     
     sessionManager.saveSession(sessionId, data);
@@ -567,6 +573,15 @@ const Notebook: Component = () => {
           typeof data.historyIndex === "number" ? data.historyIndex : undefined,
           data.activeCellId
         );
+        
+        // Load theme if session has one
+        if (data.theme) {
+          updateTheme(data.theme);
+          setSessionHasTheme(true);
+        } else {
+          setSessionHasTheme(false);
+        }
+        
         return true;
       }
     return false;
@@ -587,6 +602,9 @@ const Notebook: Component = () => {
       url.searchParams.set("session", sessionId);
       window.history.replaceState({}, "", url.toString());
 
+      // Load app theme for new session
+      updateTheme(loadAppTheme());
+      
       actions.loadNotebook([...tutorialCells], "Tutorial.ipynb", []);
       autosaveNotebook();
       return;
@@ -597,12 +615,22 @@ const Notebook: Component = () => {
         // First visit or cleared URL - Create new session
         const newUrl = sessionManager.createNewSessionUrl();
         window.history.replaceState({}, '', newUrl);
+        
+        // Load app theme for new session
+        updateTheme(loadAppTheme());
+        
         // Start fresh
         actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
         // Force immediate save to establish the session in index
         autosaveNotebook();
     } else {
         const restored = restoreNotebook();
+        
+        // If no session or no session theme, load app theme
+        if (!restored || !sessionHasTheme()) {
+          updateTheme(loadAppTheme());
+        }
+        
         if (!restored) {
             // ID exists but data is gone (expired/deleted)
             if (isTutorial) {
@@ -684,7 +712,23 @@ const Notebook: Component = () => {
           version: "3.11.3"
         },
         PyNote: {
-          history: notebookStore.history
+          history: notebookStore.history,
+          ...(codeVisibility.saveToExport ? {
+            codeview: {
+              showCode: codeVisibility.showCode,
+              showStdout: codeVisibility.showStdout,
+              showStderr: codeVisibility.showStderr,
+              showResult: codeVisibility.showResult,
+              showError: codeVisibility.showError,
+              showStatusDot: codeVisibility.showStatusDot
+            }
+          } : {}),
+          ...(currentTheme.saveToExport ? {
+            theme: (() => {
+              const { saveToExport, ...themeToExport } = currentTheme;
+              return themeToExport;
+            })()
+          } : {})
         }
       },
       nbformat: 4,
@@ -718,17 +762,44 @@ const Notebook: Component = () => {
           }));
           // Extract history from PyNote metadata if it exists
           const history = nb.metadata?.PyNote?.history || [];
+
+          // Extract and apply code visibility settings if they exist
+          const codeview = nb.metadata?.PyNote?.codeview;
+          if (codeview) {
+             // Validate and apply only known keys to allow for partial updates
+             // and prevent pollution with unknown props
+             const validKeys: (keyof CodeVisibilitySettings)[] = [
+                 "showCode", "showStdout", "showStderr", 
+                 "showResult", "showError", "showStatusDot"
+             ];
+             
+             const newSettings: Partial<CodeVisibilitySettings> = {};
+             validKeys.forEach(key => {
+                 if (typeof codeview[key] === "boolean") {
+                     newSettings[key] = codeview[key];
+                 }
+             });
+
+             if (Object.keys(newSettings).length > 0) {
+                 setVisibilitySettings(newSettings);
+                 saveVisibilitySettings();
+             }
+          }
+
+          // Extract theme from document metadata (don't apply yet - will apply after reload)
+          const themeData = nb.metadata?.PyNote?.theme;
           
           // Generate a new session ID for this file
           const newSessionId = crypto.randomUUID();
           
-          // Create session data
+          // Create session data (include theme if document has one)
           const sessionData = {
             cells: newCells,
             filename: file.name,
             history: history,
             historyIndex: history.length - 1,
-            activeCellId: null
+            activeCellId: null,
+            theme: themeData || undefined
           };
           
           // Save to the new session slot
@@ -790,6 +861,11 @@ const Notebook: Component = () => {
                    </DropdownItem>
                    <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                        <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
+                   </DropdownItem>
+                   <DropdownDivider />
+                   <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Configuration</div>
+                   <DropdownItem onClick={() => setShowThemeDialog(true)}>
+                       <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
                    </DropdownItem>
                    <DropdownDivider />
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">View</div>
@@ -984,6 +1060,10 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                          </DropdownItem>
                          <DropdownDivider />
+                         <DropdownItem onClick={() => setShowThemeDialog(true)}>
+                             <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
+                         </DropdownItem>
+                         <DropdownDivider />
                          <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
                              <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
                          </DropdownItem>
@@ -1103,6 +1183,13 @@ const Notebook: Component = () => {
                      </DropdownItem>
                      <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
                          <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
+                     </DropdownItem>
+                     
+                     <DropdownDivider />
+                     {/* Configuration Section */}
+                     <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Configuration</div>
+                     <DropdownItem onClick={() => setShowThemeDialog(true)}>
+                         <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
                      </DropdownItem>
                      
                      <DropdownDivider />
@@ -1483,6 +1570,28 @@ const Notebook: Component = () => {
        {/* Code Visibility Dialog */}
        <Show when={showCodeVisibility()}>
           <CodeVisibilityDialog onClose={() => setShowCodeVisibility(false)} />
+       </Show>
+
+       {/* Theme Dialog */}
+       <Show when={showThemeDialog()}>
+          <ThemeDialog 
+            onClose={() => setShowThemeDialog(false)}
+            initialScope="session-only"
+            onSave={(applyToSession) => {
+              if (applyToSession) {
+                // Session-only: just autosave (theme already in currentTheme, will be saved with session)
+                setSessionHasTheme(true);
+                autosaveNotebook();
+              } else {
+                // App-wide: save to localStorage, remove from session
+                saveThemeAppWide();
+                setSessionHasTheme(false);
+                autosaveNotebook();
+                // Reload page to ensure browser caches the new theme colors
+                window.location.reload();
+              }
+            }}
+          />
        </Show>
     </div>
   );

@@ -30,9 +30,10 @@ export interface Theme {
   };
   sectionScoping: boolean;
   outputLayout: "above" | "below";
+  saveToExport: boolean;
 }
 
-const defaultTheme: Theme = {
+export const defaultTheme: Theme = {
   font: '"JetBrains Mono Variable", monospace',
   colors: {
     primary: "#f38ba8",
@@ -61,9 +62,26 @@ const defaultTheme: Theme = {
   },
   sectionScoping: true,
   outputLayout: "above",
+  saveToExport: false,
 };
 
-const [theme, setTheme] = createStore<Theme>(defaultTheme);
+const STORAGE_KEY = "pynote-theme";
+
+// Load app-wide theme from localStorage
+export const loadAppTheme = (): Theme => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return { ...defaultTheme, ...JSON.parse(stored) };
+    }
+  } catch (e) {
+    console.warn("Failed to load theme:", e);
+  }
+  return defaultTheme;
+};
+
+// Initialize store - always start with app theme (session theme overrides later if exists)
+const [theme, setTheme] = createStore<Theme>(loadAppTheme());
 
 export const currentTheme = theme;
 
@@ -76,7 +94,24 @@ export const updateTheme = (newTheme: any) => {
   if (newTheme.editor) setTheme("editor", (e) => ({ ...e, ...newTheme.editor }));
   if (newTheme.sectionScoping !== undefined) setTheme("sectionScoping", newTheme.sectionScoping);
   if (newTheme.outputLayout) setTheme("outputLayout", newTheme.outputLayout);
+  if (newTheme.saveToExport !== undefined) setTheme("saveToExport", newTheme.saveToExport);
 };
+
+// Save theme to localStorage (app-wide)
+export const saveThemeAppWide = () => {
+  try {
+    const { saveToExport, ...themeToSave } = theme;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(themeToSave));
+    // Update preloader colors immediately
+    localStorage.setItem("theme_bg", theme.colors.background);
+    localStorage.setItem("theme_text", theme.colors.secondary);
+  } catch (e) {
+    console.warn("Failed to save theme:", e);
+  }
+};
+
+// Legacy export
+export const saveTheme = saveThemeAppWide;
 
 export const initTheme = () => {
   createEffect(() => {
@@ -88,12 +123,6 @@ export const initTheme = () => {
     root.style.setProperty("--accent", theme.colors.accent);
     root.style.setProperty("--background", theme.colors.background);
     root.style.setProperty("--foreground", theme.colors.foreground);
-
-    // Persist critical colors for index.html pre-loader
-    try {
-      localStorage.setItem("theme_bg", theme.colors.background);
-      localStorage.setItem("theme_text", theme.colors.secondary);
-    } catch (e) { /* ignore */ }
 
     root.style.setProperty("--radius-lg", theme.radii.lg);
     root.style.setProperty("--radius-sm", theme.radii.sm);
@@ -117,5 +146,9 @@ export const initTheme = () => {
     root.style.setProperty("--header-color-2", h2Color);
     root.style.setProperty("--header-color-3", h3Color);
     root.style.setProperty("--header-color-4", h4Color);
+
+    // Update meta theme color for browser UI (avoids white flash in new tabs)
+    const metaTheme = document.getElementById('meta-theme-color');
+    if (metaTheme) metaTheme.setAttribute('content', theme.colors.background);
   });
 }

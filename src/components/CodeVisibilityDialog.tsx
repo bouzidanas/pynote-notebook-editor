@@ -22,6 +22,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     showResult: codeVisibility.showResult,
     showError: codeVisibility.showError,
     showStatusDot: codeVisibility.showStatusDot,
+    saveToExport: codeVisibility.saveToExport,
   });
 
   // Local state for output layout (above/below)
@@ -36,6 +37,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       showResult: codeVisibility.showResult,
       showError: codeVisibility.showError,
       showStatusDot: codeVisibility.showStatusDot,
+      saveToExport: codeVisibility.saveToExport,
     });
     setLocalOutputLayout(currentTheme.outputLayout);
   });
@@ -53,6 +55,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     updateVisibility("showResult", settings.showResult);
     updateVisibility("showError", settings.showError);
     updateVisibility("showStatusDot", settings.showStatusDot);
+    updateVisibility("saveToExport", settings.saveToExport);
     // Persist visibility to localStorage
     saveVisibilitySettings();
     // Update theme output layout
@@ -227,7 +230,20 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
 
         {/* Footer */}
         <div class="flex items-center justify-between p-4 border-t border-foreground shrink-0">
-          <span class="text-xs text-secondary/50">Click outside to cancel</span>
+          <div 
+             class="flex items-center gap-2 cursor-pointer opacity-80 hover:opacity-100 transition-opacity"
+             onClick={() => toggle("saveToExport")}
+             title="Include these view settings in exported .ipynb files"
+          >
+             <div class={`w-3.5 h-3.5 rounded border border-secondary flex items-center justify-center ${localSettings().saveToExport ? 'bg-secondary' : ''}`}>
+                <Show when={localSettings().saveToExport}>
+                   <svg class="w-2.5 h-2.5 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                   </svg>
+                </Show>
+             </div>
+             <span class="text-xs text-secondary">Save settings to .ipynb</span>
+          </div>
           <button
             onClick={handleSave}
             class="px-4 py-1.5 text-sm bg-accent text-background font-bold rounded-sm hover:bg-accent/90 transition-colors"
