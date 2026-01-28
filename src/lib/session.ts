@@ -27,7 +27,8 @@ export const sessionManager = {
 
     createNewSessionUrl(): string {
         const id = crypto.randomUUID();
-        const url = new URL(window.location.href);
+        // Start fresh - only include the new session ID
+        const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set("session", id);
         return url.toString();
     },
