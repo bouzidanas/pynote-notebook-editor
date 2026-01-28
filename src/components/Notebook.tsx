@@ -523,8 +523,12 @@ const Notebook: Component = () => {
     onCleanup(() => window.removeEventListener("keydown", handleGlobalKeydown));
   });
 
+  // Debounce utility for autosave - batches rapid mutations into a single save
+  let autosaveTimeout: ReturnType<typeof setTimeout> | null = null;
+  const AUTOSAVE_DEBOUNCE_MS = 300;
+
   // Save notebook state to localStorage (internal, not user-controlled)
-  function autosaveNotebook() {
+  function autosaveNotebookImmediate() {
     const sessionId = sessionManager.getSessionIdFromUrl();
     if (!sessionId) {
       // Should not happen for normal sessions, but if it does (e.g. user manually removed param),
@@ -550,6 +554,17 @@ const Notebook: Component = () => {
     };
     
     sessionManager.saveSession(sessionId, data);
+  }
+
+  // Debounced autosave - batches rapid changes into a single localStorage write
+  function autosaveNotebook() {
+    if (autosaveTimeout) {
+      clearTimeout(autosaveTimeout);
+    }
+    autosaveTimeout = setTimeout(() => {
+      autosaveNotebookImmediate();
+      autosaveTimeout = null;
+    }, AUTOSAVE_DEBOUNCE_MS);
   }
 
   // Restore notebook state from localStorage (if present)
@@ -648,6 +663,14 @@ const Notebook: Component = () => {
 
   // Provide autosaveNotebook to the store for use in setEditing
   actions.__setAutosaveCallback?.(autosaveNotebook);
+
+  // Cleanup: flush any pending autosave on unmount
+  onCleanup(() => {
+    if (autosaveTimeout) {
+      clearTimeout(autosaveTimeout);
+      autosaveNotebookImmediate(); // Save immediately on unmount
+    }
+  });
 
   // Show the Esc hint for 2.5 seconds when entering presentation mode
   createEffect(() => {
@@ -1587,12 +1610,12 @@ const Notebook: Component = () => {
               if (applyToSession) {
                 // Session-only: just autosave (theme already in currentTheme, will be saved with session)
                 setSessionHasTheme(true);
-                autosaveNotebook();
+                autosaveNotebookImmediate(); // Immediate save for explicit user action
               } else {
                 // App-wide: save to localStorage, remove from session
                 saveThemeAppWide();
                 setSessionHasTheme(false);
-                autosaveNotebook();
+                autosaveNotebookImmediate(); // Immediate save for explicit user action
                 // Reload page to ensure browser caches the new theme colors
                 window.location.reload();
               }
