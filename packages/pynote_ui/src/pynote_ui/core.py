@@ -142,6 +142,11 @@ def display(*elements, inline=False, gap=1):
         display(a, b, gap=3)  # 3 blank lines between
         display(a, b, inline=True, gap=4)  # 4 spaces between
     """
+    elements = list(elements)
+    if not inline and elements:
+        elements.insert(0, '')  # Newline at beginning
+        elements.append('')     # Newline at end
+
     for i, element in enumerate(elements):
         if hasattr(element, 'to_json'):
             payload = json.dumps(element.to_json())
@@ -151,7 +156,8 @@ def display(*elements, inline=False, gap=1):
                 if inline:
                     sys.stdout.write(" " * gap)  # Horizontal spacing
                 else:
-                    print("\n" * gap, end="")  # Vertical spacing (gap blank lines)
+                    for _ in range(gap):
+                        print()  # Vertical spacing (gap blank lines)
             elif not inline:
                 print()  # Final newline for non-inline
         else:

@@ -175,7 +175,7 @@ export const tutorialCells: CellData[] = [
   {
     id: "tut-demo-print",
     type: "code",
-    content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\", width=\"100%\")\nvol_text = Text(content=\"75%\", width=\"100%\")\n\ndef update_vol(data):\n    vol_text.content = f\"{int(data['value'])}%\"\nvolume.on_update(update_vol)\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
+    content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\", width=\"100%\")\nvol_text = Text(content=\"75%\")\n\ndef update_vol(data):\n    vol_text.content = f\"{int(data['value'])}%\"\nvolume.on_update(update_vol)\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
   },
 
   // --- Section 2.5: Print Markdown ---

@@ -117,7 +117,7 @@ def clear_cell(cell_id):
 def register_comm_target(callback):
     StateManager.register_comm_target(callback)
 
-def display(*elements, inline=False):
+def display(*elements, inline=False, gap=1):
     """Display one or more UI elements in the output immediately.
     
     This allows showing UI elements at any point during cell execution,
@@ -126,6 +126,7 @@ def display(*elements, inline=False):
     Args:
         *elements: UI elements to display
         inline: If True, display elements on the same line. Default False (separate lines).
+        gap: Spacing between elements. For inline, number of spaces. For separate lines, number of blank lines. Default 1.
     
     Usage:
         slider = Slider(value=50)
@@ -136,13 +137,29 @@ def display(*elements, inline=False):
         
         # Multiple elements on the same line:
         display(slider1, slider2, inline=True)
+        
+        # Custom spacing:
+        display(a, b, gap=3)  # 3 blank lines between
+        display(a, b, inline=True, gap=4)  # 4 spaces between
     """
+    elements = list(elements)
+    if not inline and elements:
+        elements.insert(0, '')  # Newline at beginning
+        elements.append('')     # Newline at end
+
     for i, element in enumerate(elements):
         if hasattr(element, 'to_json'):
             payload = json.dumps(element.to_json())
             sys.stdout.write(f"{MARKER_UI_START}{payload}{MARKER_UI_END}")
-            if not inline:
-                print()  # Newline after each element
+            # Add separator after each element except the last
+            if i < len(elements) - 1:
+                if inline:
+                    sys.stdout.write(" " * gap)  # Horizontal spacing
+                else:
+                    for _ in range(gap):
+                        print()  # Vertical spacing (gap blank lines)
+            elif not inline:
+                print()  # Final newline for non-inline
         else:
             # Fallback for non-UI elements
             print(element)
