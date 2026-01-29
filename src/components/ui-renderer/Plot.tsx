@@ -93,6 +93,7 @@ interface PlotProps {
     unit?: number;                  // Quantity each waffle cell represents
     gap?: number;                   // Gap between waffle cells in pixels
     rx?: number | string;           // Corner radius (use "100%" for circles)
+    multiple?: number;              // Number of cells per row (default: determined by plot width)
     labelPosition?: "top" | "bottom";  // Where to place category labels (default: bottom)
     
     // Waffle background (for showing total vs filled)
@@ -217,6 +218,7 @@ const Plot: Component<PlotProps> = (p) => {
     if (p.props.unit !== undefined) markOptions.unit = p.props.unit;
     if (p.props.gap !== undefined) markOptions.gap = p.props.gap;
     if (p.props.rx !== undefined) markOptions.rx = p.props.rx;
+    if (p.props.multiple !== undefined) markOptions.multiple = p.props.multiple;
     
     // Hexbin-specific options
     if (p.props.binWidth !== undefined) markOptions.binWidth = p.props.binWidth;

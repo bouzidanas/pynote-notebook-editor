@@ -83,23 +83,6 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
         content: "## Waffle Charts\n\nWaffle charts subdivide bars into **countable cells**, making it easy to read exact quantities. Great for showing proportions or comparing counts.\n\nUse `waffle()` for the convenience function, or `Plot(..., mark=\"waffleY\")` directly."
     },
     {
-        id: "tut-demo-waffle",
-        type: "code",
-        content: `from pynote_ui.oplot import waffle
-
-# Simple waffle from counts - each cell = 1 unit
-data = [
-    {"fruit": "🍎 Apples", "count": 52},
-    {"fruit": "🍌 Bananas", "count": 47},
-    {"fruit": "🍊 Oranges", "count": 85},
-    {"fruit": "🍐 Pears", "count": 11}
-]
-
-waffle(data, x="fruit", y="count", 
-       title="Fruit Inventory", 
-       height=300)`
-    },
-    {
         id: "tut-demo-waffle-survey",
         type: "code",
         content: `from pynote_ui.oplot import waffle
@@ -117,6 +100,28 @@ waffle(survey, x="question", y="yes",
        bgY=120,             # Background total (shows unfilled portion)
        bgOpacity=0.4,       # 40% opacity for background
        title="Syrian Teenagers Survey (of 120)")`
+    },
+    {
+        id: "tut-demo-waffle-advanced",
+        type: "code",
+        content: `from pynote_ui.oplot import Plot
+
+# Advanced waffle: using Plot directly for custom background color
+survey = [
+    {"question": "Don't go out after dark", "yes": 96},
+    {"question": "No activities other than school", "yes": 89},
+    {"question": "Would like activities but prevented", "yes": 73}
+]
+
+# With Plot, you can specify any backgroundFill color
+Plot(survey, 
+     x="question", y="yes",
+     mark="waffleY",
+     rx="100%",
+     fill="#f97316",                      # Green for filled
+     backgroundY=120,                     # Total capacity
+     backgroundFill="var(--accent)",  # Gray background
+     title="Survey Results (green = yes, gray = no response)")`
     },
 
     // --- Section: Hexbin Heatmaps ---

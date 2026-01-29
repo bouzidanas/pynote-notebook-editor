@@ -516,7 +516,8 @@ def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1,
 
 
 def waffle(data, x=None, y=None, fill=None, orientation="vertical", 
-           unit=None, gap=None, rx=None, bgY=None, bgX=None, bgOpacity=None,
+           unit=None, gap=None, rx=None, multiple=None,
+           bgY=None, bgX=None, bgOpacity=None,
            title=None, **kwargs):
     """
     Create a waffle chart (unit chart with square cells).
@@ -533,6 +534,7 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
         unit: Quantity each cell represents (default: 1)
         gap: Gap between cells in pixels (default: 1)
         rx: Corner radius - use "100%" for circles
+        multiple: Number of cells per row (default: determined by chart width)
         bgY: Background total for vertical waffle (shows faded cells for unfilled portion)
         bgX: Background total for horizontal waffle
         bgOpacity: Opacity for background cells (default: 0.4)
@@ -580,7 +582,7 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
             # Note: This won't have opacity - user should use hex colors for best results
     
     return Plot(data, x=x, y=y, mark=mark, fill=fill, unit=unit, gap=gap, 
-                rx=rx, title=title, **extra_kwargs, **kwargs)
+                rx=rx, multiple=multiple, title=title, **extra_kwargs, **kwargs)
 
 
 def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
