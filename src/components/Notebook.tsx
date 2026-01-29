@@ -245,8 +245,55 @@ const Notebook: Component = () => {
   };
 
   const runCell = (id: string) => {
-    actions.runCell(id, executeRunner);
+    // Pass analyzeCell for reactive mode JIT analysis
+    actions.runCell(id, executeRunner, analyzeCell);
   };
+
+  // --- Reactive Execution Mode: Cell Analysis ---
+  
+  // Analyze a single cell and update its dependencies
+  const analyzeCell = async (cellId: string, content: string) => {
+    if (kernel.status === "loading") return; // Wait for kernel
+    
+    const result = await kernel.analyzeCell(cellId, content);
+    actions.setCellDependencies(cellId, result.definitions, result.references);
+  };
+
+  // Analyze all code cells (called when switching to reactive mode)
+  const analyzeAllCells = async () => {
+    if (kernel.status === "loading") {
+      // Will be called again when kernel is ready
+      return;
+    }
+    
+    const codeCells = notebookStore.cells.filter(c => c.type === "code");
+    
+    // Analyze all cells in parallel for speed
+    await Promise.all(
+      codeCells.map(cell => 
+        kernel.analyzeCell(cell.id, cell.content).then(result => {
+          actions.setCellDependencies(cell.id, result.definitions, result.references);
+        })
+      )
+    );
+    
+    actions.setDependenciesStale(false);
+  };
+
+  // Watch for mode changes to reactive - analyze all cells
+  createEffect(() => {
+    if (notebookStore.executionMode === "reactive" && notebookStore.dependenciesStale) {
+      analyzeAllCells();
+    }
+  });
+
+  // Watch for kernel ready when in reactive mode with stale dependencies
+  createEffect(() => {
+    const status = kernel.status;
+    if (status === "ready" && notebookStore.executionMode === "reactive" && notebookStore.dependenciesStale) {
+      analyzeAllCells();
+    }
+  });
 
   // Monitor Kernel Status
   createEffect(() => {
@@ -1073,6 +1120,12 @@ const Notebook: Component = () => {
                            Concurrent
                        </div>
                    </DropdownItem>
+                   <DropdownItem onClick={() => actions.setExecutionMode("reactive")}>
+                       <div class="flex items-center gap-2">
+                           <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "reactive" ? "bg-accent" : ""}`}></div>
+                           Reactive
+                       </div>
+                   </DropdownItem>
 
                    <DropdownDivider />
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
@@ -1261,6 +1314,12 @@ const Notebook: Component = () => {
                                  Concurrent
                              </div>
                          </DropdownItem>
+                         <DropdownItem onClick={() => actions.setExecutionMode("reactive")}>
+                             <div class="flex items-center gap-2">
+                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "reactive" ? "bg-accent" : ""}`}></div>
+                                 Reactive
+                             </div>
+                         </DropdownItem>
 
                          <DropdownDivider />
                          <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
@@ -1319,6 +1378,12 @@ const Notebook: Component = () => {
                          <div class="flex items-center gap-2">
                              <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
                              Concurrent
+                         </div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => actions.setExecutionMode("reactive")}>
+                         <div class="flex items-center gap-2">
+                             <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "reactive" ? "bg-accent" : ""}`}></div>
+                             Reactive
                          </div>
                      </DropdownItem>
                      

@@ -74,6 +74,105 @@ async def run_cell_code(code, cell_id):
         return { "__pynote_error__": generated_tb }
     finally:
         current_cell_id.reset(token)
+
+import ast
+
+def analyze_cell_dependencies(code):
+    """
+    Static analysis to extract variable definitions and references from Python code.
+    Used for reactive execution mode (Marimo-style DAG).
+    
+    Returns: {"definitions": [...], "references": [...]}
+    
+    - definitions: variables assigned/defined in this cell (targets of assignment)
+    - references: variables read but not defined in this cell (free variables)
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        # If code has syntax errors, return empty sets
+        return {"definitions": [], "references": []}
+    
+    definitions = set()
+    references = set()
+    
+    # Collect all assigned names (definitions)
+    for node in ast.walk(tree):
+        # Regular assignments: x = ...
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    definitions.add(target.id)
+                elif isinstance(target, ast.Tuple) or isinstance(target, ast.List):
+                    for elt in target.elts:
+                        if isinstance(elt, ast.Name):
+                            definitions.add(elt.id)
+        # Augmented assignments: x += ...
+        elif isinstance(node, ast.AugAssign):
+            if isinstance(node.target, ast.Name):
+                definitions.add(node.target.id)
+        # Named expressions (walrus): (x := ...)
+        elif isinstance(node, ast.NamedExpr):
+            if isinstance(node.target, ast.Name):
+                definitions.add(node.target.id)
+        # For loops: for x in ...
+        elif isinstance(node, ast.For):
+            if isinstance(node.target, ast.Name):
+                definitions.add(node.target.id)
+            elif isinstance(node.target, ast.Tuple) or isinstance(node.target, ast.List):
+                for elt in node.target.elts:
+                    if isinstance(elt, ast.Name):
+                        definitions.add(elt.id)
+        # With statements: with ... as x
+        elif isinstance(node, ast.With):
+            for item in node.items:
+                if item.optional_vars and isinstance(item.optional_vars, ast.Name):
+                    definitions.add(item.optional_vars.id)
+        # Exception handlers: except E as e
+        elif isinstance(node, ast.ExceptHandler):
+            if node.name:
+                definitions.add(node.name)
+        # Function definitions: def foo(...)
+        elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+            definitions.add(node.name)
+        # Class definitions: class Foo(...)
+        elif isinstance(node, ast.ClassDef):
+            definitions.add(node.name)
+        # Import: import x, import x as y
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.asname if alias.asname else alias.name.split('.')[0]
+                definitions.add(name)
+        # Import from: from x import y, from x import y as z
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                if alias.name == '*':
+                    continue  # Can't track star imports
+                name = alias.asname if alias.asname else alias.name
+                definitions.add(name)
+    
+    # Collect all referenced names (loads)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+            references.add(node.id)
+    
+    # References are only those NOT defined locally
+    # Also exclude Python builtins
+    builtins = set(dir(__builtins__)) if isinstance(__builtins__, dict) else set(dir(__builtins__))
+    builtins.update(['__name__', '__doc__', '__package__', '__loader__', '__spec__', 
+                     '__annotations__', '__builtins__', '__file__', '__cached__'])
+    
+    # Local variables that are defined before use within the cell are not external references
+    external_references = references - definitions - builtins
+    
+    # Filter out underscore-prefixed variables (local by convention, like Marimo)
+    definitions = {d for d in definitions if not d.startswith('_')}
+    external_references = {r for r in external_references if not r.startswith('_')}
+    
+    return {
+        "definitions": list(definitions),
+        "references": list(external_references)
+    }
 `;
 
 async function initPyodide() {
@@ -1323,6 +1422,30 @@ self.onmessage = async (e) => {
                 pkg.destroy();
             } catch (err) {
                 console.error("Clear cell context error", err);
+            }
+        }
+    } else if (type === "analyze_cell") {
+        // Reactive execution mode: analyze cell dependencies using Python AST
+        if (pyodide) {
+            try {
+                const result = pyodide.runPython(`analyze_cell_dependencies(${JSON.stringify(code)})`);
+                const jsResult = result.toJs({ dict_converter: Object.fromEntries });
+                result.destroy();
+                postMessage({
+                    type: "analyze_cell_result",
+                    id,
+                    definitions: jsResult.definitions || [],
+                    references: jsResult.references || []
+                });
+            } catch (err) {
+                console.error("Analyze cell error", err);
+                postMessage({
+                    type: "analyze_cell_result",
+                    id,
+                    definitions: [],
+                    references: [],
+                    error: String(err)
+                });
             }
         }
     }
