@@ -19,6 +19,7 @@ interface CodeCellProps {
   isActive: boolean;
   index: number;
   prevCellId: string | null;
+  runCell: (id: string) => void;  // Run cell with proper reactive mode support
 }
 
 const CodeCell: Component<CodeCellProps> = (props) => {
@@ -65,11 +66,8 @@ const CodeCell: Component<CodeCellProps> = (props) => {
           return;
       }
       
-      actions.runCell(props.cell.id, async (content, id) => {
-        await kernel.run(content, (result) => {
-            actions.updateCellOutput(id, result);
-        });
-      });
+      // Use the runCell prop which includes proper reactive mode support
+      props.runCell(props.cell.id);
   };
 
   const toolbar = (

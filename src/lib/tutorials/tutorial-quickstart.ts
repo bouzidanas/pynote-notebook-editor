@@ -14,6 +14,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown *(you are here)* |
 | **[Interactive UI](?open=tutorial_ui)** | Sliders, text, groups, layouts, and display functions |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
 
 <br />
@@ -155,6 +156,7 @@ You now know the basics of PyNote. Continue your learning:
 |---------------|-------------------|
 | **[Interactive UI](?open=tutorial_ui)** | Build reactive widgets with sliders, text, and groups |
 | **[Charts & Plotting](?open=tutorial_charts)** | Create beautiful visualizations with Observable Plot, uPlot, and Frappe |
+| **[Reactive Execution](?open=tutorial_reactive)** | Auto-run dependent cells with DAG-based propagation |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
 
 Happy coding! 🐍`

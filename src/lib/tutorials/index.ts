@@ -2,17 +2,19 @@
 export { tutorialQuickstartCells, tableOfContentsCells } from "./tutorial-quickstart";
 export { tutorialUICells } from "./tutorial-ui";
 export { tutorialChartsCells } from "./tutorial-charts";
+export { tutorialReactiveCells } from "./tutorial-reactive";
 export { tutorialAPICells } from "./tutorial-api";
 
 import { tutorialQuickstartCells } from "./tutorial-quickstart";
 import { tutorialUICells } from "./tutorial-ui";
 import { tutorialChartsCells } from "./tutorial-charts";
+import { tutorialReactiveCells } from "./tutorial-reactive";
 import { tutorialAPICells } from "./tutorial-api";
 import type { CellData } from "../store";
 import type { CodeVisibilitySettings } from "../codeVisibility";
 
 // Tutorial type mapping
-export type TutorialType = "tutorial" | "tutorial_ui" | "tutorial_charts" | "tutorial_api";
+export type TutorialType = "tutorial" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api";
 
 // Document-level code visibility settings for tutorials
 // These hide result output by default so users run the cells themselves
@@ -43,6 +45,13 @@ export const TUTORIAL_CONFIG: Record<TutorialType, TutorialConfig> = {
     "tutorial_charts": {
         cells: tutorialChartsCells,
         filename: "Tutorial - Charts & Plotting.ipynb",
+        codeview: {
+            showResult: false
+        }
+    },
+    "tutorial_reactive": {
+        cells: tutorialReactiveCells,
+        filename: "Tutorial - Reactive Execution.ipynb",
         codeview: {
             showResult: false
         }

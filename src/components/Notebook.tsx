@@ -1,7 +1,7 @@
 import { type Component, For, Show, createSignal, onCleanup, createEffect, onMount, lazy } from "solid-js";
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
 import { TransitionGroup } from "solid-transition-group";
-import { notebookStore, actions, defaultCells } from "../lib/store";
+import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, type ExecutionMode } from "../lib/store";
 import { isTutorialType, getTutorialContent } from "../lib/tutorials";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
@@ -312,11 +312,18 @@ const Notebook: Component = () => {
   });
 
   const runAll = async () => {
-    // Run sequentially using the queue logic
-    for (const cell of notebookStore.cells) {
-        if (cell.type === "code") {
-            runCell(cell.id);
-        }
+    const codeCells = notebookStore.cells.filter(c => c.type === "code");
+    
+    // In reactive mode, analyze first to ensure dependencies are fresh
+    if (notebookStore.executionMode === "reactive") {
+      await analyzeAllCells();
+    }
+    
+    // Run all cells - the queue logic handles ordering
+    // In reactive mode, downstream cells get auto-queued
+    // The isQueued guard in runCell prevents duplicate runs
+    for (const cell of codeCells) {
+      runCell(cell.id);
     }
   };
 
@@ -603,6 +610,7 @@ const Notebook: Component = () => {
       history: notebookStore.history,
       historyIndex: notebookStore.historyIndex,
       activeCellId: notebookStore.activeCellId,
+      executionMode: notebookStore.executionMode, // Persist session execution mode
       theme: sessionHasTheme() ? { ...currentTheme } : undefined,
       codeVisibility: getSessionState() // Persist code visibility settings & cell overrides
     };
@@ -638,12 +646,19 @@ const Notebook: Component = () => {
              isQueued: false
         }));
 
+        // Validate execution mode from session (or fall back to app default)
+        const validModes: ExecutionMode[] = ["queue_all", "hybrid", "direct", "reactive"];
+        const sessionExecutionMode = validModes.includes(data.executionMode) 
+          ? data.executionMode as ExecutionMode 
+          : APP_DEFAULT_EXECUTION_MODE;
+
         actions.loadNotebook(
           sanitizedCells,
           data.filename || "Untitled.ipynb",
           data.history || [],
           typeof data.historyIndex === "number" ? data.historyIndex : undefined,
-          data.activeCellId
+          data.activeCellId,
+          sessionExecutionMode
         );
         
         // Load theme if session has one
@@ -846,6 +861,8 @@ const Notebook: Component = () => {
         },
         PyNote: {
           history: notebookStore.history,
+          // Always save execution mode to document metadata
+          executionMode: notebookStore.executionMode,
           ...(codeVisibility.saveToExport ? {
             codeview: {
               showCode: codeVisibility.showCode,
@@ -940,6 +957,12 @@ const Notebook: Component = () => {
           // Extract theme from document metadata (don't apply yet - will apply after reload)
           const themeData = nb.metadata?.PyNote?.theme;
           
+          // Extract execution mode from document metadata
+          const validModes: ExecutionMode[] = ["queue_all", "hybrid", "direct", "reactive"];
+          const docExecutionMode = validModes.includes(nb.metadata?.PyNote?.executionMode)
+            ? nb.metadata.PyNote.executionMode as ExecutionMode
+            : undefined; // Will use app default if not specified
+          
           // Generate a new session ID for this file
           const newSessionId = crypto.randomUUID();
           
@@ -950,6 +973,7 @@ const Notebook: Component = () => {
             history: history,
             historyIndex: history.length - 1,
             activeCellId: null,
+            executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
             theme: themeData || undefined,
             codeVisibility: documentVisibilityState || undefined
           };
@@ -1607,7 +1631,7 @@ const Notebook: Component = () => {
                               when={cell.type === "code"} 
                               fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />} 
                            >
-                              <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />
+                              <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} runCell={runCell} />
                            </Show>
                          );
                        }}

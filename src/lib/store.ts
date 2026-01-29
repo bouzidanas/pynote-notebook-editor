@@ -3,6 +3,10 @@ import { kernel } from "./pyodide";
 
 export type CellType = "code" | "markdown";
 
+// Execution mode type and app-level default
+export type ExecutionMode = "queue_all" | "hybrid" | "direct" | "reactive";
+export const APP_DEFAULT_EXECUTION_MODE: ExecutionMode = "hybrid";
+
 // Cell-level visibility metadata (for code cells only)
 // These override document/app settings for this specific cell
 // true = force show, false = force hide, undefined = use global setting
@@ -82,7 +86,7 @@ export interface NotebookState {
   history: HistoryEntry[];
   historyIndex: number; // Current position in history (-1 = no history)
   presentationMode: boolean;
-  executionMode: "queue_all" | "hybrid" | "direct" | "reactive";
+  executionMode: ExecutionMode;
   executionQueue: string[]; // List of cell IDs waiting to run
   sidebarAlignment: "top" | "center" | "bottom";
   // Reactive execution mode state (Marimo-style DAG)
@@ -199,7 +203,7 @@ const [store, setStore] = createStore<NotebookState>({
   history: [],
   historyIndex: -1,
   presentationMode: false,
-  executionMode: "hybrid", // Default to Hybrid as requested
+  executionMode: APP_DEFAULT_EXECUTION_MODE,
   executionQueue: [],
   sidebarAlignment: "top",
   // Reactive execution mode (Marimo-style DAG)
@@ -823,10 +827,12 @@ export const actions = {
 
 
   runCell: (id: string, runKernel: (content: string, id: string) => Promise<void>, analyzeCell?: (cellId: string, content: string) => Promise<void>) => {
+    console.log(`[runCell] id=${id}, analyzeCell provided:`, !!analyzeCell);
     const cell = store.cells.find(c => c.id === id);
     if (!cell || cell.type !== "code" || cell.isRunning || cell.isQueued) return;
 
     const mode = store.executionMode;
+    console.log(`[runCell] mode=${mode}`);
     const isKernelRunning = store.cells.some(c => c.isRunning);
     const isKernelLoading = kernel.status === "loading";
     const prevIndex = store.cells.findIndex(c => c.id === id) - 1;
@@ -838,6 +844,9 @@ export const actions = {
       // Store the analyzeCell callback for use by executeCell
       if (analyzeCell) {
         (actions as any).__pendingAnalyzeCell = analyzeCell;
+        console.log(`[runCell] Stored analyzeCell callback`);
+      } else {
+        console.log(`[runCell] WARNING: No analyzeCell callback provided in reactive mode!`);
       }
 
       // If kernel is busy, queue this cell (analysis will happen when it executes)
@@ -845,7 +854,8 @@ export const actions = {
         actions.addToQueue(id);
       } else {
         // Execute immediately (will analyze JIT in executeCell)
-        actions.executeCell(id, runKernel);
+        // Pass false for isReactiveCascade since this is user-initiated
+        actions.executeCell(id, runKernel, false);
       }
       return;
     }
@@ -864,7 +874,8 @@ export const actions = {
     }
   },
 
-  executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>) => {
+  executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>, isReactiveCascade: boolean = true) => {
+    console.log(`[executeCell] id=${id}, isReactiveCascade=${isReactiveCascade}, mode=${store.executionMode}`);
     actions.setCellRunning(id, true);
     const cell = store.cells.find(c => c.id === id);
     if (!cell) return;
@@ -873,14 +884,18 @@ export const actions = {
 
     try {
       // Reactive mode: JIT analysis before execution
-      if (store.executionMode === "reactive") {
+      // Only analyze and queue downstream for user-initiated runs, not cascade runs
+      if (store.executionMode === "reactive" && !isReactiveCascade) {
+        console.log(`[executeCell] Reactive mode, analyzing cell ${id}`);
         const analyzeCell = (actions as any).__pendingAnalyzeCell;
+        console.log(`[executeCell] analyzeCell callback exists:`, !!analyzeCell);
         if (analyzeCell) {
           // Analyze this cell and update its dependencies
           await analyzeCell(id, cell.content);
 
           // Now queue downstream cells based on fresh dependencies
           const downstream = actions.getDownstreamCells(id);
+          console.log(`[executeCell] Downstream cells:`, downstream);
           for (const depId of downstream) {
             // Only queue if not already queued/running
             const depCell = store.cells.find(c => c.id === depId);
@@ -910,6 +925,7 @@ export const actions = {
       // Process next in queue
       const nextId = actions.popFromQueue();
       if (nextId) {
+        // Default isReactiveCascade=true handles reactive mode correctly
         actions.executeCell(nextId, runKernel);
       }
     }
@@ -962,13 +978,18 @@ export const actions = {
     }
   },
 
-  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null) => {
+  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null, executionMode?: ExecutionMode) => {
     setStore({
       cells,
       filename,
       activeCellId: activeCellId || null,
       history: history || [],
-      historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1)
+      historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1),
+      // Use document's execution mode if provided, otherwise use app default
+      executionMode: executionMode || APP_DEFAULT_EXECUTION_MODE,
+      // Reset reactive mode state when loading a new notebook
+      cellDependencies: new Map(),
+      dependenciesStale: executionMode === "reactive" // Need to analyze if loading in reactive mode
     });
 
     // Recovery Phase: Check for interrupted edits (orphaned preEditState)
