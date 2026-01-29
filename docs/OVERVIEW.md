@@ -91,7 +91,27 @@ This makes PyNote safe to use with untrusted notebooks, and removes entire categ
 
 Most notebooks let you run cells in any order. That's flexible, but it causes problems. Run cell 5, then cell 2, then cell 5 again... and you lose track of what state you're in. Worse, the saved notebook may not reproduce the same results when run from scratch.
 
-PyNote supports that traditional mode, but also offers a **reactive mode** (planned for first release). In reactive mode, PyNote tracks which cells depend on which variables. When you change something, every cell that depends on it re-runs automatically, in the right order. Change your input data, and your charts update. No manual re-running. Results are always consistent.
+PyNote supports multiple execution modes:
+
+| Mode | Behavior | Best For |
+|:-----|:---------|:---------|
+| **Hybrid** (default) | Run cells independently, queue when busy | General use, exploration |
+| **Queue All** | Strict queue - one cell at a time | Debugging, sequential workflows |
+| **Direct** | Run immediately, skip queue | Quick iteration |
+| **Reactive** | Auto-run all dependent cells | Data pipelines, dashboards |
+
+In **reactive mode**, PyNote uses static analysis to track which cells depend on which variables. When you run a cell, every cell that depends on it re-runs automatically, in the correct order (topologically sorted). Change your input data, and your charts update. No manual re-running. Results are always consistent.
+
+The reactive system:
+- **Analyzes dependencies just-in-time** before execution (no overhead when editing)
+- **Uses AST parsing** to find variable definitions and references
+- **Builds a dependency graph** (DAG) and runs cells in topological order
+- **Ignores local variables** (prefix with `_` to keep variables cell-local)
+
+Execution mode is configurable at three levels:
+1. **App level** - default for new documents (`hybrid`)
+2. **Document level** - saved in `.ipynb` metadata, loads with the file
+3. **Session level** - user can override via menu for the current session
 
 PyNote is built with **SolidJS**, a framework that handles UI updates more efficiently than React (which most reactive notebooks use). This means even notebooks with lots of interactive elements and frequent updates stay responsive instead of getting sluggish.
 
