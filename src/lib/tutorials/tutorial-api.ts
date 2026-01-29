@@ -16,6 +16,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components *(you are here)* |
 
+<br />
 
 ---`
     },
@@ -78,14 +79,17 @@ Plot(data, x=None, y=None, mark="line", fill=None, stroke=None,
      border=True, titleStyle=None, **kwargs)
 \`\`\`
 - \`data\`: List of dicts \`[{"x": 1, "y": 2}, ...]\`
-- \`mark\`: \`"line"\`, \`"dot"\`, \`"bar"\`/\`"barY"\`/\`"barX"\`, \`"area"\`, \`"rect"\`, \`"cell"\`, \`"rule"\`, \`"box"\`, \`"density"\`
+- \`mark\`: \`"line"\`, \`"dot"\`/\`"dotY"\`/\`"dotX"\`, \`"bar"\`/\`"barY"\`/\`"barX"\`, \`"area"\`, \`"rect"\`, \`"cell"\`, \`"rule"\`, \`"box"\`, \`"density"\`, \`"waffleY"\`, \`"waffleX"\`, \`"hexbin"\`
 - **Channels** (data → visual): \`x\`, \`y\`, \`z\` (series), \`fill\`, \`stroke\`, \`opacity\`, \`r\` (size), \`symbol\`
 - **Transforms**: \`sort\` (order), \`thresholds\` (bins), \`reduce\` (aggregate), \`interval\` (regularize)
 - **Curve**: \`"linear"\`, \`"step"\`, \`"basis"\`, \`"catmull-rom"\`, \`"monotone-x"\`, \`"natural"\`
+- **Stacked dots**: \`mark="dotY"\` or \`mark="dotX"\` for automatic stacking
+- **Waffle options**: \`unit\` (qty per cell), \`gap\` (cell spacing), \`rx\` (corner radius, \`"100%"\` for circles)
+- **Hexbin options**: \`binWidth\` (hex size in px), \`colorScheme\` (\`"turbo"\`, \`"viridis"\`, \`"YlGnBu"\`, etc.)
 - \`width\`: Number (pixels), \`"full"\`, or \`"100%"\` (default: \`"full"\`)
 - Update via \`plot.data = new_data\`
 
-**Convenience functions**: \`scatter()\`, \`line()\`, \`area()\`, \`bar()\`, \`histogram()\`, \`boxplot()\`, \`heatmap()\`, \`density()\`, \`rule()\``
+**Convenience functions**: \`scatter()\`, \`line()\`, \`area()\`, \`bar()\`, \`histogram()\`, \`boxplot()\`, \`heatmap()\`, \`density()\`, \`rule()\`, \`waffle()\`, \`hexbin()\`, \`stacked_dots()\``
     },
     {
         id: "tut-api-timeseries",
@@ -143,6 +147,8 @@ Plot(data, x="x", y="y", title="My Chart",
         id: "tut-api-nav",
         type: "markdown",
         content: `---
+
+<br />
 
 ## 📚 Full Tutorial Navigation
 

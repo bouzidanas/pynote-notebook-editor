@@ -514,3 +514,180 @@ def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1,
     return Plot(data, x=x, y=y, mark="rule", stroke=stroke, strokeWidth=strokeWidth,
                 strokeDasharray=strokeDasharray, title=title, **kwargs)
 
+
+def waffle(data, x=None, y=None, fill=None, orientation="vertical", 
+           unit=None, gap=None, rx=None, bgY=None, bgX=None, bgOpacity=None,
+           title=None, **kwargs):
+    """
+    Create a waffle chart (unit chart with square cells).
+    
+    Waffle charts subdivide bars into countable cells, making it easier to 
+    read exact quantities. Great for showing proportions or comparing counts.
+    
+    Args:
+        data: List of dicts or values
+        x: Column for categorical grouping (vertical orientation) or values (horizontal)
+        y: Column for values (vertical orientation) or categorical grouping (horizontal)
+        fill: Column or color for fill encoding
+        orientation: "vertical" (waffleY, default) or "horizontal" (waffleX)
+        unit: Quantity each cell represents (default: 1)
+        gap: Gap between cells in pixels (default: 1)
+        rx: Corner radius - use "100%" for circles
+        bgY: Background total for vertical waffle (shows faded cells for unfilled portion)
+        bgX: Background total for horizontal waffle
+        bgOpacity: Opacity for background cells (default: 0.4)
+        title: Chart title
+        **kwargs: All Plot options
+    
+    Examples:
+        # Simple waffle from counts
+        waffle([{"fruit": "apples", "count": 50}, {"fruit": "oranges", "count": 30}],
+               x="fruit", y="count")
+        
+        # Stacked waffle with fill
+        waffle(data, x="category", y="count", fill="segment")
+        
+        # Circular cells (like dots)
+        waffle(data, x="category", y="count", rx="100%")
+        
+        # Each cell = 10 units
+        waffle(data, x="category", y="count", unit=10)
+        
+        # Show background total (e.g., 120 total, filled shows actual values)
+        waffle(data, x="category", y="count", bgY=120, bgOpacity=0.3)
+    """
+    mark = "waffleY" if orientation == "vertical" else "waffleX"
+    
+    # Build background fill color with opacity if bgY/bgX specified
+    extra_kwargs = {}
+    bg_total = bgY if orientation == "vertical" else bgX
+    if bg_total is not None:
+        extra_kwargs["backgroundY" if orientation == "vertical" else "backgroundX"] = bg_total
+        # Convert fill + opacity to rgba backgroundFill
+        opacity = bgOpacity if bgOpacity is not None else 0.4
+        # If fill is a hex color, convert to rgba
+        if fill and isinstance(fill, str) and fill.startswith("#"):
+            hex_color = fill.lstrip("#")
+            if len(hex_color) == 3:
+                hex_color = "".join([c*2 for c in hex_color])
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+            extra_kwargs["backgroundFill"] = f"rgba({r}, {g}, {b}, {opacity})"
+        else:
+            # For named colors or no fill, just set opacity via the fill
+            extra_kwargs["backgroundFill"] = fill or "currentColor"
+            # Note: This won't have opacity - user should use hex colors for best results
+    
+    return Plot(data, x=x, y=y, mark=mark, fill=fill, unit=unit, gap=gap, 
+                rx=rx, title=title, **extra_kwargs, **kwargs)
+
+
+def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
+           binWidth=None, colorScheme=None, title=None, **kwargs):
+    """
+    Create a hexbin heatmap (2D histogram with hexagonal bins).
+    
+    Hexbin aggregates dense scatter data into hexagonal bins, showing density
+    via color or size. Useful for visualizing distributions of many points.
+    
+    Args:
+        data: List of dicts with x, y values
+        x, y: Column names for position
+        fill: "count" (default) or column name for color encoding
+        r: "count" for sized hexagons, or fixed radius
+        stroke: Stroke color for hexagon borders
+        binWidth: Distance between hexagon centers in pixels (default: 20)
+        colorScheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
+        title: Chart title
+        **kwargs: All Plot options
+    
+    Examples:
+        # Basic hexbin heatmap
+        hexbin(data, x="weight", y="height")
+        
+        # With custom color scheme
+        hexbin(data, x="weight", y="height", colorScheme="YlGnBu")
+        
+        # Sized hexagons (bubble-style)
+        hexbin(data, x="weight", y="height", fill="count", r="count")
+        
+        # With visible borders
+        hexbin(data, x="x", y="y", stroke="currentColor")
+    """
+    return Plot(data, x=x, y=y, mark="hexbin", fill=fill, r=r, stroke=stroke,
+                binWidth=binWidth, colorScheme=colorScheme, title=title, **kwargs)
+
+
+def stacked_dots(data, x=None, y=None, fill=None, r=None, 
+                 orientation="vertical", direction="single",
+                 group_column=None, positive_value=None, negative_value=None,
+                 title=None, **kwargs):
+    """
+    Create a stacked dot plot (Wilkinson dot plot).
+    
+    Dots stack vertically (or horizontally) for each category, creating a 
+    distribution view that's easy to count. Great for showing individual 
+    observations while revealing patterns.
+    
+    Args:
+        data: List of dicts with values to plot
+        x: Column name for x-axis (categories for vertical, values for horizontal)
+        y: Column name for y-axis (values for vertical, categories for horizontal)
+           For bidirectional, can contain +1/-1 values directly
+        fill: Column name for color encoding, or a static color
+        r: Dot radius in pixels (default: 6)
+        orientation: "vertical" (dotY) or "horizontal" (dotX)
+        direction: "single" (all dots stack one way) or "bidirectional" (up/down or left/right)
+        group_column: For bidirectional - column name that determines direction
+        positive_value: Value in group_column that stacks positive (up/right)
+        negative_value: Value in group_column that stacks negative (down/left)
+        title: Chart title
+        **kwargs: All Plot options (xLabel, yLabel, height, width, etc.)
+    
+    Examples:
+        # Simple vertical stacking (dots stack upward)
+        stacked_dots(data, x="grade")
+        
+        # Colored by category
+        stacked_dots(data, x="grade", fill="section")
+        
+        # Horizontal stacking (dots stack rightward)
+        stacked_dots(data, y="department", orientation="horizontal")
+        
+        # Bidirectional - auto from group column
+        stacked_dots(data, x="score", direction="bidirectional",
+                     group_column="gender", 
+                     positive_value="Male", negative_value="Female",
+                     fill="gender", yLabel="← Female · Male →")
+        
+        # Bidirectional - manual y values (+1 or -1 in data)
+        stacked_dots(data, x="age", y="direction", fill="group")
+    """
+    # Process data for bidirectional if needed
+    plot_data = data
+    plot_y = y
+    
+    if direction == "bidirectional" and group_column and positive_value and negative_value:
+        # Auto-generate y values based on group column
+        plot_data = []
+        for item in data:
+            new_item = dict(item)
+            if item.get(group_column) == positive_value:
+                new_item["_y_dir"] = 1
+            elif item.get(group_column) == negative_value:
+                new_item["_y_dir"] = -1
+            else:
+                new_item["_y_dir"] = 1  # Default to positive for other values
+            plot_data.append(new_item)
+        plot_y = "_y_dir"
+    
+    # Determine mark type
+    mark = "dotY" if orientation == "vertical" else "dotX"
+    
+    # Build plot
+    if orientation == "vertical":
+        return Plot(plot_data, x=x, y=plot_y, mark=mark, fill=fill, r=r, title=title, **kwargs)
+    else:
+        return Plot(plot_data, x=plot_y, y=y if y else x, mark=mark, fill=fill, r=r, title=title, **kwargs)
+

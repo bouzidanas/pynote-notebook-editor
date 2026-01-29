@@ -25,9 +25,10 @@ import { getObservablePlotTheme, getChartContainerStyles, getChartTitleStyles, w
 import { currentTheme } from "../../lib/theme";
 
 // Supported mark types
-type MarkType = "line" | "lineX" | "lineY" | "dot" | "bar" | "barY" | "barX" | 
+type MarkType = "line" | "lineX" | "lineY" | "dot" | "dotX" | "dotY" | "bar" | "barY" | "barX" | 
                 "area" | "areaY" | "areaX" | "cell" | "rect" | "rectY" | "rectX" | 
-                "rule" | "ruleY" | "ruleX" | "text" | "box" | "boxX" | "boxY";
+                "rule" | "ruleY" | "ruleX" | "text" | "box" | "boxX" | "boxY" |
+                "waffleY" | "waffleX" | "hexbin";
 
 // Style dict type for user customization
 type StyleDict = Record<string, string | number>;
@@ -64,6 +65,9 @@ interface PlotProps {
     // Grid
     grid?: boolean;
     
+    // Color scheme (for hexbin, heatmaps, etc.)
+    colorScheme?: string;           // Observable Plot color schemes: "turbo", "viridis", "YlGnBu", etc.
+    
     // Transforms and binning
     reduce?: string;                // "count", "sum", "proportion", "mean", etc.
     thresholds?: number | number[]; // Number of bins or explicit bin edges
@@ -84,6 +88,20 @@ interface PlotProps {
     strokeWidth?: number;           // Stroke width
     fillOpacity?: number;           // Fill opacity
     strokeOpacity?: number;         // Stroke opacity
+    
+    // Waffle-specific options
+    unit?: number;                  // Quantity each waffle cell represents
+    gap?: number;                   // Gap between waffle cells in pixels
+    rx?: number | string;           // Corner radius (use "100%" for circles)
+    labelPosition?: "top" | "bottom";  // Where to place category labels (default: bottom)
+    
+    // Waffle background (for showing total vs filled)
+    backgroundY?: number;           // Total value to show as faded background waffle
+    backgroundX?: number;           // Total value for horizontal waffle background
+    backgroundFill?: string;        // Fill color for background waffle (can include alpha, e.g. "rgba(255,165,0,0.4)")
+    
+    // Hexbin-specific options
+    binWidth?: number;              // Distance between hexagon centers in pixels
     
     // Additional position channels
     x1?: string;
@@ -195,6 +213,14 @@ const Plot: Component<PlotProps> = (p) => {
     if (p.props.fillOpacity !== undefined) markOptions.fillOpacity = p.props.fillOpacity;
     if (p.props.strokeOpacity !== undefined) markOptions.strokeOpacity = p.props.strokeOpacity;
     
+    // Waffle-specific options
+    if (p.props.unit !== undefined) markOptions.unit = p.props.unit;
+    if (p.props.gap !== undefined) markOptions.gap = p.props.gap;
+    if (p.props.rx !== undefined) markOptions.rx = p.props.rx;
+    
+    // Hexbin-specific options
+    if (p.props.binWidth !== undefined) markOptions.binWidth = p.props.binWidth;
+    
     // Static color overrides
     if (p.props.stroke && !p.props.color) {
       markOptions.stroke = p.props.stroke;
@@ -224,6 +250,35 @@ const Plot: Component<PlotProps> = (p) => {
         }
         markOptions.r = markOptions.r || 4;
         return OPlot.dot(plotData, markOptions);
+      
+      case "dotY":
+        // Stacked dots - use dot with stackY2 transform
+        // stackY2 gives proper y2 positioning for each dot
+        if (!markOptions.fill) {
+          markOptions.fill = markOptions.stroke || theme.marks.stroke;
+        }
+        delete markOptions.stroke;
+        delete markOptions.strokeWidth;
+        markOptions.r = markOptions.r || 6;
+        // Only default y=1 if not already specified (allows bidirectional stacking)
+        if (markOptions.y === undefined) {
+          markOptions.y = 1;
+        }
+        return OPlot.dot(plotData, OPlot.stackY2(markOptions));
+      
+      case "dotX":
+        // Stacked dots horizontally - use dot with stackX2 transform
+        if (!markOptions.fill) {
+          markOptions.fill = markOptions.stroke || theme.marks.stroke;
+        }
+        delete markOptions.stroke;
+        delete markOptions.strokeWidth;
+        markOptions.r = markOptions.r || 6;
+        // Only default x=1 if not already specified
+        if (markOptions.x === undefined) {
+          markOptions.x = 1;
+        }
+        return OPlot.dot(plotData, OPlot.stackX2(markOptions));
       
       case "bar":
       case "barY":
@@ -292,6 +347,48 @@ const Plot: Component<PlotProps> = (p) => {
         markOptions.text = p.props.y;  // Use y as text by default
         return OPlot.text(plotData, markOptions);
       
+      case "waffleY":
+        markOptions.fill = markOptions.fill || markOptions.stroke || theme.marks.stroke;
+        delete markOptions.stroke;
+        // For waffleY, use fx (facet x) for categories instead of x
+        // This is how Observable Plot's waffle examples work
+        if (markOptions.x) {
+          markOptions.fx = markOptions.x;
+          delete markOptions.x;
+        }
+        return OPlot.waffleY(plotData, markOptions);
+      
+      case "waffleX":
+        markOptions.fill = markOptions.fill || markOptions.stroke || theme.marks.stroke;
+        delete markOptions.stroke;
+        // For waffleX, use fy (facet y) for categories instead of y
+        if (markOptions.y) {
+          markOptions.fy = markOptions.y;
+          delete markOptions.y;
+        }
+        return OPlot.waffleX(plotData, markOptions);
+      
+      case "hexbin": {
+        // Hexbin is a transform applied to dots
+        // Build hexbin outputs based on what channels are specified
+        const hexbinOutputs: Record<string, any> = {};
+        
+        // Default to count for fill if fill is "count" or not a data column
+        if (markOptions.fill === "count" || !markOptions.fill) {
+          hexbinOutputs.fill = "count";
+          delete markOptions.fill;
+        }
+        // Support r="count" for sized hexagons
+        if (markOptions.r === "count") {
+          hexbinOutputs.r = "count";
+          delete markOptions.r;
+        }
+        
+        // Apply hexbin transform to dot mark
+        // The hexbin transform auto-sets symbol to "hexagon"
+        return OPlot.dot(plotData, OPlot.hexbin(hexbinOutputs as any, markOptions));
+      }
+      
       default:
         return OPlot.line(plotData, markOptions);
     }
@@ -325,6 +422,14 @@ const Plot: Component<PlotProps> = (p) => {
     const markType = p.props.mark || "line";
     const plotWidth = getPlotWidth();
     
+    // Check if this is a waffle mark (needs special handling)
+    const isWaffleMark = markType === "waffleY" || markType === "waffleX";
+    // Check if this is a stacked dot mark
+    const isStackedDotMark = markType === "dotY" || markType === "dotX";
+    
+    // Determine if we have y-axis labels (affects left margin)
+    const hasYLabel = p.props.yLabel !== undefined || (p.props.y !== undefined && !isStackedDotMark && !isWaffleMark);
+    
     // Build plot options
     const plotOptions: Record<string, any> = {
       width: plotWidth,
@@ -333,43 +438,131 @@ const Plot: Component<PlotProps> = (p) => {
         ...theme.style,
         background: "transparent", // Let container handle background
       },
-      marginTop: p.props.marginTop ?? 40,
-      marginRight: p.props.marginRight ?? 30,
+      marginTop: p.props.marginTop ?? (isStackedDotMark ? 30 : 20),
+      marginRight: p.props.marginRight ?? (isStackedDotMark ? 30 : 20),
       marginBottom: p.props.marginBottom ?? 50,
-      marginLeft: p.props.marginLeft ?? 60,
+      marginLeft: p.props.marginLeft ?? (p.props.yLabel ? 70 : (hasYLabel ? 60 : 30)),
+      // Don't clip waffle or stacked dot marks - they need room for their cells/dots
+      clip: (isWaffleMark || isStackedDotMark) ? false : true,
     };
 
     // Grid color (can be customized via gridStyle prop)
     const gridColor = p.props.gridStyle?.stroke || theme.grid.stroke;
 
-    // X axis configuration with proper styling
-    // Observable Plot: labelArrow controls arrow, label is the text
-    plotOptions.x = {
-      label: p.props.xLabel ?? p.props.x,
-      type: p.props.xType,
-      domain: p.props.xDomain,
-      grid: p.props.grid,
-      tickFormat: undefined,
-      line: true,
-      labelOffset: 40,
-      labelAnchor: "center",
-      labelArrow: "none",
-    };
+    // For waffle charts, use faceting (fx) for categories and hide numeric axes
+    // This matches Observable Plot's intended usage
+    if (isWaffleMark) {
+      // Waffle charts should hide both axes - cells don't align with ticks
+      plotOptions.axis = null;
+      plotOptions.label = null;
+      
+      // Determine label position - default to bottom
+      const labelPosition = p.props.labelPosition || "bottom";
+      const isTopLabels = labelPosition === "top";
+      
+      // Consistent margins on all sides for balanced look
+      // Extra space on label side for the axisFx mark
+      plotOptions.marginTop = p.props.marginTop ?? (isTopLabels ? 50 : 40);
+      plotOptions.marginRight = p.props.marginRight ?? 20;
+      plotOptions.marginBottom = p.props.marginBottom ?? (isTopLabels ? 40 : 50);
+      plotOptions.marginLeft = p.props.marginLeft ?? 20;
+      
+      // Use fx (facet x) scale - disable default axis, we'll add our own
+      plotOptions.fx = {
+        axis: null,  // Disable default axis to control spacing ourselves
+        label: null,
+        padding: 0.15,
+      };
+    } else if (isStackedDotMark) {
+      // Stacked dots: detect if bidirectional based on data
+      // For dotY (vertical): check y values for +/- (stacks up/down)
+      // For dotX (horizontal): check x values for +/- (stacks left/right)
+      const isHorizontal = markType === "dotX";
+      const stackCol = isHorizontal ? p.props.x : p.props.y;
+      let isBidirectional = false;
+      if (stackCol && plotData.length > 0) {
+        const stackValues = plotData.map(d => d[stackCol]).filter(v => typeof v === "number");
+        const hasNegative = stackValues.some(v => v < 0);
+        const hasPositive = stackValues.some(v => v > 0);
+        isBidirectional = hasNegative && hasPositive;
+      }
+      
+      if (isHorizontal) {
+        // Horizontal stacking (dotX): x-axis has the stacking direction
+        plotOptions.x = {
+          label: p.props.xLabel || null,
+          domain: p.props.xDomain,
+          grid: true,
+          // Only use Math.abs for bidirectional (so -5 and 5 both show as "5")
+          tickFormat: isBidirectional ? Math.abs : undefined,
+          labelAnchor: "center",
+          labelArrow: "none",
+        };
+        
+        // Y-axis config - for bidirectional horizontal, don't show left axis line (zero line replaces it)
+        plotOptions.y = {
+          label: p.props.yLabel ?? p.props.y,
+          type: p.props.yType,
+          domain: p.props.yDomain,
+          line: !isBidirectional,  // Hide axis line for bidirectional (zero line replaces it)
+          labelOffset: 50,
+          labelAnchor: "center", 
+          labelArrow: "none",
+        };
+      } else {
+        // Vertical stacking (dotY): y-axis has the stacking direction
+        plotOptions.y = {
+          label: p.props.yLabel || null,
+          domain: p.props.yDomain,
+          grid: true,
+          // Only use Math.abs for bidirectional (so -5 and 5 both show as "5")
+          tickFormat: isBidirectional ? Math.abs : undefined,
+          labelAnchor: "center",
+          labelArrow: "none",
+        };
+        
+        // X-axis config - for bidirectional vertical, don't show bottom axis line (zero line replaces it)
+        plotOptions.x = {
+          label: p.props.xLabel ?? p.props.x,
+          type: p.props.xType,
+          domain: p.props.xDomain,
+          line: !isBidirectional,  // Hide axis line for bidirectional (zero line replaces it)
+          labelOffset: 40,
+          labelAnchor: "center", 
+          labelArrow: "none",
+        };
+      }
+    } else {
+      // Standard axis configuration
+      // X axis configuration with proper styling
+      // Observable Plot: labelArrow controls arrow, label is the text
+      plotOptions.x = {
+        label: p.props.xLabel ?? p.props.x,
+        type: p.props.xType,
+        domain: p.props.xDomain,
+        grid: p.props.grid,
+        tickFormat: undefined,
+        line: true,
+        labelOffset: 40,
+        labelAnchor: "center",
+        labelArrow: "none",
+      };
 
-    // Y axis configuration  
-    plotOptions.y = {
-      label: p.props.yLabel ?? p.props.y,
-      type: p.props.yType,
-      domain: p.props.yDomain,
-      grid: p.props.grid !== false, // Grid on by default for Y
-      line: true,
-      labelOffset: 50,
-      labelAnchor: "center",
-      labelArrow: "none",
-    };
+      // Y axis configuration  
+      plotOptions.y = {
+        label: p.props.yLabel ?? p.props.y,
+        type: p.props.yType,
+        domain: p.props.yDomain,
+        grid: p.props.grid !== false, // Grid on by default for Y
+        line: true,
+        labelOffset: 50,
+        labelAnchor: "center",
+        labelArrow: "none",
+      };
+    }
     
-    // Grid styling
-    if (p.props.grid !== false) {
+    // Grid styling (only for standard charts, not waffle or stacked dots)
+    if (p.props.grid !== false && !isWaffleMark && !isStackedDotMark) {
       plotOptions.grid = {
         stroke: gridColor,
         strokeOpacity: theme.grid.strokeOpacity,
@@ -377,9 +570,13 @@ const Plot: Component<PlotProps> = (p) => {
     }
 
     // Color scale if using color encoding
-    if (p.props.color || p.props.series) {
+    // For stacked dots, fill can be a column name for categorical coloring
+    const fillIsColumn = p.props.fill && plotData.length > 0 && 
+      typeof plotData[0][p.props.fill] !== "undefined";
+    
+    if (p.props.color || p.props.series || p.props.colorScheme || fillIsColumn) {
       plotOptions.color = {
-        scheme: "observable10",
+        scheme: p.props.colorScheme || "observable10",
         legend: true,
       };
     }
@@ -387,15 +584,56 @@ const Plot: Component<PlotProps> = (p) => {
     // Build marks array
     const marks: any[] = [];
     
-    // Add subtle frame
-    marks.push(OPlot.frame({ stroke: theme.axes.stroke, strokeOpacity: 0.3 }));
+    // Add subtle frame (but not for waffle or stacked dot charts which look better without)
+    if (!isWaffleMark && !isStackedDotMark) {
+      marks.push(OPlot.frame({ stroke: theme.axes.stroke, strokeOpacity: 0.3 }));
+    }
     
-    // Zero line for reference (if data spans negative/positive)
-    const yValues = plotData.map(d => d[p.props.y]).filter(v => typeof v === "number");
-    const minY = Math.min(...yValues);
-    const maxY = Math.max(...yValues);
-    if (minY < 0 && maxY > 0) {
-      marks.push(OPlot.ruleY([0], { stroke: theme.axes.stroke, strokeOpacity: 0.5 }));
+    // Zero line for reference (if data spans negative/positive) - not for waffles or stacked dots
+    if (!isWaffleMark && !isStackedDotMark) {
+      const yValues = plotData.map(d => d[p.props.y]).filter(v => typeof v === "number");
+      const minY = Math.min(...yValues);
+      const maxY = Math.max(...yValues);
+      if (minY < 0 && maxY > 0) {
+        marks.push(OPlot.ruleY([0], { stroke: theme.axes.stroke, strokeOpacity: 0.5 }));
+      }
+    }
+    
+    // For stacked dots, add a zero line for bidirectional stacking
+    if (isStackedDotMark) {
+      const isHorizontal = markType === "dotX";
+      const stackCol = isHorizontal ? p.props.x : p.props.y;
+      
+      if (stackCol) {
+        // Check if stack column has both positive and negative values (bidirectional)
+        const stackValues = plotData.map(d => d[stackCol]).filter(v => typeof v === "number");
+        const hasNegative = stackValues.some(v => v < 0);
+        const hasPositive = stackValues.some(v => v > 0);
+        if (hasNegative && hasPositive) {
+          if (isHorizontal) {
+            // Horizontal bidirectional: vertical line at x=0
+            marks.push(OPlot.ruleX([0], { stroke: theme.axes.stroke, strokeWidth: 1.5 }));
+          } else {
+            // Vertical bidirectional: horizontal line at y=0
+            marks.push(OPlot.ruleY([0], { stroke: theme.axes.stroke, strokeWidth: 1.5 }));
+          }
+        }
+      }
+    }
+    
+    // For waffle charts, add axisFx mark for category labels with text wrap
+    if (isWaffleMark) {
+      const labelPosition = p.props.labelPosition || "bottom";
+      marks.push(OPlot.axisFx({
+        lineWidth: 12,  // Characters before wrap
+        anchor: labelPosition,
+        tickSize: 0,
+        // Push bottom labels down into the margin area
+        dy: labelPosition === "bottom" ? 15 : 0,
+        fill: theme.axes.labelColor,
+        fontWeight: "normal",
+        fontSize: 12,
+      }));
     }
     
     // Main data mark (with optional binning transform)
@@ -431,6 +669,34 @@ const Plot: Component<PlotProps> = (p) => {
         if (p.props.inset !== undefined) binOptions.inset = p.props.inset;
         
         mark = OPlot.rectX(plotData, OPlot.binY(outputs, binOptions));
+      }
+    }
+    
+    // For waffle charts, add background waffle showing total (before main mark)
+    if (isWaffleMark) {
+      const backgroundTotal = markType === "waffleY" ? p.props.backgroundY : p.props.backgroundX;
+      if (backgroundTotal !== undefined) {
+        const bgMarkOptions: Record<string, any> = {};
+        // Copy rx for rounded corners
+        if (p.props.rx !== undefined) {
+          bgMarkOptions.rx = p.props.rx;
+        }
+        // Use backgroundFill if provided, otherwise default to semi-transparent version of main fill
+        if (p.props.backgroundFill) {
+          bgMarkOptions.fill = p.props.backgroundFill;
+        } else {
+          // Default: same color as main waffle with 0.4 opacity
+          bgMarkOptions.fill = p.props.fill || p.props.stroke || theme.marks.stroke;
+          bgMarkOptions.fillOpacity = 0.4;
+        }
+        
+        if (markType === "waffleY") {
+          bgMarkOptions.y = backgroundTotal;
+          marks.push(OPlot.waffleY({ length: 1 }, bgMarkOptions));
+        } else {
+          bgMarkOptions.x = backgroundTotal;
+          marks.push(OPlot.waffleX({ length: 1 }, bgMarkOptions));
+        }
       }
     }
     
@@ -542,6 +808,13 @@ const Plot: Component<PlotProps> = (p) => {
     return { ...defaults, ...userStyle };
   };
 
+  // Check mark type for overflow handling
+  const markType = () => p.props.mark || "line";
+  const needsOverflow = () => {
+    const mt = markType();
+    return mt === "dotY" || mt === "dotX" || mt === "waffleY" || mt === "waffleX";
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -549,7 +822,7 @@ const Plot: Component<PlotProps> = (p) => {
       style={{
         ...containerStyles(),
         ...componentStyles(),
-        overflow: "hidden",
+        overflow: needsOverflow() ? "visible" : "hidden",
       }}
     >
       <Show when={p.props.title}>

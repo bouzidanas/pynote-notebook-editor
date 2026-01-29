@@ -11,6 +11,7 @@ import { currentTheme, updateTheme } from "../lib/theme";
 
 interface CodeVisibilityDialogProps {
   onClose: () => void;
+  onSave?: () => void; // Callback after save to trigger session autosave
 }
 
 const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
@@ -60,6 +61,8 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     saveVisibilitySettings();
     // Update theme output layout
     updateTheme({ outputLayout: localOutputLayout() });
+    // Notify parent to trigger session autosave
+    props.onSave?.();
     props.onClose();
   };
 

@@ -9,7 +9,7 @@ import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOp
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
-import { codeVisibility, setVisibilitySettings, resetUserOverride, type CodeVisibilitySettings } from "../lib/codeVisibility";
+import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
@@ -550,7 +550,8 @@ const Notebook: Component = () => {
       history: notebookStore.history,
       historyIndex: notebookStore.historyIndex,
       activeCellId: notebookStore.activeCellId,
-      theme: sessionHasTheme() ? { ...currentTheme } : undefined
+      theme: sessionHasTheme() ? { ...currentTheme } : undefined,
+      codeVisibility: getSessionState() // Persist code visibility settings & cell overrides
     };
     
     sessionManager.saveSession(sessionId, data);
@@ -566,6 +567,9 @@ const Notebook: Component = () => {
       autosaveTimeout = null;
     }, AUTOSAVE_DEBOUNCE_MS);
   }
+
+  // Set up callback for cell visibility override changes to trigger autosave
+  setOnCellOverrideChange(() => autosaveNotebook());
 
   // Restore notebook state from localStorage (if present)
   function restoreNotebook() {
@@ -597,6 +601,11 @@ const Notebook: Component = () => {
           setSessionHasTheme(false);
         }
         
+        // Restore code visibility state if session has it
+        if (data.codeVisibility) {
+          restoreSessionState(data.codeVisibility);
+        }
+        
         return true;
       }
     return false;
@@ -626,9 +635,9 @@ const Notebook: Component = () => {
       // Reset user override flag for fresh tutorial load
       resetUserOverride();
       
-      // Apply tutorial-specific code visibility settings if present
-      if (codeview) {
-        setVisibilitySettings(codeview, false); // false = not a user change
+      // Apply tutorial-specific code visibility settings if present (respects loadMetadataOnDocumentLoad flag)
+      if (codeview && shouldLoadMetadataSettings()) {
+        applyDocumentSettings(codeview);
       }
       
       actions.loadNotebook([...cells], filename, []);
@@ -828,27 +837,32 @@ const Notebook: Component = () => {
           // Extract history from PyNote metadata if it exists
           const history = nb.metadata?.PyNote?.history || [];
 
-          // Extract and apply code visibility settings if they exist
+          // Extract code visibility settings from document metadata
           const codeview = nb.metadata?.PyNote?.codeview;
-          if (codeview) {
-             // Validate and apply only known keys to allow for partial updates
-             // and prevent pollution with unknown props
+          let documentVisibilityState = null;
+          
+          if (codeview && shouldLoadMetadataSettings()) {
+             // Validate and extract only known keys
              const validKeys: (keyof CodeVisibilitySettings)[] = [
                  "showCode", "showStdout", "showStderr", 
                  "showResult", "showError", "showStatusDot"
              ];
              
-             const newSettings: Partial<CodeVisibilitySettings> = {};
+             const docSettings: Partial<CodeVisibilitySettings> = {};
              validKeys.forEach(key => {
                  if (typeof codeview[key] === "boolean") {
-                     newSettings[key] = codeview[key];
+                     docSettings[key] = codeview[key];
                  }
              });
 
-             if (Object.keys(newSettings).length > 0) {
-                 resetUserOverride(); // Reset for fresh document load
-                 setVisibilitySettings(newSettings, false); // false = not a user change
-                 // Note: Don't call saveVisibilitySettings here as it marks user override
+             if (Object.keys(docSettings).length > 0) {
+                 // Prepare visibility state for session
+                 // Start with current settings, merge document settings
+                 documentVisibilityState = {
+                     settings: { ...codeVisibility, ...docSettings },
+                     cellOverrides: {} as Record<string, boolean>,
+                     userHasOverridden: false // Document settings, not user override
+                 };
              }
           }
 
@@ -858,14 +872,15 @@ const Notebook: Component = () => {
           // Generate a new session ID for this file
           const newSessionId = crypto.randomUUID();
           
-          // Create session data (include theme if document has one)
+          // Create session data (include theme and visibility if document has them)
           const sessionData = {
             cells: newCells,
             filename: file.name,
             history: history,
             historyIndex: history.length - 1,
             activeCellId: null,
-            theme: themeData || undefined
+            theme: themeData || undefined,
+            codeVisibility: documentVisibilityState || undefined
           };
           
           // Save to the new session slot
@@ -1641,7 +1656,13 @@ const Notebook: Component = () => {
 
        {/* Code Visibility Dialog */}
        <Show when={showCodeVisibility()}>
-          <CodeVisibilityDialog onClose={() => setShowCodeVisibility(false)} />
+          <CodeVisibilityDialog 
+            onClose={() => setShowCodeVisibility(false)} 
+            onSave={() => {
+              // Autosave after visibility settings change
+              autosaveNotebookImmediate();
+            }}
+          />
        </Show>
 
        {/* Theme Dialog */}

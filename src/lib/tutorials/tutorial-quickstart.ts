@@ -16,6 +16,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
 
+<br />
 
 ---`
     }
@@ -143,6 +144,8 @@ export const tutorialQuickstartCells: CellData[] = [
         id: "tut-next",
         type: "markdown",
         content: `---
+
+<br />
 
 ## 🎉 Quick Start Complete!
 

@@ -804,6 +804,118 @@ def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1,
     """Create reference lines."""
     return Plot(data, x=x, y=y, mark="rule", stroke=stroke, strokeWidth=strokeWidth,
                 strokeDasharray=strokeDasharray, title=title, **kwargs)
+
+def waffle(data, x=None, y=None, fill=None, orientation="vertical", 
+           unit=None, gap=None, rx=None, bgY=None, bgX=None, bgOpacity=None,
+           title=None, **kwargs):
+    """
+    Create a waffle chart (unit chart with countable cells).
+    
+    Args:
+        data: List of dicts or values
+        x: Column for categorical grouping (vertical) or values (horizontal)
+        y: Column for values (vertical) or categorical grouping (horizontal)
+        fill: Column or color for fill encoding
+        orientation: "vertical" (waffleY) or "horizontal" (waffleX)
+        unit: Quantity each cell represents (default: 1)
+        gap: Gap between cells in pixels
+        rx: Corner radius - use "100%" for circles
+        bgY: Background total for vertical waffle (shows faded unfilled cells)
+        bgX: Background total for horizontal waffle
+        bgOpacity: Opacity for background cells (default: 0.4)
+        title: Chart title
+    """
+    mark = "waffleY" if orientation == "vertical" else "waffleX"
+    
+    extra_kwargs = {}
+    bg_total = bgY if orientation == "vertical" else bgX
+    if bg_total is not None:
+        extra_kwargs["backgroundY" if orientation == "vertical" else "backgroundX"] = bg_total
+        opacity = bgOpacity if bgOpacity is not None else 0.4
+        if fill and isinstance(fill, str) and fill.startswith("#"):
+            hex_color = fill.lstrip("#")
+            if len(hex_color) == 3:
+                hex_color = "".join([c*2 for c in hex_color])
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+            extra_kwargs["backgroundFill"] = f"rgba({r}, {g}, {b}, {opacity})"
+        else:
+            extra_kwargs["backgroundFill"] = fill or "currentColor"
+    
+    return Plot(data, x=x, y=y, mark=mark, fill=fill, unit=unit, gap=gap, 
+                rx=rx, title=title, **extra_kwargs, **kwargs)
+
+def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
+           binWidth=None, colorScheme=None, title=None, **kwargs):
+    """
+    Create a hexbin heatmap (2D histogram with hexagonal bins).
+    
+    Args:
+        data: List of dicts with x, y values
+        x, y: Column names for position
+        fill: "count" (default) or column name for color encoding
+        r: "count" for sized hexagons, or fixed radius
+        stroke: Stroke color for hexagon borders
+        binWidth: Distance between hexagon centers in pixels
+        colorScheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
+        title: Chart title
+    """
+    return Plot(data, x=x, y=y, mark="hexbin", fill=fill, r=r, stroke=stroke,
+                binWidth=binWidth, colorScheme=colorScheme, title=title, **kwargs)
+
+def stacked_dots(data, x=None, y=None, fill=None, r=None, 
+                 orientation="vertical", direction="single",
+                 group_column=None, positive_value=None, negative_value=None,
+                 title=None, **kwargs):
+    """
+    Create a stacked dot plot (Wilkinson dot plot).
+    
+    Args:
+        data: List of dicts with values to plot
+        x: Column for x-axis (categories for vertical, values for horizontal)
+        y: Column for y-axis, or bidirectional values (+1/-1)
+        fill: Column or color for fill encoding
+        r: Dot radius in pixels
+        orientation: "vertical" (dotY) or "horizontal" (dotX)
+        direction: "single" (stack one way) or "bidirectional" (up/down)
+        group_column: For bidirectional - column that determines direction
+        positive_value: Value that stacks positive (up/right)
+        negative_value: Value that stacks negative (down/left)
+        title: Chart title
+    
+    Examples:
+        # Simple vertical stacking
+        stacked_dots(data, x="grade")
+        
+        # Bidirectional stacking
+        stacked_dots(data, x="score", direction="bidirectional",
+                     group_column="gender", 
+                     positive_value="Male", negative_value="Female",
+                     fill="gender", yLabel="← Female · Male →")
+    """
+    plot_data = data
+    plot_y = y
+    
+    if direction == "bidirectional" and group_column and positive_value and negative_value:
+        plot_data = []
+        for item in data:
+            new_item = dict(item)
+            if item.get(group_column) == positive_value:
+                new_item["_y_dir"] = 1
+            elif item.get(group_column) == negative_value:
+                new_item["_y_dir"] = -1
+            else:
+                new_item["_y_dir"] = 1
+            plot_data.append(new_item)
+        plot_y = "_y_dir"
+    
+    mark = "dotY" if orientation == "vertical" else "dotX"
+    
+    if orientation == "vertical":
+        return Plot(plot_data, x=x, y=plot_y, mark=mark, fill=fill, r=r, title=title, **kwargs)
+    else:
+        return Plot(plot_data, x=plot_y, y=y if y else x, mark=mark, fill=fill, r=r, title=title, **kwargs)
 `);
         pyodide.FS.writeFile("pynote_ui/uplot.py", `
 from .core import UIElement

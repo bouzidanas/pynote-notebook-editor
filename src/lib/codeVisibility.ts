@@ -13,6 +13,22 @@ export interface CodeVisibilitySettings {
 
 const STORAGE_KEY = "pynote-code-visibility";
 
+// Internal flag: whether to load visibility settings from document metadata (.ipynb)
+// When true, document metadata is applied on load (as session settings, not app-wide)
+// When false, document metadata is ignored and global settings are used
+// This is internal for now - default to true (load metadata)
+let loadMetadataOnDocumentLoad = true;
+
+// Get the current value of the metadata loading flag
+export const shouldLoadMetadataSettings = (): boolean => {
+    return loadMetadataOnDocumentLoad;
+};
+
+// Set the metadata loading flag (internal use)
+export const setLoadMetadataOnDocumentLoad = (value: boolean) => {
+    loadMetadataOnDocumentLoad = value;
+};
+
 // Default: show everything
 const defaultSettings: CodeVisibilitySettings = {
     showCode: true,
@@ -60,8 +76,22 @@ export const isCellShowingAll = (cellId: string): boolean => {
 };
 
 // Toggle a cell's "show all" mode
+// Optional onToggle callback for triggering autosave
+let onCellOverrideChangeCallback: (() => void) | null = null;
+
+export const setOnCellOverrideChange = (callback: (() => void) | null) => {
+    onCellOverrideChangeCallback = callback;
+};
+
 export const toggleCellShowAll = (cellId: string) => {
     setCellOverrides(cellId, !cellOverrides[cellId]);
+    // Notify that cell override changed (for session autosave)
+    onCellOverrideChangeCallback?.();
+};
+
+// Set a cell's "show all" mode to a specific value
+export const setCellShowAll = (cellId: string, value: boolean) => {
+    setCellOverrides(cellId, value);
 };
 
 // Clear all overrides (when settings change)
@@ -69,6 +99,23 @@ export const clearAllOverrides = () => {
     // Reset all overrides to false
     Object.keys(cellOverrides).forEach(key => {
         setCellOverrides(key, false);
+    });
+};
+
+// Get all cell overrides (for session persistence)
+export const getCellOverrides = (): Record<string, boolean> => {
+    return { ...cellOverrides };
+};
+
+// Set all cell overrides (for session restore)
+export const setCellOverridesFromSession = (overrides: Record<string, boolean>) => {
+    // Clear existing overrides first
+    Object.keys(cellOverrides).forEach(key => {
+        setCellOverrides(key, false);
+    });
+    // Set new overrides
+    Object.entries(overrides).forEach(([cellId, value]) => {
+        setCellOverrides(cellId, value);
     });
 };
 
@@ -98,9 +145,84 @@ export const setVisibilitySettings = (
     });
 };
 
+/**
+ * Apply document-level visibility settings from .ipynb metadata.
+ * This is session-only - does NOT save to app-wide localStorage.
+ * Does NOT set userHasOverridden, so cell metadata can still apply.
+ * 
+ * Only applies if loadMetadataOnDocumentLoad is true.
+ * Returns true if settings were applied, false if skipped.
+ */
+export const applyDocumentSettings = (
+    documentSettings: Partial<CodeVisibilitySettings>,
+    cellOverridesFromDoc?: Record<string, boolean>
+): boolean => {
+    if (!loadMetadataOnDocumentLoad) {
+        return false; // Skip - user has disabled metadata loading
+    }
+
+    // Apply document-level settings (without marking as user override)
+    Object.entries(documentSettings).forEach(([key, value]) => {
+        setSettings(key as keyof CodeVisibilitySettings, value as any);
+    });
+
+    // Apply cell overrides from document if provided
+    if (cellOverridesFromDoc) {
+        setCellOverridesFromSession(cellOverridesFromDoc);
+    }
+
+    // Don't set userHasOverriddenSettings - this allows cell metadata to still apply
+    // Don't save to localStorage - this is session-only
+
+    return true;
+};
+
 // Reset the user override flag (called when loading a new document)
 export const resetUserOverride = () => {
     userHasOverriddenSettings = false;
+};
+
+// Check if user has overridden settings in this session
+export const hasUserOverridden = (): boolean => {
+    return userHasOverriddenSettings;
+};
+
+// Set the user override flag (for session restore)
+export const setUserOverrideFlag = (value: boolean) => {
+    userHasOverriddenSettings = value;
+};
+
+// Get current settings (for session persistence)
+export const getVisibilitySettings = (): CodeVisibilitySettings => {
+    return { ...settings };
+};
+
+// Session state for persistence
+export interface CodeVisibilitySessionState {
+    settings: CodeVisibilitySettings;
+    cellOverrides: Record<string, boolean>;
+    userHasOverridden: boolean;
+}
+
+// Get full session state (for saving to session)
+export const getSessionState = (): CodeVisibilitySessionState => {
+    return {
+        settings: { ...settings },
+        cellOverrides: getCellOverrides(),
+        userHasOverridden: userHasOverriddenSettings
+    };
+};
+
+// Restore from session state
+export const restoreSessionState = (state: CodeVisibilitySessionState) => {
+    // Restore settings
+    Object.entries(state.settings).forEach(([key, value]) => {
+        setSettings(key as keyof CodeVisibilitySettings, value as any);
+    });
+    // Restore cell overrides
+    setCellOverridesFromSession(state.cellOverrides);
+    // Restore override flag
+    userHasOverriddenSettings = state.userHasOverridden;
 };
 
 // Save settings to localStorage (user-initiated)

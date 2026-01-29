@@ -16,17 +16,18 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts *(you are here)* |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
 
+<br />
 
 ---`
     },
 
     // ============================================================================
-    // INTERACTIVE CHARTS
+    // CHARTS & PLOTTING
     // ============================================================================
     {
         id: "tut-charts-intro",
         type: "markdown",
-        content: "# Interactive Charts\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | Flexible, declarative plots with channels, transforms, scales | ~55KB |\n| `TimeSeries` | uPlot | High-performance time series (100K+ points) | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, percentage charts | ~16KB |\n\nObservable Plot is particularly powerful with support for **15+ mark types**, data **channels** (position, color, size), **transforms** (sort, bin, stack), and smooth **curve interpolation**."
+        content: "# Charts & Plotting\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | Flexible, declarative plots with channels, transforms, scales | ~55KB |\n| `TimeSeries` | uPlot | High-performance time series (100K+ points) | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, percentage charts | ~16KB |\n\nObservable Plot is particularly powerful with support for **15+ mark types**, data **channels** (position, color, size), **transforms** (sort, bin, stack), and smooth **curve interpolation**."
     },
 
     // --- Section: Basic Plotting ---
@@ -73,6 +74,204 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
         id: "tut-demo-plot-histogram",
         type: "code",
         content: "from pynote_ui.oplot import histogram\nimport numpy as np\n\n# Grouped histogram with binning\nnp.random.seed(42)\ndata = []\nfor sex in [\"Male\", \"Female\"]:\n    heights = np.random.normal(170 if sex == \"Male\" else 165, 8, 200)\n    data.extend([{\"height\": h, \"sex\": sex} for h in heights])\n\nhistogram(data, x=\"height\", fill=\"sex\",\n          bins=30, stat=\"proportion\",\n          title=\"Height Distribution by Sex\",\n          xLabel=\"Height (cm)\",\n          yLabel=\"Proportion\",\n          yDomain=[0, 0.15])"
+    },
+
+    // --- Section: Waffle Charts ---
+    {
+        id: "tut-charts-waffle",
+        type: "markdown",
+        content: "## Waffle Charts\n\nWaffle charts subdivide bars into **countable cells**, making it easy to read exact quantities. Great for showing proportions or comparing counts.\n\nUse `waffle()` for the convenience function, or `Plot(..., mark=\"waffleY\")` directly."
+    },
+    {
+        id: "tut-demo-waffle",
+        type: "code",
+        content: `from pynote_ui.oplot import waffle
+
+# Simple waffle from counts - each cell = 1 unit
+data = [
+    {"fruit": "🍎 Apples", "count": 52},
+    {"fruit": "🍌 Bananas", "count": 47},
+    {"fruit": "🍊 Oranges", "count": 85},
+    {"fruit": "🍐 Pears", "count": 11}
+]
+
+waffle(data, x="fruit", y="count", 
+       title="Fruit Inventory", 
+       height=300)`
+    },
+    {
+        id: "tut-demo-waffle-survey",
+        type: "code",
+        content: `from pynote_ui.oplot import waffle
+
+# Survey waffle with circular cells and background showing total
+survey = [
+    {"question": "Don't go out after dark", "yes": 96},
+    {"question": "No activities other than school", "yes": 89},
+    {"question": "Would like activities but prevented", "yes": 73}
+]
+
+waffle(survey, x="question", y="yes",
+       rx="100%",           # Circular cells
+       fill="#f97316",      # Orange
+       bgY=120,             # Background total (shows unfilled portion)
+       bgOpacity=0.4,       # 40% opacity for background
+       title="Syrian Teenagers Survey (of 120)")`
+    },
+
+    // --- Section: Hexbin Heatmaps ---
+    {
+        id: "tut-charts-hexbin",
+        type: "markdown",
+        content: "## Hexbin Heatmaps\n\nHexbin aggregates dense scatter data into **hexagonal bins**, showing density via color. Perfect for visualizing distributions when you have many overlapping points.\n\nUse `hexbin()` for the convenience function, or `Plot(..., mark=\"hexbin\")` directly."
+    },
+    {
+        id: "tut-demo-hexbin",
+        type: "code",
+        content: `from pynote_ui.oplot import hexbin
+import numpy as np
+
+# Generate 2D normal distribution (1000 points)
+np.random.seed(42)
+n = 1000
+data = [
+    {"x": np.random.normal(170, 8), "y": np.random.normal(70, 12)}
+    for _ in range(n)
+]
+
+hexbin(data, x="x", y="y", 
+       colorScheme="YlGnBu",
+       title="Height vs Weight Distribution (1000 points)",
+       xLabel="Height (cm)", 
+       yLabel="Weight (kg)",
+       height=320)`
+    },
+
+    // --- Section: Stacked Dots ---
+    {
+        id: "tut-charts-stacked-dots",
+        type: "markdown",
+        content: "## Stacked Dots\n\nStacked dot plots (Wilkinson dot plots) show individual observations while revealing patterns. Dots automatically stack so you can count them.\n\n**Simple stacking**: Each dot stacks upward (like a bar chart made of dots)\n**Bidirectional stacking**: Dots stack up AND down from a center line (great for comparing two groups)\n\nUse `stacked_dots()` for quick plots, or `Plot(..., mark=\"dotY\")` for full control."
+    },
+    {
+        id: "tut-demo-stacked-dots",
+        type: "code",
+        content: `from pynote_ui.oplot import stacked_dots
+import random
+
+# Simple stacked dots - each dot stacks upward from x-axis
+random.seed(42)
+data = []
+
+options = ["A", "B", "C", "D", "F"]
+counts = [25, 35, 20, 12, 8]  # How many of each grade
+
+for opt, count in zip(options, counts):
+    for _ in range(count):
+        data.append({"grade": opt})
+
+stacked_dots(data, x="grade",
+             fill="#6366f1", r=6,
+             title="Grade Distribution (100 students)",
+             xLabel="Grade",
+             height=300)`
+    },
+    {
+        id: "tut-demo-stacked-dots-grouped",
+        type: "code",
+        content: `from pynote_ui.oplot import stacked_dots
+import random
+
+# Grouped stacked dots - color by category, still stacking upward
+random.seed(123)
+data = []
+for section in ["Morning", "Afternoon"]:
+    for _ in range(40):
+        score = random.choice(["A", "B", "C", "D", "F"])
+        data.append({"grade": score, "section": section})
+
+stacked_dots(data, x="grade", fill="section", r=5,
+             title="Grades by Class Section",
+             xLabel="Grade",
+             height=280)`
+    },
+    {
+        id: "tut-charts-bidirectional-dots",
+        type: "markdown",
+        content: "### Bidirectional Stacked Dots\n\nTo compare two groups side-by-side, stack dots in **opposite directions** from a center line. The `stacked_dots()` helper makes this easy with `direction=\"bidirectional\"`:"
+    },
+    {
+        id: "tut-demo-bidirectional-dots",
+        type: "code",
+        content: `from pynote_ui.oplot import stacked_dots
+import random
+
+# Generate test score data
+random.seed(46)
+data = []
+
+for _ in range(85):
+    score = int(random.gauss(75, 12))
+    score = max(55, min(100, score))
+    data.append({"score": score, "group": "Male"})
+
+for _ in range(60):
+    score = int(random.gauss(78, 10))
+    score = max(55, min(100, score))
+    data.append({"score": score, "group": "Female"})
+
+# Bidirectional: just specify which group goes up vs down
+stacked_dots(data, 
+     x="score",
+     direction="bidirectional",
+     group_column="group",
+     positive_value="Male",      # Stacks upward
+     negative_value="Female",    # Stacks downward
+     fill="group",
+     r=5,
+     title="Test Scores by Gender",
+     xLabel="Score",
+     yLabel="← Female · Male →",
+     xDomain=[54, 101],
+     yDomain=[-10, 10],
+     height=350)`
+    },
+    {
+        id: "tut-demo-bidirectional-dots-horizontal",
+        type: "code",
+        content: `from pynote_ui.oplot import stacked_dots
+import random
+
+# Same data, but stacked HORIZONTALLY (left/right from center)
+random.seed(51)
+data = []
+
+for _ in range(180):
+    score = int(random.gauss(75, 12))
+    score = max(50, min(100, score))
+    data.append({"score": score, "group": "Male"})
+
+for _ in range(120):
+    score = int(random.gauss(78, 10))
+    score = max(50, min(100, score))
+    data.append({"score": score, "group": "Female"})
+
+# Horizontal bidirectional: swap orientation
+stacked_dots(data, 
+     y="score",                   # Now y-axis has the values
+     orientation="horizontal",   # Stack left/right instead of up/down
+     direction="bidirectional",
+     group_column="group",
+     positive_value="Male",      # Stacks rightward
+     negative_value="Female",    # Stacks leftward
+     fill="group",
+     r=5,
+     title="Test Scores by Gender (Horizontal)",
+     yLabel="Score",
+     xLabel="← Female · Male →",
+     yDomain=[48, 102],
+     xDomain=[-20, 20],
+     height=900)`
     },
 
     // --- Section: Interactive Plot with Slider ---
@@ -186,6 +385,8 @@ Group([
         id: "tut-charts-next",
         type: "markdown",
         content: `---
+
+<br />
 
 ## 🎉 Charts & Plotting Complete!
 
