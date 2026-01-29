@@ -2,14 +2,14 @@ import { type Component, For, Show, createSignal, onCleanup, createEffect, onMou
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
 import { TransitionGroup } from "solid-transition-group";
 import { notebookStore, actions, defaultCells } from "../lib/store";
-import { tutorialCells } from "../lib/tutorial-notebook";
+import { isTutorialType, getTutorialContent } from "../lib/tutorials";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
 import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
-import { codeVisibility, setVisibilitySettings, saveVisibilitySettings, type CodeVisibilitySettings } from "../lib/codeVisibility";
+import { codeVisibility, setVisibilitySettings, resetUserOverride, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
@@ -606,11 +606,12 @@ const Notebook: Component = () => {
   // On mount, restore autosaved notebook if present, else load default cells
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
-    const isTutorial = params.get("open") === "tutorial";
+    const openParam = params.get("open");
+    const tutorialType = isTutorialType(openParam) ? openParam : null;
     let sessionId = sessionManager.getSessionIdFromUrl();
 
     // Handle Tutorial Initialization (Fresh)
-    if (isTutorial && !sessionId) {
+    if (tutorialType && !sessionId) {
       // Create new session ID for the tutorial
       sessionId = crypto.randomUUID();
       const url = new URL(window.location.href);
@@ -620,7 +621,17 @@ const Notebook: Component = () => {
       // Load app theme for new session
       updateTheme(loadAppTheme());
       
-      actions.loadNotebook([...tutorialCells], "Tutorial.ipynb", []);
+      const { cells, filename, codeview } = getTutorialContent(tutorialType);
+      
+      // Reset user override flag for fresh tutorial load
+      resetUserOverride();
+      
+      // Apply tutorial-specific code visibility settings if present
+      if (codeview) {
+        setVisibilitySettings(codeview, false); // false = not a user change
+      }
+      
+      actions.loadNotebook([...cells], filename, []);
       autosaveNotebook();
       return;
     }
@@ -648,9 +659,19 @@ const Notebook: Component = () => {
         
         if (!restored) {
             // ID exists but data is gone (expired/deleted)
-            if (isTutorial) {
+            if (tutorialType) {
                  // Tutorial link with invalid/expired session -> Reload Tutorial
-                 actions.loadNotebook([...tutorialCells], "Tutorial.ipynb", []);
+                 const { cells, filename, codeview } = getTutorialContent(tutorialType);
+                 
+                 // Reset user override flag for fresh tutorial load
+                 resetUserOverride();
+                 
+                 // Apply tutorial-specific code visibility settings if present
+                 if (codeview) {
+                   setVisibilitySettings(codeview, false); // false = not a user change
+                 }
+                 
+                 actions.loadNotebook([...cells], filename, []);
             } else {
                  // Normal link with invalid/expired session -> New Notebook
                  actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
@@ -717,12 +738,21 @@ const Notebook: Component = () => {
   };
 
   const handleSave = () => {
+    // When saving with global codeview settings (saveToExport), remove cell-level overrides
+    // since the document metadata now contains the authoritative settings
+    const savingGlobalCodeview = codeVisibility.saveToExport;
+    
     const notebook = {
       cells: notebookStore.cells.map(c => ({
         cell_type: c.type,
         source: c.content.split('\n').map(l => l + '\n'),
         outputs: [], 
-        metadata: {}
+        // Include cell metadata ONLY if it has codeview settings AND we're NOT saving global settings
+        metadata: (c.metadata?.pynote?.codeview && !savingGlobalCodeview) ? {
+          pynote: {
+            codeview: c.metadata.pynote.codeview
+          }
+        } : {}
       })),
       metadata: {
         kernelspec: {
@@ -777,12 +807,24 @@ const Notebook: Component = () => {
         const content = e.target?.result as string;
         const nb = JSON.parse(content);
         if (nb.cells && Array.isArray(nb.cells)) {
-          const newCells = nb.cells.map((c: any) => ({
-            id: crypto.randomUUID(),
-            type: c.cell_type === "code" || c.cell_type === "markdown" ? c.cell_type : "markdown",
-            content: Array.isArray(c.source) ? c.source.join("") : (c.source || ""),
-            isEditing: false
-          }));
+          const newCells = nb.cells.map((c: any) => {
+            // Extract cell-level metadata for code visibility
+            const cellCodeview = c.metadata?.pynote?.codeview;
+            return {
+              id: crypto.randomUUID(),
+              type: c.cell_type === "code" || c.cell_type === "markdown" ? c.cell_type : "markdown",
+              content: Array.isArray(c.source) ? c.source.join("") : (c.source || ""),
+              isEditing: false,
+              // Preserve cell metadata if it exists
+              ...(cellCodeview ? {
+                metadata: {
+                  pynote: {
+                    codeview: cellCodeview
+                  }
+                }
+              } : {})
+            };
+          });
           // Extract history from PyNote metadata if it exists
           const history = nb.metadata?.PyNote?.history || [];
 
@@ -804,8 +846,9 @@ const Notebook: Component = () => {
              });
 
              if (Object.keys(newSettings).length > 0) {
-                 setVisibilitySettings(newSettings);
-                 saveVisibilitySettings();
+                 resetUserOverride(); // Reset for fresh document load
+                 setVisibilitySettings(newSettings, false); // false = not a user change
+                 // Note: Don't call saveVisibilitySettings here as it marks user override
              }
           }
 

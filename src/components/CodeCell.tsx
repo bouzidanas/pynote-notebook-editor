@@ -26,8 +26,11 @@ const CodeCell: Component<CodeCellProps> = (props) => {
   // const [running, setRunning] = createSignal(false);
   const [hovered, setHovered] = createSignal(false);
 
-  // Get effective visibility for this cell (considers per-cell override)
-  const visibility = () => getEffectiveVisibility(props.cell.id);
+  // Get effective visibility for this cell (considers per-cell override AND cell metadata)
+  const visibility = () => getEffectiveVisibility(
+    props.cell.id, 
+    props.cell.metadata?.pynote?.codeview
+  );
   const isShowingAll = () => isCellShowingAll(props.cell.id);
 
   // Check if cell has any actual output content (regardless of visibility settings)

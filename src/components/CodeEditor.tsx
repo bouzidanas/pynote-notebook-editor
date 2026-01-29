@@ -82,6 +82,21 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
   });
   
+  // Track if we've reported the initial entry position (to avoid duplicate reports)
+  let initialPositionReported = false;
+
+  // Report initial entry position when view becomes available AND we're in edit mode
+  // This handles new cells that start in edit mode (editorView is null in onMount)
+  createEffect(() => {
+    const view = editorView();
+    const isReadOnly = props.readOnly;
+    
+    if (view && !isReadOnly && !initialPositionReported) {
+      const position = undoDepth(view.state);
+      actions.setCodeCellEntryPosition(props.cell.id, position);
+      initialPositionReported = true;
+    }
+  });
 
 
   // Save editor state before cleanup
@@ -114,11 +129,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
       
       if (currentReadOnly) {
         // Exiting edit mode (becoming read-only)
-        console.log(`[CodeEditor] Exiting edit mode, exit position ${position} for cell ${props.cell.id}`);
         actions.commitCodeCellEditSession(props.cell.id, position);
       } else {
         // Entering edit mode (becoming editable)
-        console.log(`[CodeEditor] Entering edit mode, entry position ${position} for cell ${props.cell.id}`);
         actions.setCodeCellEntryPosition(props.cell.id, position);
       }
     }
@@ -136,8 +149,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
       const delta = targetPosition - currentPosition;
       
       if (delta !== 0) {
-        console.log(`[CodeEditor] Navigating from position ${currentPosition} to ${targetPosition} (delta: ${delta}) for cell ${props.cell.id}`);
-        
         // Navigate by dispatching history transactions directly
         // We need to get the updated state after each dispatch
         for (let i = 0; i < Math.abs(delta); i++) {
@@ -155,9 +166,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
             }
           }
         }
-        
-        const finalPosition = undoDepth(view.state);
-        console.log(`[CodeEditor] Navigation complete, final position ${finalPosition} for cell ${props.cell.id}`);
       }
       
       // Clear the target position so it can be set again later (even if delta was 0)

@@ -79,14 +79,19 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
     
     console.log("Starting Stress Test...");
     
-    // 2. Add 50 Code Cells
-    for (let i = 0; i < 50; i++) {
-        actions.addCell("code");
-        // Update content to trigger syntax highlighting work
-        const id = notebookStore.cells[notebookStore.cells.length - 1].id;
-        actions.updateCell(id, `def stress_test_${i}():\n    print("Loading optimized cell ${i}")\n    return ${i} * 2`);
-        // Deselect so they go to View mode (optimized) if applicable
-        actions.setEditing(id, false);
+    // 2. Add 50 Code Cells (batched for single undo)
+    actions.beginBatch();
+    try {
+      for (let i = 0; i < 50; i++) {
+          actions.addCell("code");
+          // Update content to trigger syntax highlighting work
+          const id = notebookStore.cells[notebookStore.cells.length - 1].id;
+          actions.updateCell(id, `def stress_test_${i}():\n    print("Loading optimized cell ${i}")\n    return ${i} * 2`);
+          // Deselect so they go to View mode (optimized) if applicable
+          actions.setEditing(id, false);
+      }
+    } finally {
+      actions.endBatch();
     }
     
     // 3. Wait for render (force style recalc to be fair)
@@ -122,9 +127,14 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
   };
 
   const clearAll = () => {
-      // Delete all cells
-      const ids = notebookStore.cells.map(c => c.id);
-      ids.forEach(id => actions.deleteCell(id));
+      // Delete all cells (batched for single undo)
+      actions.beginBatch();
+      try {
+        const ids = notebookStore.cells.map(c => c.id);
+        ids.forEach(id => actions.deleteCell(id));
+      } finally {
+        actions.endBatch();
+      }
   };
 
   return (

@@ -406,6 +406,13 @@ body {
     font-style: normal;
 }
 
+/* Horizontal Rule styling */
+.prose hr,
+.milkdown .editor hr {
+    border: none !important;
+    border-top: 1px solid var(--foreground) !important;
+}
+
  /* Image Styling */
 .prose img,
 .milkdown .editor img {
