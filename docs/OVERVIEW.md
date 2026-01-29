@@ -119,7 +119,7 @@ PyNote is built with **SolidJS**, a framework that handles UI updates more effic
 
 PyNote isn't trying to replace heavy-duty compute environments. If you're training large machine learning models, you need a GPU and a real server.
 
-But where PyNote aims to excel is **presentation**. It has a built-in theming system inspired by modern blog and article design. You can customize:
+But where PyNote aims to excel is **presentation**. The UI is built with [daisyUI](https://daisyui.com/), a component library for Tailwind CSS that provides semantic class names and a powerful theming system. This gives us consistent, polished components out of the box while keeping everything customizable. You can adjust:
 
 - Colors, fonts, and spacing
 - Light and dark modes
