@@ -29,6 +29,19 @@ export const setLoadMetadataOnDocumentLoad = (value: boolean) => {
     loadMetadataOnDocumentLoad = value;
 };
 
+// Internal flag: auto-run all cells when a NEW session loads and kernel is ready
+// Only triggers on brand new sessions, NOT on page refresh of existing sessions
+// Default: true (enabled)
+let autoRunOnNewSession = true;
+
+export const shouldAutoRunOnNewSession = (): boolean => {
+    return autoRunOnNewSession;
+};
+
+export const setAutoRunOnNewSession = (value: boolean) => {
+    autoRunOnNewSession = value;
+};
+
 // Default: show everything
 const defaultSettings: CodeVisibilitySettings = {
     showCode: true,

@@ -11,7 +11,7 @@ class TimeSeries(UIElement):
         data: Either uPlot format [[timestamps], [values], ...] or 
               simplified format {"x": [...], "y": [...], "y2": [...]}
         series: List of series configs [{"label": "...", "stroke": "#color"}, ...]
-        xLabel, yLabel: Axis labels
+        x_label, y_label: Axis labels
         xType: "time" (default, Unix timestamps) or "numeric"
         title: Chart title
         width: Chart width - number (pixels), "full", or "100%" (default: fills container)
@@ -20,15 +20,15 @@ class TimeSeries(UIElement):
         cursor: Show cursor crosshairs (default: True)
         zoom: Enable zoom on drag (default: True)
         border: Show border (default: True)
-        borderRadius: Border radius (optional, defaults to theme)
+        border_radius: Border radius (optional, defaults to theme)
         
         Style customization (all optional, override defaults):
-        titleStyle: dict - Title text style
-        xLabelStyle: dict - X-axis label style
-        yLabelStyle: dict - Y-axis label style
-        tickStyle: dict - Tick/number label style
-        gridStyle: dict - Grid line style
-        axisStyle: dict - Axis line style
+        title_style: dict - Title text style
+        x_label_style: dict - X-axis label style
+        y_label_style: dict - Y-axis label style
+        tick_style: dict - Tick/number label style
+        grid_style: dict - Grid line style
+        axis_style: dict - Axis line style
     
     Example:
         import numpy as np
@@ -46,19 +46,19 @@ class TimeSeries(UIElement):
             xType="time",
             title="Random Walk",
             width="full",
-            titleStyle={"fontSize": "18px", "color": "#333"}
+            title_style={"fontSize": "18px", "color": "#333"}
         )
     """
     def __init__(
         self,
         data,
         series=None,
-        xLabel=None,
-        yLabel=None,
-        y2Label=None,
+        x_label=None,
+        y_label=None,
+        y2_label=None,
         xType="time",
-        xRange=None,
-        yRange=None,
+        x_range=None,
+        y_range=None,
         width="full",
         height=350,
         legend=True,
@@ -66,16 +66,16 @@ class TimeSeries(UIElement):
         zoom=True,
         title=None,
         border=True,
-        borderWidth=None,
-        borderRadius=None,
-        borderColor=None,
+        border_width=None,
+        border_radius=None,
+        border_color=None,
         # Style customization dicts
-        titleStyle=None,
-        xLabelStyle=None,
-        yLabelStyle=None,
-        tickStyle=None,
-        gridStyle=None,
-        axisStyle=None,
+        title_style=None,
+        x_label_style=None,
+        y_label_style=None,
+        tick_style=None,
+        grid_style=None,
+        axis_style=None,
         grow=None,
         shrink=None,
         force_dimensions=False
@@ -86,12 +86,12 @@ class TimeSeries(UIElement):
         super().__init__(
             data=self._data,
             series=series,
-            xLabel=xLabel,
-            yLabel=yLabel,
-            y2Label=y2Label,
+            x_label=x_label,
+            y_label=y_label,
+            y2_label=y2_label,
             xType=xType,
-            xRange=xRange,
-            yRange=yRange,
+            x_range=x_range,
+            y_range=y_range,
             width=width,
             height=height,
             legend=legend,
@@ -99,15 +99,15 @@ class TimeSeries(UIElement):
             zoom=zoom,
             title=title,
             border=border,
-            borderWidth=borderWidth,
-            borderRadius=borderRadius,
-            borderColor=borderColor,
-            titleStyle=titleStyle,
-            xLabelStyle=xLabelStyle,
-            yLabelStyle=yLabelStyle,
-            tickStyle=tickStyle,
-            gridStyle=gridStyle,
-            axisStyle=axisStyle,
+            border_width=border_width,
+            border_radius=border_radius,
+            border_color=border_color,
+            title_style=title_style,
+            x_label_style=x_label_style,
+            y_label_style=y_label_style,
+            tick_style=tick_style,
+            grid_style=grid_style,
+            axis_style=axis_style,
             grow=grow,
             shrink=shrink,
             force_dimensions=force_dimensions

@@ -16,6 +16,7 @@ Geometric shapes that represent data:
 - **cell**: Grid cells (heatmaps)
 - **rule/ruleX/ruleY**: Reference lines
 - **box/boxX/boxY**: Box plots
+- **waffleY/waffleX**: Waffle charts (unit charts)
 - **density**: Contour density plots
 - **text**: Labels
 
@@ -23,7 +24,7 @@ Geometric shapes that represent data:
 Data encodings that can vary per data point:
 
 **Position**: `x`, `y`, `z` (series grouping)
-**Style**: `fill`, `stroke`, `opacity`, `strokeWidth`, `fillOpacity`, `strokeOpacity`
+**Style**: `fill`, `stroke`, `opacity`, `stroke_width`, `fill_opacity`, `stroke_opacity`
 **Dimensions**: `r` (radius), `symbol`, `rotate`
 **Bounds**: `x1`, `x2`, `y1`, `y2` (for rect/area marks)
 
@@ -44,7 +45,7 @@ Data operations applied before rendering:
 ### Scales
 Map abstract values to visual properties:
 - **Types**: `"linear"`, `"log"`, `"sqrt"`, `"pow"`, `"time"`, `"utc"`, `"band"`, `"point"`, `"ordinal"`
-- **Domains**: Set explicit ranges (`xDomain=[0, 100]`, `yDomain=["low", "high"]`)
+- **Domains**: Set explicit ranges (`x_domain=[0, 100]`, `y_domain=["low", "high"]`)
 
 ## Basic Usage
 
@@ -104,11 +105,17 @@ histogram(data, x="value", thresholds=20)
 # Grouped histogram
 histogram(data, x="age", fill="sex", reduce="proportion")
 
+# Waffle chart (unit chart)
+waffle(data, x="category", y="count", per_row=10, rx="100%")
+
+# Waffle with background showing total
+waffle(data, x="category", y="count", bg_y=100, bg_opacity=0.3)
+
 # Heatmap
 heatmap(grid_data, x="hour", y="day", fill="temperature")
 
 # Reference line
-rule(y=0, stroke="red", strokeWidth=2)
+rule(y=0, stroke="red", stroke_width=2)
 ```
 
 ## Advanced Features
@@ -169,8 +176,8 @@ line(data, x="x", y="y", curve="step")  # Stepped
 
 **Lines:**
 - `marker`: Add endpoint markers (`"dot"`, `"arrow"`, `"circle"`)
-- `strokeWidth`: Line width
-- `strokeDasharray`: Dash pattern
+- `stroke_width`: Line width
+- `stroke_dasharray`: Dash pattern
 
 **Dots:**
 - `r`: Radius (constant or channel)
@@ -179,6 +186,15 @@ line(data, x="x", y="y", curve="step")  # Stepped
 **Bars/Rects:**
 - `inset`: Gap between bars (pixels)
 - `insetTop`, `insetRight`, `insetBottom`, `insetLeft`: Individual insets
+
+**Waffles:**
+- `unit`: Quantity each cell represents (default: 1)
+- `per_row`: Number of cells per row
+- `gap`: Gap between cells in pixels
+- `rx`: Corner radius (use `"100%"` for circles)
+- `background_y`/`background_x`: Total value for background waffle
+- `background_fill`: Fill color for background (supports rgba)
+- Helper params: `bg_y`, `bg_x`, `bg_opacity` (auto-converts to background_fill)
 
 **Cells (heatmaps):**
 - `inset`: Gap between cells
@@ -200,18 +216,18 @@ Plot(data, x="x", y="y", mark="line",
      # Appearance
      title="My Chart",
      border=True,
-     borderRadius="8px",
-     borderWidth=2,
-     borderColor="#e5e7eb",
+     border_radius="8px",
+     border_width=2,
+     border_color="#e5e7eb",
      grid="both",  # True, False, "x", "y", "both"
      
      # Style overrides
-     titleStyle={"fontSize": "20px", "fontWeight": "600", "color": "#8b5cf6"},
-     xLabelStyle={"fontSize": "14px"},
-     yLabelStyle={"fontSize": "14px"},
-     tickStyle={"color": "#6b7280"},
-     gridStyle={"stroke": "#e5e7eb", "strokeOpacity": 0.5},
-     axisStyle={"stroke": "#9ca3af"}
+     title_style={"fontSize": "20px", "fontWeight": "600", "color": "#8b5cf6"},
+     x_label_style={"fontSize": "14px"},
+     y_label_style={"fontSize": "14px"},
+     tick_style={"color": "#6b7280"},
+     grid_style={"stroke": "#e5e7eb", "strokeOpacity": 0.5},
+     axis_style={"stroke": "#9ca3af"}
 )
 ```
 
@@ -229,9 +245,9 @@ for name, fn in [("sin", np.sin), ("cos", np.cos), ("tan", lambda x: np.tan(x) %
     data.extend([{"t": ti, "value": fn(ti), "func": name} for ti in t])
 
 line(data, x="t", y="value", z="func", stroke="func", 
-     curve="catmull-rom", strokeWidth=2.5,
+     curve="catmull-rom", stroke_width=2.5,
      title="Trigonometric Functions",
-     titleStyle={"fontSize": "18px", "fontWeight": "600"})
+     title_style={"fontSize": "18px", "fontWeight": "600"})
 ```
 
 ### 2. Scatter Plot with Size and Color
@@ -243,7 +259,7 @@ from pynote_ui.oplot import scatter
 scatter(iris, x="sepal_length", y="sepal_width",
         fill="species", r="petal_length",
         opacity=0.7, title="Iris Dataset",
-        xLabel="Sepal Length (cm)", yLabel="Sepal Width (cm)")
+        x_label="Sepal Length (cm)", y_label="Sepal Width (cm)")
 ```
 
 ### 3. Sorted Bar Chart
@@ -302,10 +318,10 @@ boxplot(experiments, x="treatment", y="response",
 from pynote_ui.oplot import rule
 
 # Horizontal line at y=0
-rule(y=0, stroke="red", strokeWidth=1.5, strokeDasharray=None)
+rule(y=0, stroke="red", stroke_width=1.5, stroke_dasharray=None)
 
 # Multiple vertical lines
-rule(x=[1, 2, 3], stroke="gray", strokeDasharray="4 2")
+rule(x=[1, 2, 3], stroke="gray", stroke_dasharray="4 2")
 ```
 
 ## Pass-Through Options
@@ -329,7 +345,7 @@ Plot(data, x="x", y="y", mark="dot",
 - **Channels** (`x`, `y`, `fill`, `stroke`, `r`, etc.): Vary visual properties per data point
 - **Transforms** (`sort`, `thresholds`, `interval`, etc.): Process data before rendering
 - **Curves**: Smooth lines with interpolation
-- **App styling** (`titleStyle`, `gridStyle`, etc.): Customize appearance beyond Observable Plot
+- **App styling** (`title_style`, `grid_style`, etc.): Customize appearance beyond Observable Plot
 - **`**kwargs`**: Pass any other Observable Plot option not explicitly listed
 
 ## More Information

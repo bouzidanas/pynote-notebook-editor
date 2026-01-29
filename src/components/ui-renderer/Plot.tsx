@@ -54,19 +54,19 @@ interface PlotProps {
     // Multiple series support
     series?: string;          // Column name for series grouping
     
-    // Axis configuration
-    xLabel?: string;
-    yLabel?: string;
-    xDomain?: [number, number];
-    yDomain?: [number, number];
-    xType?: "linear" | "log" | "time" | "band" | "point";
-    yType?: "linear" | "log" | "time" | "band" | "point";
+    // Axis configuration (snake_case for Python API)
+    x_label?: string;
+    y_label?: string;
+    x_domain?: [number, number];
+    y_domain?: [number, number];
+    x_type?: "linear" | "log" | "time" | "band" | "point";
+    y_type?: "linear" | "log" | "time" | "band" | "point";
     
     // Grid
     grid?: boolean;
     
     // Color scheme (for hexbin, heatmaps, etc.)
-    colorScheme?: string;           // Observable Plot color schemes: "turbo", "viridis", "YlGnBu", etc.
+    color_scheme?: string;           // Observable Plot color schemes: "turbo", "viridis", "YlGnBu", etc.
     
     // Transforms and binning
     reduce?: string;                // "count", "sum", "proportion", "mean", etc.
@@ -85,24 +85,24 @@ interface PlotProps {
     marker?: string;                // Line markers: "dot", "arrow", etc.
     r?: number | string;            // Radius for dots
     symbol?: string;                // Symbol type for dots
-    strokeWidth?: number;           // Stroke width
-    fillOpacity?: number;           // Fill opacity
-    strokeOpacity?: number;         // Stroke opacity
+    stroke_width?: number;           // Stroke width
+    fill_opacity?: number;           // Fill opacity
+    stroke_opacity?: number;         // Stroke opacity
     
     // Waffle-specific options
     unit?: number;                  // Quantity each waffle cell represents
     gap?: number;                   // Gap between waffle cells in pixels
     rx?: number | string;           // Corner radius (use "100%" for circles)
-    multiple?: number;              // Number of cells per row (default: determined by plot width)
-    labelPosition?: "top" | "bottom";  // Where to place category labels (default: bottom)
+    per_row?: number;               // Number of cells per row
+    label_position?: "top" | "bottom";  // Where to place category labels (default: bottom)
     
     // Waffle background (for showing total vs filled)
-    backgroundY?: number;           // Total value to show as faded background waffle
-    backgroundX?: number;           // Total value for horizontal waffle background
-    backgroundFill?: string;        // Fill color for background waffle (can include alpha, e.g. "rgba(255,165,0,0.4)")
+    background_y?: number;           // Total value to show as faded background waffle
+    background_x?: number;           // Total value for horizontal waffle background
+    background_fill?: string;        // Fill color for background waffle (can include alpha, e.g. "rgba(255,165,0,0.4)")
     
     // Hexbin-specific options
-    binWidth?: number;              // Distance between hexagon centers in pixels
+    bin_width?: number;              // Distance between hexagon centers in pixels
     
     // Additional position channels
     x1?: string;
@@ -124,17 +124,17 @@ interface PlotProps {
     
     // Border styling (consistent with pynote_ui components)
     border?: boolean;
-    borderWidth?: number | string;
-    borderRadius?: string;
-    borderColor?: string;
+    border_width?: number | string;
+    border_radius?: string;
+    border_color?: string;
     
     // Style customization dicts (user can override defaults)
-    titleStyle?: StyleDict;
-    xLabelStyle?: StyleDict;
-    yLabelStyle?: StyleDict;
-    tickStyle?: StyleDict;
-    gridStyle?: StyleDict;
-    axisStyle?: StyleDict;
+    title_style?: StyleDict;
+    x_label_style?: StyleDict;
+    y_label_style?: StyleDict;
+    tick_style?: StyleDict;
+    grid_style?: StyleDict;
+    axis_style?: StyleDict;
     
     // Layout/flex props (consistent with other pynote_ui components)
     grow?: number | null;
@@ -210,18 +210,18 @@ const Plot: Component<PlotProps> = (p) => {
     if (p.props.insetBottom !== undefined) markOptions.insetBottom = p.props.insetBottom;
     if (p.props.insetLeft !== undefined) markOptions.insetLeft = p.props.insetLeft;
     if (p.props.marker !== undefined) markOptions.marker = p.props.marker;
-    if (p.props.strokeWidth !== undefined) markOptions.strokeWidth = p.props.strokeWidth;
-    if (p.props.fillOpacity !== undefined) markOptions.fillOpacity = p.props.fillOpacity;
-    if (p.props.strokeOpacity !== undefined) markOptions.strokeOpacity = p.props.strokeOpacity;
+    if (p.props.stroke_width !== undefined) markOptions.strokeWidth = p.props.stroke_width;
+    if (p.props.fill_opacity !== undefined) markOptions.fillOpacity = p.props.fill_opacity;
+    if (p.props.stroke_opacity !== undefined) markOptions.strokeOpacity = p.props.stroke_opacity;
     
     // Waffle-specific options
     if (p.props.unit !== undefined) markOptions.unit = p.props.unit;
     if (p.props.gap !== undefined) markOptions.gap = p.props.gap;
     if (p.props.rx !== undefined) markOptions.rx = p.props.rx;
-    if (p.props.multiple !== undefined) markOptions.multiple = p.props.multiple;
+    if (p.props.per_row !== undefined) markOptions.multiple = p.props.per_row;
     
     // Hexbin-specific options
-    if (p.props.binWidth !== undefined) markOptions.binWidth = p.props.binWidth;
+    if (p.props.bin_width !== undefined) markOptions.binWidth = p.props.bin_width;
     
     // Static color overrides
     if (p.props.stroke && !p.props.color) {
@@ -430,7 +430,7 @@ const Plot: Component<PlotProps> = (p) => {
     const isStackedDotMark = markType === "dotY" || markType === "dotX";
     
     // Determine if we have y-axis labels (affects left margin)
-    const hasYLabel = p.props.yLabel !== undefined || (p.props.y !== undefined && !isStackedDotMark && !isWaffleMark);
+    const hasYLabel = p.props.y_label !== undefined || (p.props.y !== undefined && !isStackedDotMark && !isWaffleMark);
     
     // Build plot options
     const plotOptions: Record<string, any> = {
@@ -443,13 +443,13 @@ const Plot: Component<PlotProps> = (p) => {
       marginTop: p.props.marginTop ?? (isStackedDotMark ? 30 : 20),
       marginRight: p.props.marginRight ?? (isStackedDotMark ? 30 : 20),
       marginBottom: p.props.marginBottom ?? 50,
-      marginLeft: p.props.marginLeft ?? (p.props.yLabel ? 70 : (hasYLabel ? 60 : 30)),
+      marginLeft: p.props.marginLeft ?? (p.props.y_label ? 70 : (hasYLabel ? 60 : 30)),
       // Don't clip waffle or stacked dot marks - they need room for their cells/dots
       clip: (isWaffleMark || isStackedDotMark) ? false : true,
     };
 
-    // Grid color (can be customized via gridStyle prop)
-    const gridColor = p.props.gridStyle?.stroke || theme.grid.stroke;
+    // Grid color (can be customized via grid_style prop)
+    const gridColor = p.props.grid_style?.stroke || theme.grid.stroke;
 
     // For waffle charts, use faceting (fx) for categories and hide numeric axes
     // This matches Observable Plot's intended usage
@@ -459,7 +459,7 @@ const Plot: Component<PlotProps> = (p) => {
       plotOptions.label = null;
       
       // Determine label position - default to bottom
-      const labelPosition = p.props.labelPosition || "bottom";
+      const labelPosition = p.props.label_position || "bottom";
       const isTopLabels = labelPosition === "top";
       
       // Consistent margins on all sides for balanced look
@@ -492,8 +492,8 @@ const Plot: Component<PlotProps> = (p) => {
       if (isHorizontal) {
         // Horizontal stacking (dotX): x-axis has the stacking direction
         plotOptions.x = {
-          label: p.props.xLabel || null,
-          domain: p.props.xDomain,
+          label: p.props.x_label || null,
+          domain: p.props.x_domain,
           grid: true,
           // Only use Math.abs for bidirectional (so -5 and 5 both show as "5")
           tickFormat: isBidirectional ? Math.abs : undefined,
@@ -503,9 +503,9 @@ const Plot: Component<PlotProps> = (p) => {
         
         // Y-axis config - for bidirectional horizontal, don't show left axis line (zero line replaces it)
         plotOptions.y = {
-          label: p.props.yLabel ?? p.props.y,
-          type: p.props.yType,
-          domain: p.props.yDomain,
+          label: p.props.y_label ?? p.props.y,
+          type: p.props.y_type,
+          domain: p.props.y_domain,
           line: !isBidirectional,  // Hide axis line for bidirectional (zero line replaces it)
           labelOffset: 50,
           labelAnchor: "center", 
@@ -514,8 +514,8 @@ const Plot: Component<PlotProps> = (p) => {
       } else {
         // Vertical stacking (dotY): y-axis has the stacking direction
         plotOptions.y = {
-          label: p.props.yLabel || null,
-          domain: p.props.yDomain,
+          label: p.props.y_label || null,
+          domain: p.props.y_domain,
           grid: true,
           // Only use Math.abs for bidirectional (so -5 and 5 both show as "5")
           tickFormat: isBidirectional ? Math.abs : undefined,
@@ -525,9 +525,9 @@ const Plot: Component<PlotProps> = (p) => {
         
         // X-axis config - for bidirectional vertical, don't show bottom axis line (zero line replaces it)
         plotOptions.x = {
-          label: p.props.xLabel ?? p.props.x,
-          type: p.props.xType,
-          domain: p.props.xDomain,
+          label: p.props.x_label ?? p.props.x,
+          type: p.props.x_type,
+          domain: p.props.x_domain,
           line: !isBidirectional,  // Hide axis line for bidirectional (zero line replaces it)
           labelOffset: 40,
           labelAnchor: "center", 
@@ -539,9 +539,9 @@ const Plot: Component<PlotProps> = (p) => {
       // X axis configuration with proper styling
       // Observable Plot: labelArrow controls arrow, label is the text
       plotOptions.x = {
-        label: p.props.xLabel ?? p.props.x,
-        type: p.props.xType,
-        domain: p.props.xDomain,
+        label: p.props.x_label ?? p.props.x,
+        type: p.props.x_type,
+        domain: p.props.x_domain,
         grid: p.props.grid,
         tickFormat: undefined,
         line: true,
@@ -552,9 +552,9 @@ const Plot: Component<PlotProps> = (p) => {
 
       // Y axis configuration  
       plotOptions.y = {
-        label: p.props.yLabel ?? p.props.y,
-        type: p.props.yType,
-        domain: p.props.yDomain,
+        label: p.props.y_label ?? p.props.y,
+        type: p.props.y_type,
+        domain: p.props.y_domain,
         grid: p.props.grid !== false, // Grid on by default for Y
         line: true,
         labelOffset: 50,
@@ -576,9 +576,9 @@ const Plot: Component<PlotProps> = (p) => {
     const fillIsColumn = p.props.fill && plotData.length > 0 && 
       typeof plotData[0][p.props.fill] !== "undefined";
     
-    if (p.props.color || p.props.series || p.props.colorScheme || fillIsColumn) {
+    if (p.props.color || p.props.series || p.props.color_scheme || fillIsColumn) {
       plotOptions.color = {
-        scheme: p.props.colorScheme || "observable10",
+        scheme: p.props.color_scheme || "observable10",
         legend: true,
       };
     }
@@ -625,7 +625,7 @@ const Plot: Component<PlotProps> = (p) => {
     
     // For waffle charts, add axisFx mark for category labels with text wrap
     if (isWaffleMark) {
-      const labelPosition = p.props.labelPosition || "bottom";
+      const labelPosition = p.props.label_position || "bottom";
       marks.push(OPlot.axisFx({
         lineWidth: 12,  // Characters before wrap
         anchor: labelPosition,
@@ -676,16 +676,28 @@ const Plot: Component<PlotProps> = (p) => {
     
     // For waffle charts, add background waffle showing total (before main mark)
     if (isWaffleMark) {
-      const backgroundTotal = markType === "waffleY" ? p.props.backgroundY : p.props.backgroundX;
+      const backgroundTotal = markType === "waffleY" ? p.props.background_y : p.props.background_x;
       if (backgroundTotal !== undefined) {
         const bgMarkOptions: Record<string, any> = {};
         // Copy rx for rounded corners
         if (p.props.rx !== undefined) {
           bgMarkOptions.rx = p.props.rx;
         }
-        // Use backgroundFill if provided, otherwise default to semi-transparent version of main fill
-        if (p.props.backgroundFill) {
-          bgMarkOptions.fill = p.props.backgroundFill;
+        // Copy per_row (multiple) so background matches main waffle layout
+        if (p.props.per_row !== undefined) {
+          bgMarkOptions.multiple = p.props.per_row;
+        }
+        // Copy unit so background uses same cell size
+        if (p.props.unit !== undefined) {
+          bgMarkOptions.unit = p.props.unit;
+        }
+        // Copy gap so background spacing matches
+        if (p.props.gap !== undefined) {
+          bgMarkOptions.gap = p.props.gap;
+        }
+        // Use background_fill if provided, otherwise default to semi-transparent version of main fill
+        if (p.props.background_fill) {
+          bgMarkOptions.fill = p.props.background_fill;
         } else {
           // Default: same color as main waffle with 0.4 opacity
           bgMarkOptions.fill = p.props.fill || p.props.stroke || theme.marks.stroke;
@@ -789,24 +801,24 @@ const Plot: Component<PlotProps> = (p) => {
     if (p.props.border === false) {
       borderStyle = "none";
     } else {
-      const width = p.props.borderWidth != null 
-        ? (typeof p.props.borderWidth === "number" ? `${p.props.borderWidth}px` : p.props.borderWidth)
+      const width = p.props.border_width != null 
+        ? (typeof p.props.border_width === "number" ? `${p.props.border_width}px` : p.props.border_width)
         : "2px";
-      const color = p.props.borderColor || currentTheme.colors.foreground;
+      const color = p.props.border_color || currentTheme.colors.foreground;
       borderStyle = `${width} solid ${color}`;
     }
     
     return {
       ...base,
       border: borderStyle,
-      "border-radius": p.props.borderRadius || base["border-radius"],
+      "border-radius": p.props.border_radius || base["border-radius"],
     };
   };
   
   // Merge default title styles with user-provided overrides
   const titleStyles = () => {
     const defaults = getChartTitleStyles();
-    const userStyle = p.props.titleStyle || {};
+    const userStyle = p.props.title_style || {};
     return { ...defaults, ...userStyle };
   };
 

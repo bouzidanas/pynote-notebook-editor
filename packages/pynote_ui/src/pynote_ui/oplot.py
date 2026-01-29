@@ -42,9 +42,9 @@ class Plot(UIElement):
         fill: Column or color for fill (can vary per point)
         stroke: Column or color for stroke (can vary per point)
         opacity: Column or value for opacity
-        strokeWidth: Column or value for stroke width
-        fillOpacity: Column or value for fill opacity
-        strokeOpacity: Column or value for stroke opacity
+        stroke_width: Column or value for stroke width
+        fill_opacity: Column or value for fill opacity
+        stroke_opacity: Column or value for stroke opacity
         
         # Dot-specific
         r: Column or value for radius/size (dot marks)
@@ -54,9 +54,9 @@ class Plot(UIElement):
         z: Column for grouping into separate series (line, area marks)
         
         # Scale customization
-        xLabel, yLabel: Axis labels
-        xDomain, yDomain: Explicit scale domains [min, max]
-        xType, yType: Scale type - "linear", "log", "sqrt", "pow", "time", "utc", 
+        x_label, y_label: Axis labels
+        x_domain, y_domain: Explicit scale domains [min, max]
+        x_type, y_type: Scale type - "linear", "log", "sqrt", "pow", "time", "utc", 
                       "band", "point", "ordinal"
         
         # Transforms
@@ -72,7 +72,7 @@ class Plot(UIElement):
         # Mark styling
         marker: Add markers to line endpoints - "dot", "arrow", "circle", etc.
         inset: Spacing between bars/rects (number in pixels)
-        insetTop, insetRight, insetBottom, insetLeft: Individual insets
+        inset_top, inset_right, inset_bottom, inset_left: Individual insets
         
         # Chart appearance (app-specific)
         title: Chart title
@@ -80,18 +80,18 @@ class Plot(UIElement):
         height: Chart height in pixels (default: 380)
         grid: Show grid - True (y-axis), "both", "x", "y", False
         border: Show border (default: True)
-        borderRadius: Border radius
+        border_radius: Border radius
         
         # Layout (app-specific)
         grow, shrink: Flex properties for responsive sizing
         force_dimensions: Override flex with fixed dimensions
         
         # Style customization (all optional, override defaults)
-        titleStyle: Title text style dict
-        xLabelStyle, yLabelStyle: Axis label style dicts
-        tickStyle: Tick/number label style dict
-        gridStyle: Grid line style dict
-        axisStyle: Axis line style dict
+        title_style: Title text style dict
+        x_label_style, y_label_style: Axis label style dicts
+        tick_style: Tick/number label style dict
+        grid_style: Grid line style dict
+        axis_style: Axis line style dict
         
         # Advanced: Any other Observable Plot option
         **kwargs: Any additional Observable Plot options are passed through
@@ -117,8 +117,8 @@ class Plot(UIElement):
         
         # Custom styling
         Plot(data, x="x", y="y", mark="line", 
-             titleStyle={"fontSize": "20px", "color": "#8b5cf6"},
-             gridStyle={"stroke": "#e5e7eb", "strokeOpacity": 0.5})
+             title_style={"fontSize": "20px", "color": "#8b5cf6"},
+             grid_style={"stroke": "#e5e7eb", "strokeOpacity": 0.5})
     """
     def __init__(
         self,
@@ -133,9 +133,9 @@ class Plot(UIElement):
         fill=None,
         stroke=None,
         opacity=None,
-        strokeWidth=None,
-        fillOpacity=None,
-        strokeOpacity=None,
+        stroke_width=None,
+        fill_opacity=None,
+        stroke_opacity=None,
         # Dimension channels
         size=None,  # legacy: maps to r for dots
         r=None,
@@ -146,12 +146,12 @@ class Plot(UIElement):
         # Position bounds (for rect/area marks)
         x1=None, x2=None, y1=None, y2=None,
         # Scale options
-        xLabel=None,
-        yLabel=None,
-        xDomain=None,
-        yDomain=None,
-        xType=None,
-        yType=None,
+        x_label=None,
+        y_label=None,
+        x_domain=None,
+        y_domain=None,
+        x_type=None,
+        y_type=None,
         # Transforms
         sort=None,
         filter=None,
@@ -163,31 +163,31 @@ class Plot(UIElement):
         # Mark styling
         marker=None,
         inset=None,
-        insetTop=None,
-        insetRight=None,
-        insetBottom=None,
-        insetLeft=None,
+        inset_top=None,
+        inset_right=None,
+        inset_bottom=None,
+        inset_left=None,
         # Grid & margins
         grid=None,
-        marginTop=None,
-        marginRight=None,
-        marginBottom=None,
-        marginLeft=None,
+        margin_top=None,
+        margin_right=None,
+        margin_bottom=None,
+        margin_left=None,
         # Chart appearance (app-specific)
         width="full",
         height=380,
         title=None,
         border=True,
-        borderWidth=None,
-        borderRadius=None,
-        borderColor=None,
+        border_width=None,
+        border_radius=None,
+        border_color=None,
         # Style customization dicts (app-specific)
-        titleStyle=None,
-        xLabelStyle=None,
-        yLabelStyle=None,
-        tickStyle=None,
-        gridStyle=None,
-        axisStyle=None,
+        title_style=None,
+        x_label_style=None,
+        y_label_style=None,
+        tick_style=None,
+        grid_style=None,
+        axis_style=None,
         # Layout (app-specific)
         grow=None,
         shrink=None,
@@ -228,20 +228,20 @@ class Plot(UIElement):
             fill=fill,
             stroke=stroke,
             opacity=opacity,
-            strokeWidth=strokeWidth,
-            fillOpacity=fillOpacity,
-            strokeOpacity=strokeOpacity,
+            stroke_width=stroke_width,
+            fill_opacity=fill_opacity,
+            stroke_opacity=stroke_opacity,
             size=size,
             r=r,
             symbol=symbol,
             series=series,
             z=z,
-            xLabel=xLabel,
-            yLabel=yLabel,
-            xDomain=xDomain,
-            yDomain=yDomain,
-            xType=xType,
-            yType=yType,
+            x_label=x_label,
+            y_label=y_label,
+            x_domain=x_domain,
+            y_domain=y_domain,
+            x_type=x_type,
+            y_type=y_type,
             sort=sort,
             filter=filter,
             bin=bin,
@@ -251,28 +251,28 @@ class Plot(UIElement):
             curve=curve,
             marker=marker,
             inset=inset,
-            insetTop=insetTop,
-            insetRight=insetRight,
-            insetBottom=insetBottom,
-            insetLeft=insetLeft,
+            inset_top=inset_top,
+            inset_right=inset_right,
+            inset_bottom=inset_bottom,
+            inset_left=inset_left,
             grid=grid,
             width=width,
             height=height,
-            marginTop=marginTop,
-            marginRight=marginRight,
-            marginBottom=marginBottom,
-            marginLeft=marginLeft,
+            margin_top=margin_top,
+            margin_right=margin_right,
+            margin_bottom=margin_bottom,
+            margin_left=margin_left,
             title=title,
             border=border,
-            borderWidth=borderWidth,
-            borderRadius=borderRadius,
-            borderColor=borderColor,
-            titleStyle=titleStyle,
-            xLabelStyle=xLabelStyle,
-            yLabelStyle=yLabelStyle,
-            tickStyle=tickStyle,
-            gridStyle=gridStyle,
-            axisStyle=axisStyle,
+            border_width=border_width,
+            border_radius=border_radius,
+            border_color=border_color,
+            title_style=title_style,
+            x_label_style=x_label_style,
+            y_label_style=y_label_style,
+            tick_style=tick_style,
+            grid_style=grid_style,
+            axis_style=axis_style,
             grow=grow,
             shrink=shrink,
             force_dimensions=force_dimensions,
@@ -309,7 +309,7 @@ def scatter(data, x=None, y=None, fill=None, stroke=None, r=None, symbol=None,
         symbol: Column or symbol type ("circle", "square", "diamond", etc.)
         opacity: Opacity value or column
         title: Chart title
-        **kwargs: All Plot options (curve, sort, filter, xLabel, width, etc.)
+        **kwargs: All Plot options (curve, sort, filter, x_label, width, etc.)
     
     Examples:
         scatter(data, x="weight", y="height")
@@ -321,7 +321,7 @@ def scatter(data, x=None, y=None, fill=None, stroke=None, r=None, symbol=None,
 
 
 def line(data, x=None, y=None, stroke=None, z=None, curve="linear", 
-         marker=None, strokeWidth=None, title=None, **kwargs):
+         marker=None, stroke_width=None, title=None, **kwargs):
     """
     Create a line plot.
     
@@ -333,18 +333,18 @@ def line(data, x=None, y=None, stroke=None, z=None, curve="linear",
         curve: Interpolation - "linear" (default), "step", "step-before", "step-after",
                "basis", "cardinal", "catmull-rom", "monotone-x", "natural"
         marker: Add markers - "dot", "circle", "arrow", etc.
-        strokeWidth: Width in pixels or column name
+        stroke_width: Width in pixels or column name
         title: Chart title
-        **kwargs: All Plot options (sort, filter, opacity, xLabel, etc.)
+        **kwargs: All Plot options (sort, filter, opacity, x_label, etc.)
     
     Examples:
         line(data, x="date", y="value")
         line(data, x="x", y="y", curve="catmull-rom")  # Smooth curve
         line(data, x="date", y="value", z="series", stroke="series")  # Multiple series
-        line(data, x="x", y="y", marker="dot", strokeWidth=3)
+        line(data, x="x", y="y", marker="dot", stroke_width=3)
     """
     return Plot(data, x=x, y=y, mark="line", stroke=stroke, z=z, curve=curve,
-                marker=marker, strokeWidth=strokeWidth, title=title, **kwargs)
+                marker=marker, stroke_width=stroke_width, title=title, **kwargs)
 
 
 def area(data, x=None, y=None, y1=None, y2=None, fill=None, z=None, 
@@ -491,8 +491,8 @@ def density(data, x=None, y=None, fill=None, stroke=None,
                 thresholds=thresholds, bandwidth=bandwidth, title=title, **kwargs)
 
 
-def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1, 
-         strokeDasharray="4 2", title=None, **kwargs):
+def rule(data=None, x=None, y=None, stroke="currentColor", stroke_width=1, 
+         stroke_dasharray="4 2", title=None, **kwargs):
     """
     Create reference lines (horizontal or vertical rules).
     
@@ -501,23 +501,23 @@ def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1,
         x: X-value(s) for vertical line(s) - can be list, value, or column name
         y: Y-value(s) for horizontal line(s) - can be list, value, or column name
         stroke: Line color
-        strokeWidth: Line width in pixels
-        strokeDasharray: Dash pattern (e.g., "4 2" for dashed, None for solid)
+        stroke_width: Line width in pixels
+        stroke_dasharray: Dash pattern (e.g., "4 2" for dashed, None for solid)
         title: Chart title
         **kwargs: All Plot options
     
     Examples:
         rule(y=0)  # Horizontal line at y=0
-        rule(x=[1, 2, 3], stroke="red", strokeWidth=2)  # Vertical lines
+        rule(x=[1, 2, 3], stroke="red", stroke_width=2)  # Vertical lines
         rule(data, y="threshold", stroke="orange")  # Data-driven
     """
-    return Plot(data, x=x, y=y, mark="rule", stroke=stroke, strokeWidth=strokeWidth,
-                strokeDasharray=strokeDasharray, title=title, **kwargs)
+    return Plot(data, x=x, y=y, mark="rule", stroke=stroke, stroke_width=stroke_width,
+                stroke_dasharray=stroke_dasharray, title=title, **kwargs)
 
 
 def waffle(data, x=None, y=None, fill=None, orientation="vertical", 
-           unit=None, gap=None, rx=None, multiple=None,
-           bgY=None, bgX=None, bgOpacity=None,
+           unit=None, gap=None, rx=None, per_row=None,
+           bg_y=None, bg_x=None, bg_opacity=None,
            title=None, **kwargs):
     """
     Create a waffle chart (unit chart with square cells).
@@ -534,10 +534,10 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
         unit: Quantity each cell represents (default: 1)
         gap: Gap between cells in pixels (default: 1)
         rx: Corner radius - use "100%" for circles
-        multiple: Number of cells per row (default: determined by chart width)
-        bgY: Background total for vertical waffle (shows faded cells for unfilled portion)
-        bgX: Background total for horizontal waffle
-        bgOpacity: Opacity for background cells (default: 0.4)
+        per_row: Number of cells per row
+        bg_y: Background total for vertical waffle (shows faded cells for unfilled portion)
+        bg_x: Background total for horizontal waffle
+        bg_opacity: Opacity for background cells (default: 0.4)
         title: Chart title
         **kwargs: All Plot options
     
@@ -556,17 +556,17 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
         waffle(data, x="category", y="count", unit=10)
         
         # Show background total (e.g., 120 total, filled shows actual values)
-        waffle(data, x="category", y="count", bgY=120, bgOpacity=0.3)
+        waffle(data, x="category", y="count", bg_y=120, bg_opacity=0.3)
     """
     mark = "waffleY" if orientation == "vertical" else "waffleX"
     
-    # Build background fill color with opacity if bgY/bgX specified
+    # Build background fill color with opacity if bg_y/bg_x specified
     extra_kwargs = {}
-    bg_total = bgY if orientation == "vertical" else bgX
+    bg_total = bg_y if orientation == "vertical" else bg_x
     if bg_total is not None:
-        extra_kwargs["backgroundY" if orientation == "vertical" else "backgroundX"] = bg_total
-        # Convert fill + opacity to rgba backgroundFill
-        opacity = bgOpacity if bgOpacity is not None else 0.4
+        extra_kwargs["background_y" if orientation == "vertical" else "background_x"] = bg_total
+        # Convert fill + opacity to rgba background_fill
+        opacity = bg_opacity if bg_opacity is not None else 0.4
         # If fill is a hex color, convert to rgba
         if fill and isinstance(fill, str) and fill.startswith("#"):
             hex_color = fill.lstrip("#")
@@ -575,18 +575,18 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
             r = int(hex_color[0:2], 16)
             g = int(hex_color[2:4], 16)
             b = int(hex_color[4:6], 16)
-            extra_kwargs["backgroundFill"] = f"rgba({r}, {g}, {b}, {opacity})"
+            extra_kwargs["background_fill"] = f"rgba({r}, {g}, {b}, {opacity})"
         else:
             # For named colors or no fill, just set opacity via the fill
-            extra_kwargs["backgroundFill"] = fill or "currentColor"
+            extra_kwargs["background_fill"] = fill or "currentColor"
             # Note: This won't have opacity - user should use hex colors for best results
     
     return Plot(data, x=x, y=y, mark=mark, fill=fill, unit=unit, gap=gap, 
-                rx=rx, multiple=multiple, title=title, **extra_kwargs, **kwargs)
+                rx=rx, per_row=per_row, title=title, **extra_kwargs, **kwargs)
 
 
 def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
-           binWidth=None, colorScheme=None, title=None, **kwargs):
+           bin_width=None, color_scheme=None, title=None, **kwargs):
     """
     Create a hexbin heatmap (2D histogram with hexagonal bins).
     
@@ -599,8 +599,8 @@ def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
         fill: "count" (default) or column name for color encoding
         r: "count" for sized hexagons, or fixed radius
         stroke: Stroke color for hexagon borders
-        binWidth: Distance between hexagon centers in pixels (default: 20)
-        colorScheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
+        bin_width: Distance between hexagon centers in pixels (default: 20)
+        color_scheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
         title: Chart title
         **kwargs: All Plot options
     
@@ -609,7 +609,7 @@ def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
         hexbin(data, x="weight", y="height")
         
         # With custom color scheme
-        hexbin(data, x="weight", y="height", colorScheme="YlGnBu")
+        hexbin(data, x="weight", y="height", color_scheme="YlGnBu")
         
         # Sized hexagons (bubble-style)
         hexbin(data, x="weight", y="height", fill="count", r="count")
@@ -618,7 +618,7 @@ def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
         hexbin(data, x="x", y="y", stroke="currentColor")
     """
     return Plot(data, x=x, y=y, mark="hexbin", fill=fill, r=r, stroke=stroke,
-                binWidth=binWidth, colorScheme=colorScheme, title=title, **kwargs)
+                bin_width=bin_width, color_scheme=color_scheme, title=title, **kwargs)
 
 
 def stacked_dots(data, x=None, y=None, fill=None, r=None, 
@@ -645,7 +645,7 @@ def stacked_dots(data, x=None, y=None, fill=None, r=None,
         positive_value: Value in group_column that stacks positive (up/right)
         negative_value: Value in group_column that stacks negative (down/left)
         title: Chart title
-        **kwargs: All Plot options (xLabel, yLabel, height, width, etc.)
+        **kwargs: All Plot options (x_label, y_label, height, width, etc.)
     
     Examples:
         # Simple vertical stacking (dots stack upward)
@@ -661,7 +661,7 @@ def stacked_dots(data, x=None, y=None, fill=None, r=None,
         stacked_dots(data, x="score", direction="bidirectional",
                      group_column="gender", 
                      positive_value="Male", negative_value="Female",
-                     fill="gender", yLabel="← Female · Male →")
+                     fill="gender", y_label="← Female · Male →")
         
         # Bidirectional - manual y values (+1 or -1 in data)
         stacked_dots(data, x="age", y="direction", fill="group")

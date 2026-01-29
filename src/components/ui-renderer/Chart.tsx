@@ -118,17 +118,17 @@ interface ChartProps {
     
     // Border styling (consistent with pynote_ui components)
     border?: boolean;
-    borderWidth?: number | string;
-    borderRadius?: string;
-    borderColor?: string;
+    border_width?: number | string;
+    border_radius?: string;
+    border_color?: string;
     
     // Style customization dicts (user can override defaults)
-    titleStyle?: StyleDict;
-    xLabelStyle?: StyleDict;
-    yLabelStyle?: StyleDict;
-    tickStyle?: StyleDict;
-    gridStyle?: StyleDict;
-    axisStyle?: StyleDict;
+    title_style?: StyleDict;
+    x_label_style?: StyleDict;
+    y_label_style?: StyleDict;
+    tick_style?: StyleDict;
+    grid_style?: StyleDict;
+    axis_style?: StyleDict;
     
     // Layout/flex props
     grow?: number | null;
@@ -459,24 +459,24 @@ const Chart: Component<ChartProps> = (p) => {
     if (p.props.border === false) {
       borderStyle = "none";
     } else {
-      const width = p.props.borderWidth != null 
-        ? (typeof p.props.borderWidth === "number" ? `${p.props.borderWidth}px` : p.props.borderWidth)
+      const width = p.props.border_width != null 
+        ? (typeof p.props.border_width === "number" ? `${p.props.border_width}px` : p.props.border_width)
         : "2px";
-      const color = p.props.borderColor || currentTheme.colors.foreground;
+      const color = p.props.border_color || currentTheme.colors.foreground;
       borderStyle = `${width} solid ${color}`;
     }
     
     return {
       ...base,
       border: borderStyle,
-      "border-radius": p.props.borderRadius || base["border-radius"],
+      "border-radius": p.props.border_radius || base["border-radius"],
     };
   };
   
   // Merge default title styles with user-provided overrides
   const titleStyles = () => {
     const defaults = getChartTitleStyles();
-    const userStyle = p.props.titleStyle || {};
+    const userStyle = p.props.title_style || {};
     return { ...defaults, ...userStyle };
   };
   const frappeCSS = getFrappeCSS();

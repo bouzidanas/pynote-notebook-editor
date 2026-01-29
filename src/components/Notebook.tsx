@@ -9,13 +9,14 @@ import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOp
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
-import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, type CodeVisibilitySettings } from "../lib/codeVisibility";
+import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRunOnNewSession, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 const ThemeDialog = lazy(() => import("./ThemeDialog"));
 
+// ============================================================================
 const SHORTCUTS = {
   global: [
     { label: "New Notebook", keys: "Alt + N" },
@@ -227,6 +228,11 @@ const Notebook: Component = () => {
   const [sessionHasTheme, setSessionHasTheme] = createSignal(false);
   // Version signal to force re-mounting of the list on full reloads
   const [notebookVersion, ] = createSignal(0);
+  
+  // One-shot flag for auto-run on new session
+  // Set to true when session is created fresh (no restored data)
+  // Page refreshes of existing sessions leave this false
+  let pendingAutoRun = false;
 
   // --- Old Internal Autosave Mechanism ---
   // const AUTOSAVE_KEY = "pynote-autosave";
@@ -642,6 +648,9 @@ const Notebook: Component = () => {
       
       actions.loadNotebook([...cells], filename, []);
       autosaveNotebook();
+      
+      // Mark as new session for auto-run
+      pendingAutoRun = true;
       return;
     }
 
@@ -658,6 +667,9 @@ const Notebook: Component = () => {
         actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
         // Force immediate save to establish the session in index
         autosaveNotebook();
+        
+        // Mark for auto-run
+        pendingAutoRun = true;
     } else {
         const restored = restoreNotebook();
         
@@ -686,7 +698,19 @@ const Notebook: Component = () => {
                  actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
             }
              autosaveNotebook();
+             
+            // Mark for auto-run (data was gone/expired)
+            pendingAutoRun = true;
         }
+        // If restored === true, this is a page refresh - pendingAutoRun stays false
+    }
+  });
+
+  // Auto-run all cells when kernel becomes ready on a NEW session
+  createEffect(() => {
+    if (pendingAutoRun && kernel.status === "ready" && shouldAutoRunOnNewSession()) {
+      pendingAutoRun = false;
+      runAll();
     }
   });
 

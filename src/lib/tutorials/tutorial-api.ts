@@ -76,7 +76,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 Plot(data, x=None, y=None, mark="line", fill=None, stroke=None, 
      z=None, r=None, symbol=None, curve="linear", sort=None,
      thresholds=None, title=None, width="full", height=380, 
-     border=True, titleStyle=None, **kwargs)
+     border=True, title_style=None, **kwargs)
 \`\`\`
 - \`data\`: List of dicts \`[{"x": 1, "y": 2}, ...]\`
 - \`mark\`: \`"line"\`, \`"dot"\`/\`"dotY"\`/\`"dotX"\`, \`"bar"\`/\`"barY"\`/\`"barX"\`, \`"area"\`, \`"rect"\`, \`"cell"\`, \`"rule"\`, \`"box"\`, \`"density"\`, \`"waffleY"\`, \`"waffleX"\`, \`"hexbin"\`
@@ -85,7 +85,7 @@ Plot(data, x=None, y=None, mark="line", fill=None, stroke=None,
 - **Curve**: \`"linear"\`, \`"step"\`, \`"basis"\`, \`"catmull-rom"\`, \`"monotone-x"\`, \`"natural"\`
 - **Stacked dots**: \`mark="dotY"\` or \`mark="dotX"\` for automatic stacking
 - **Waffle options**: \`unit\` (qty per cell), \`gap\` (cell spacing), \`rx\` (corner radius, \`"100%"\` for circles)
-- **Hexbin options**: \`binWidth\` (hex size in px), \`colorScheme\` (\`"turbo"\`, \`"viridis"\`, \`"YlGnBu"\`, etc.)
+- **Hexbin options**: \`bin_width\` (hex size in px), \`color_scheme\` (\`"turbo"\`, \`"viridis"\`, \`"YlGnBu"\`, etc.)
 - \`width\`: Number (pixels), \`"full"\`, or \`"100%"\` (default: \`"full"\`)
 - Update via \`plot.data = new_data\`
 
@@ -97,7 +97,7 @@ Plot(data, x=None, y=None, mark="line", fill=None, stroke=None,
         content: `### \`TimeSeries\` (uPlot)
 \`\`\`python
 TimeSeries(data, series=None, title=None, xType="time", 
-           width="full", height=350, border=True, titleStyle=None, ...)
+           width="full", height=350, border=True, title_style=None, ...)
 \`\`\`
 - \`data\`: Dict \`{"x": [...], "y": [...]}\` or nested arrays \`[[x], [y1], [y2]]\`
 - \`series\`: List of \`{"label": ..., "stroke": "#color"}\` (stroke optional, uses theme)
@@ -110,7 +110,7 @@ TimeSeries(data, series=None, title=None, xType="time",
         content: `### \`Chart\` (Frappe)
 \`\`\`python
 Chart(type, data, title=None, width="full", height=300, 
-      colors=None, border=True, titleStyle=None, ...)
+      colors=None, border=True, title_style=None, ...)
 \`\`\`
 - \`type\`: \`"pie"\`, \`"donut"\`, \`"percentage"\`, \`"bar"\`, \`"line"\`, \`"heatmap"\`
 - \`data\` for pie: \`{"labels": [...], "values": [...]}\`
@@ -124,21 +124,21 @@ Chart(type, data, title=None, width="full", height=300,
 - \`width\`, \`height\`: Component dimensions (numbers → pixels, strings → CSS values)
 - \`force_dimensions\`: If \`True\`, sets exact dimensions. If \`False\` (default), dimensions are minimums
 - \`border\`: Show border (default: True)
-- \`borderRadius\`, \`borderWidth\`, \`borderColor\`: Customize border
+- \`border_radius\`, \`border_width\`, \`border_color\`: Customize border
 
 ### Style Customization (all chart types)
 All charts accept style dicts to override defaults:
-- \`titleStyle\`: Title text, e.g., \`{"fontSize": "18px", "fontWeight": "bold"}\`
-- \`xLabelStyle\`, \`yLabelStyle\`: Axis label styles
-- \`tickStyle\`: Tick/number label style
-- \`gridStyle\`: Grid lines, e.g., \`{"stroke": "#ccc", "strokeOpacity": 0.5}\`
-- \`axisStyle\`: Axis line style
+- \`title_style\`: Title text, e.g., \`{"fontSize": "18px", "fontWeight": "bold"}\`
+- \`x_label_style\`, \`y_label_style\`: Axis label styles
+- \`tick_style\`: Tick/number label style
+- \`grid_style\`: Grid lines, e.g., \`{"stroke": "#ccc", "strokeOpacity": 0.5}\`
+- \`axis_style\`: Axis line style
 
 Example:
 \`\`\`python
 Plot(data, x="x", y="y", title="My Chart",
-     titleStyle={"fontSize": "20px", "fontWeight": "bold"},
-     gridStyle={"stroke": "#eee"})
+     title_style={"fontSize": "20px", "fontWeight": "bold"},
+     grid_style={"stroke": "#eee"})
 \`\`\``
     },
 

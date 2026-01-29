@@ -515,9 +515,9 @@ class Plot(UIElement):
         fill: Column or color for fill (can vary per point)
         stroke: Column or color for stroke (can vary per point)
         opacity: Column or value for opacity
-        strokeWidth: Column or value for stroke width
-        fillOpacity: Column or value for fill opacity
-        strokeOpacity: Column or value for stroke opacity
+        stroke_width: Column or value for stroke width
+        fill_opacity: Column or value for fill opacity
+        stroke_opacity: Column or value for stroke opacity
         
         # Dot-specific
         r: Column or value for radius/size (dot marks)
@@ -527,8 +527,8 @@ class Plot(UIElement):
         z: Column for grouping into separate series (line, area marks)
         
         # Scale customization
-        xLabel, yLabel: Axis labels
-        xDomain, yDomain: Explicit scale domains [min, max]
+        x_label, y_label: Axis labels
+        x_domain, y_domain: Explicit scale domains [min, max]
         xType, yType: Scale type - "linear", "log", "sqrt", "pow", "time", "utc", 
                       "band", "point", "ordinal"
         
@@ -553,18 +553,18 @@ class Plot(UIElement):
         height: Chart height in pixels (default: 380)
         grid: Show grid - True (y-axis), "both", "x", "y", False
         border: Show border (default: True)
-        borderRadius: Border radius
+        border_radius: Border radius
         
         # Layout (app-specific)
         grow, shrink: Flex properties for responsive sizing
         force_dimensions: Override flex with fixed dimensions
         
         # Style customization (all optional, override defaults)
-        titleStyle: Title text style dict
-        xLabelStyle, yLabelStyle: Axis label style dicts
-        tickStyle: Tick/number label style dict
-        gridStyle: Grid line style dict
-        axisStyle: Axis line style dict
+        title_style: Title text style dict
+        x_label_style, y_label_style: Axis label style dicts
+        tick_style: Tick/number label style dict
+        grid_style: Grid line style dict
+        axis_style: Axis line style dict
         
         # Advanced: Any other Observable Plot option
         **kwargs: Any additional Observable Plot options are passed through
@@ -582,9 +582,9 @@ class Plot(UIElement):
         fill=None,
         stroke=None,
         opacity=None,
-        strokeWidth=None,
-        fillOpacity=None,
-        strokeOpacity=None,
+        stroke_width=None,
+        fill_opacity=None,
+        stroke_opacity=None,
         # Dimension channels
         size=None,  # legacy: maps to r for dots
         r=None,
@@ -595,12 +595,12 @@ class Plot(UIElement):
         # Position bounds (for rect/area marks)
         x1=None, x2=None, y1=None, y2=None,
         # Scale options
-        xLabel=None,
-        yLabel=None,
-        xDomain=None,
-        yDomain=None,
-        xType=None,
-        yType=None,
+        x_label=None,
+        y_label=None,
+        x_domain=None,
+        y_domain=None,
+        x_type=None,
+        y_type=None,
         # Transforms
         sort=None,
         filter=None,
@@ -612,31 +612,31 @@ class Plot(UIElement):
         # Mark styling
         marker=None,
         inset=None,
-        insetTop=None,
-        insetRight=None,
-        insetBottom=None,
-        insetLeft=None,
+        inset_top=None,
+        inset_right=None,
+        inset_bottom=None,
+        inset_left=None,
         # Grid & margins
         grid=None,
-        marginTop=None,
-        marginRight=None,
-        marginBottom=None,
-        marginLeft=None,
+        margin_top=None,
+        margin_right=None,
+        margin_bottom=None,
+        margin_left=None,
         # Chart appearance (app-specific)
         width="full",
         height=380,
         title=None,
         border=True,
-        borderWidth=None,
-        borderRadius=None,
-        borderColor=None,
+        border_width=None,
+        border_radius=None,
+        border_color=None,
         # Style customization dicts (app-specific)
-        titleStyle=None,
-        xLabelStyle=None,
-        yLabelStyle=None,
-        tickStyle=None,
-        gridStyle=None,
-        axisStyle=None,
+        title_style=None,
+        x_label_style=None,
+        y_label_style=None,
+        tick_style=None,
+        grid_style=None,
+        axis_style=None,
         # Layout (app-specific)
         grow=None,
         shrink=None,
@@ -677,20 +677,20 @@ class Plot(UIElement):
             fill=fill,
             stroke=stroke,
             opacity=opacity,
-            strokeWidth=strokeWidth,
-            fillOpacity=fillOpacity,
-            strokeOpacity=strokeOpacity,
+            stroke_width=stroke_width,
+            fill_opacity=fill_opacity,
+            stroke_opacity=stroke_opacity,
             size=size,
             r=r,
             symbol=symbol,
             series=series,
             z=z,
-            xLabel=xLabel,
-            yLabel=yLabel,
-            xDomain=xDomain,
-            yDomain=yDomain,
-            xType=xType,
-            yType=yType,
+            x_label=x_label,
+            y_label=y_label,
+            x_domain=x_domain,
+            y_domain=y_domain,
+            x_type=x_type,
+            y_type=y_type,
             sort=sort,
             filter=filter,
             bin=bin,
@@ -700,28 +700,28 @@ class Plot(UIElement):
             curve=curve,
             marker=marker,
             inset=inset,
-            insetTop=insetTop,
-            insetRight=insetRight,
-            insetBottom=insetBottom,
-            insetLeft=insetLeft,
+            inset_top=inset_top,
+            inset_right=inset_right,
+            inset_bottom=inset_bottom,
+            inset_left=inset_left,
             grid=grid,
             width=width,
             height=height,
-            marginTop=marginTop,
-            marginRight=marginRight,
-            marginBottom=marginBottom,
-            marginLeft=marginLeft,
+            margin_top=margin_top,
+            margin_right=margin_right,
+            margin_bottom=margin_bottom,
+            margin_left=margin_left,
             title=title,
             border=border,
-            borderWidth=borderWidth,
-            borderRadius=borderRadius,
-            borderColor=borderColor,
-            titleStyle=titleStyle,
-            xLabelStyle=xLabelStyle,
-            yLabelStyle=yLabelStyle,
-            tickStyle=tickStyle,
-            gridStyle=gridStyle,
-            axisStyle=axisStyle,
+            border_width=border_width,
+            border_radius=border_radius,
+            border_color=border_color,
+            title_style=title_style,
+            x_label_style=x_label_style,
+            y_label_style=y_label_style,
+            tick_style=tick_style,
+            grid_style=grid_style,
+            axis_style=axis_style,
             grow=grow,
             shrink=shrink,
             force_dimensions=force_dimensions,
@@ -751,10 +751,10 @@ def scatter(data, x=None, y=None, fill=None, stroke=None, r=None, symbol=None,
                 symbol=symbol, opacity=opacity, title=title, **kwargs)
 
 def line(data, x=None, y=None, stroke=None, z=None, curve="linear", 
-         marker=None, strokeWidth=None, title=None, **kwargs):
+         marker=None, stroke_width=None, title=None, **kwargs):
     """Create a line plot."""
     return Plot(data, x=x, y=y, mark="line", stroke=stroke, z=z, curve=curve,
-                marker=marker, strokeWidth=strokeWidth, title=title, **kwargs)
+                marker=marker, stroke_width=stroke_width, title=title, **kwargs)
 
 def area(data, x=None, y=None, y1=None, y2=None, fill=None, z=None, 
          curve="linear", title=None, **kwargs):
@@ -799,15 +799,15 @@ def density(data, x=None, y=None, fill=None, stroke=None,
     return Plot(data, x=x, y=y, mark="density", fill=fill, stroke=stroke, 
                 thresholds=thresholds, bandwidth=bandwidth, title=title, **kwargs)
 
-def rule(data=None, x=None, y=None, stroke="currentColor", strokeWidth=1, 
-         strokeDasharray="4 2", title=None, **kwargs):
+def rule(data=None, x=None, y=None, stroke="currentColor", stroke_width=1, 
+         stroke_dasharray="4 2", title=None, **kwargs):
     """Create reference lines."""
-    return Plot(data, x=x, y=y, mark="rule", stroke=stroke, strokeWidth=strokeWidth,
-                strokeDasharray=strokeDasharray, title=title, **kwargs)
+    return Plot(data, x=x, y=y, mark="rule", stroke=stroke, stroke_width=stroke_width,
+                stroke_dasharray=stroke_dasharray, title=title, **kwargs)
 
 def waffle(data, x=None, y=None, fill=None, orientation="vertical", 
-           unit=None, gap=None, rx=None, multiple=None,
-           bgY=None, bgX=None, bgOpacity=None,
+           unit=None, gap=None, rx=None, per_row=None,
+           bg_y=None, bg_x=None, bg_opacity=None,
            title=None, **kwargs):
     """
     Create a waffle chart (unit chart with countable cells).
@@ -821,19 +821,19 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
         unit: Quantity each cell represents (default: 1)
         gap: Gap between cells in pixels
         rx: Corner radius - use "100%" for circles
-        multiple: Number of cells per row (default: determined by chart width)
-        bgY: Background total for vertical waffle (shows faded unfilled cells)
-        bgX: Background total for horizontal waffle
-        bgOpacity: Opacity for background cells (default: 0.4)
+        per_row: Number of cells per row
+        bg_y: Background total for vertical waffle (shows faded unfilled cells)
+        bg_x: Background total for horizontal waffle
+        bg_opacity: Opacity for background cells (default: 0.4)
         title: Chart title
     """
     mark = "waffleY" if orientation == "vertical" else "waffleX"
     
     extra_kwargs = {}
-    bg_total = bgY if orientation == "vertical" else bgX
+    bg_total = bg_y if orientation == "vertical" else bg_x
     if bg_total is not None:
-        extra_kwargs["backgroundY" if orientation == "vertical" else "backgroundX"] = bg_total
-        opacity = bgOpacity if bgOpacity is not None else 0.4
+        extra_kwargs["background_y" if orientation == "vertical" else "background_x"] = bg_total
+        opacity = bg_opacity if bg_opacity is not None else 0.4
         if fill and isinstance(fill, str) and fill.startswith("#"):
             hex_color = fill.lstrip("#")
             if len(hex_color) == 3:
@@ -841,15 +841,15 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
             r = int(hex_color[0:2], 16)
             g = int(hex_color[2:4], 16)
             b = int(hex_color[4:6], 16)
-            extra_kwargs["backgroundFill"] = f"rgba({r}, {g}, {b}, {opacity})"
+            extra_kwargs["background_fill"] = f"rgba({r}, {g}, {b}, {opacity})"
         else:
-            extra_kwargs["backgroundFill"] = fill or "currentColor"
+            extra_kwargs["background_fill"] = fill or "currentColor"
     
     return Plot(data, x=x, y=y, mark=mark, fill=fill, unit=unit, gap=gap, 
-                rx=rx, multiple=multiple, title=title, **extra_kwargs, **kwargs)
+                rx=rx, per_row=per_row, title=title, **extra_kwargs, **kwargs)
 
 def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
-           binWidth=None, colorScheme=None, title=None, **kwargs):
+           bin_width=None, color_scheme=None, title=None, **kwargs):
     """
     Create a hexbin heatmap (2D histogram with hexagonal bins).
     
@@ -859,12 +859,12 @@ def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
         fill: "count" (default) or column name for color encoding
         r: "count" for sized hexagons, or fixed radius
         stroke: Stroke color for hexagon borders
-        binWidth: Distance between hexagon centers in pixels
-        colorScheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
+        bin_width: Distance between hexagon centers in pixels
+        color_scheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
         title: Chart title
     """
     return Plot(data, x=x, y=y, mark="hexbin", fill=fill, r=r, stroke=stroke,
-                binWidth=binWidth, colorScheme=colorScheme, title=title, **kwargs)
+                bin_width=bin_width, color_scheme=color_scheme, title=title, **kwargs)
 
 def stacked_dots(data, x=None, y=None, fill=None, r=None, 
                  orientation="vertical", direction="single",
@@ -933,7 +933,7 @@ class TimeSeries(UIElement):
         data: Either uPlot format [[timestamps], [values], ...] or 
               simplified format {"x": [...], "y": [...], "y2": [...]}
         series: List of series configs [{"label": "...", "stroke": "#color"}, ...]
-        xLabel, yLabel: Axis labels
+        x_label, y_label: Axis labels
         xType: "time" (default, Unix timestamps) or "numeric"
         title: Chart title
         width: Chart width - number (pixels), "full", or "100%" (default: fills container)
@@ -942,15 +942,15 @@ class TimeSeries(UIElement):
         cursor: Show cursor crosshairs (default: True)
         zoom: Enable zoom on drag (default: True)
         border: Show border (default: True)
-        borderRadius: Border radius (optional, defaults to theme)
+        border_radius: Border radius (optional, defaults to theme)
         
         Style customization (all optional, override defaults):
-        titleStyle: dict - Title text style
-        xLabelStyle: dict - X-axis label style
-        yLabelStyle: dict - Y-axis label style
-        tickStyle: dict - Tick/number label style
-        gridStyle: dict - Grid line style
-        axisStyle: dict - Axis line style
+        title_style: dict - Title text style
+        x_label_style: dict - X-axis label style
+        y_label_style: dict - Y-axis label style
+        tick_style: dict - Tick/number label style
+        grid_style: dict - Grid line style
+        axis_style: dict - Axis line style
     
     Example:
         import numpy as np
@@ -968,19 +968,19 @@ class TimeSeries(UIElement):
             xType="time",
             title="Random Walk",
             width="full",
-            titleStyle={"fontSize": "18px", "color": "#333"}
+            title_style={"fontSize": "18px", "color": "#333"}
         )
     """
     def __init__(
         self,
         data,
         series=None,
-        xLabel=None,
-        yLabel=None,
-        y2Label=None,
+        x_label=None,
+        y_label=None,
+        y2_label=None,
         xType="time",
-        xRange=None,
-        yRange=None,
+        x_range=None,
+        y_range=None,
         width="full",
         height=350,
         legend=True,
@@ -988,16 +988,16 @@ class TimeSeries(UIElement):
         zoom=True,
         title=None,
         border=True,
-        borderWidth=None,
-        borderRadius=None,
-        borderColor=None,
+        border_width=None,
+        border_radius=None,
+        border_color=None,
         # Style customization dicts
-        titleStyle=None,
-        xLabelStyle=None,
-        yLabelStyle=None,
-        tickStyle=None,
-        gridStyle=None,
-        axisStyle=None,
+        title_style=None,
+        x_label_style=None,
+        y_label_style=None,
+        tick_style=None,
+        grid_style=None,
+        axis_style=None,
         grow=None,
         shrink=None,
         force_dimensions=False
@@ -1008,12 +1008,12 @@ class TimeSeries(UIElement):
         super().__init__(
             data=self._data,
             series=series,
-            xLabel=xLabel,
-            yLabel=yLabel,
-            y2Label=y2Label,
+            x_label=x_label,
+            y_label=y_label,
+            y2_label=y2_label,
             xType=xType,
-            xRange=xRange,
-            yRange=yRange,
+            x_range=x_range,
+            y_range=y_range,
             width=width,
             height=height,
             legend=legend,
@@ -1021,15 +1021,15 @@ class TimeSeries(UIElement):
             zoom=zoom,
             title=title,
             border=border,
-            borderWidth=borderWidth,
-            borderRadius=borderRadius,
-            borderColor=borderColor,
-            titleStyle=titleStyle,
-            xLabelStyle=xLabelStyle,
-            yLabelStyle=yLabelStyle,
-            tickStyle=tickStyle,
-            gridStyle=gridStyle,
-            axisStyle=axisStyle,
+            border_width=border_width,
+            border_radius=border_radius,
+            border_color=border_color,
+            title_style=title_style,
+            x_label_style=x_label_style,
+            y_label_style=y_label_style,
+            tick_style=tick_style,
+            grid_style=grid_style,
+            axis_style=axis_style,
             grow=grow,
             shrink=shrink,
             force_dimensions=force_dimensions
@@ -1137,16 +1137,16 @@ class Chart(UIElement):
         tooltipOptions=None,
         animate=True,
         border=True,
-        borderWidth=None,
-        borderRadius=None,
-        borderColor=None,
+        border_width=None,
+        border_radius=None,
+        border_color=None,
         # Style customization dicts
-        titleStyle=None,
-        xLabelStyle=None,
-        yLabelStyle=None,
-        tickStyle=None,
-        gridStyle=None,
-        axisStyle=None,
+        title_style=None,
+        x_label_style=None,
+        y_label_style=None,
+        tick_style=None,
+        grid_style=None,
+        axis_style=None,
         grow=None,
         shrink=None,
         force_dimensions=False
@@ -1170,15 +1170,15 @@ class Chart(UIElement):
             tooltipOptions=tooltipOptions,
             animate=animate,
             border=border,
-            borderWidth=borderWidth,
-            borderRadius=borderRadius,
-            borderColor=borderColor,
-            titleStyle=titleStyle,
-            xLabelStyle=xLabelStyle,
-            yLabelStyle=yLabelStyle,
-            tickStyle=tickStyle,
-            gridStyle=gridStyle,
-            axisStyle=axisStyle,
+            border_width=border_width,
+            border_radius=border_radius,
+            border_color=border_color,
+            title_style=title_style,
+            x_label_style=x_label_style,
+            y_label_style=y_label_style,
+            tick_style=tick_style,
+            grid_style=grid_style,
+            axis_style=axis_style,
             grow=grow,
             shrink=shrink,
             force_dimensions=force_dimensions

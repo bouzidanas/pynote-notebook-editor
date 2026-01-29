@@ -35,12 +35,12 @@ interface TimeSeriesProps {
       scale?: string;
       spanGaps?: boolean;
     }>;
-    xLabel?: string;
-    yLabel?: string;
-    y2Label?: string;
+    x_label?: string;
+    y_label?: string;
+    y2_label?: string;
     xType?: "time" | "numeric";
-    xRange?: [number, number];
-    yRange?: [number, number];
+    x_range?: [number, number];
+    y_range?: [number, number];
     width?: number | string;
     height?: number;
     legend?: boolean;
@@ -48,10 +48,10 @@ interface TimeSeriesProps {
     zoom?: boolean;
     title?: string;
     border?: boolean;
-    borderWidth?: number | string;
-    borderRadius?: string;
-    borderColor?: string;
-    titleStyle?: StyleDict;
+    border_width?: number | string;
+    border_radius?: string;
+    border_color?: string;
+    title_style?: StyleDict;
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
@@ -168,7 +168,7 @@ const TimeSeries: Component<TimeSeriesProps> = (p) => {
         ticks: { stroke: axisColor, width: 1, size: theme.axes.tickSize },
         font: theme.axes.font,
         labelFont: theme.axes.labelFont,
-        label: p.props.xLabel,
+        label: p.props.x_label,
         labelSize: theme.axes.labelSize,
         gap: theme.axes.gap,
         values: isTime ? undefined : (_u, vals) => vals.map(v => v.toLocaleString()),
@@ -179,7 +179,7 @@ const TimeSeries: Component<TimeSeriesProps> = (p) => {
         ticks: { stroke: axisColor, width: 1, size: theme.axes.tickSize },
         font: theme.axes.font,
         labelFont: theme.axes.labelFont,
-        label: p.props.yLabel,
+        label: p.props.y_label,
         labelSize: theme.axes.labelSize,
         gap: theme.axes.gap,
         size: 60,
@@ -196,7 +196,7 @@ const TimeSeries: Component<TimeSeriesProps> = (p) => {
         ticks: { stroke: axisColor, width: 1, size: theme.axes.tickSize },
         font: theme.axes.font,
         labelFont: theme.axes.labelFont,
-        label: p.props.y2Label,
+        label: p.props.y2_label,
         labelSize: theme.axes.labelSize,
         gap: theme.axes.gap,
         size: 60,
@@ -206,10 +206,10 @@ const TimeSeries: Component<TimeSeriesProps> = (p) => {
     const scales: uPlot.Scales = {
       x: {
         time: isTime,
-        range: p.props.xRange ? () => p.props.xRange! : undefined,
+        range: p.props.x_range ? () => p.props.x_range! : undefined,
       },
       y: {
-        range: p.props.yRange ? () => p.props.yRange! : undefined,
+        range: p.props.y_range ? () => p.props.y_range! : undefined,
       },
     };
 
@@ -345,23 +345,23 @@ const TimeSeries: Component<TimeSeriesProps> = (p) => {
     if (p.props.border === false) {
       borderStyle = "none";
     } else {
-      const width = p.props.borderWidth != null 
-        ? (typeof p.props.borderWidth === "number" ? `${p.props.borderWidth}px` : p.props.borderWidth)
+      const width = p.props.border_width != null 
+        ? (typeof p.props.border_width === "number" ? `${p.props.border_width}px` : p.props.border_width)
         : "2px";
-      const color = p.props.borderColor || currentTheme.colors.foreground;
+      const color = p.props.border_color || currentTheme.colors.foreground;
       borderStyle = `${width} solid ${color}`;
     }
     
     return {
       ...base,
       border: borderStyle,
-      "border-radius": p.props.borderRadius || base["border-radius"],
+      "border-radius": p.props.border_radius || base["border-radius"],
     };
   };
   
   const titleStyles = () => {
     const defaults = getChartTitleStyles();
-    const userStyle = p.props.titleStyle || {};
+    const userStyle = p.props.title_style || {};
     return { ...defaults, ...userStyle };
   };
 

@@ -44,7 +44,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-demo-plot-scatter",
         type: "code",
-        content: "from pynote_ui.oplot import scatter\nimport numpy as np\n\n# Scatter plot with multiple visual encodings\nnp.random.seed(42)\nn = 50\ndata = [\n    {\n        \"x\": np.random.randn(), \n        \"y\": np.random.randn(), \n        \"size\": np.random.uniform(2, 10),  # Varying size\n        \"category\": \"A\" if i < 25 else \"B\"\n    }\n    for i in range(n)\n]\n\n# Using convenience function with channels\nscatter(\n    data, x=\"x\", y=\"y\", \n    fill=\"category\",  # Color by category\n    r=\"size\",           # Size by data\n    opacity=0.7,\n    title=\"Multi-Channel Scatter\",\n    titleStyle={\"fontSize\": \"18px\", \"color\": \"#8b5cf6\"},\n    gridStyle={\"stroke\": \"#e2e8f0\", \"strokeOpacity\": 0.5}\n)"
+        content: "from pynote_ui.oplot import scatter\nimport numpy as np\n\n# Scatter plot with multiple visual encodings\nnp.random.seed(42)\nn = 50\ndata = [\n    {\n        \"x\": np.random.randn(), \n        \"y\": np.random.randn(), \n        \"size\": np.random.uniform(2, 10),  # Varying size\n        \"category\": \"A\" if i < 25 else \"B\"\n    }\n    for i in range(n)\n]\n\n# Using convenience function with channels\nscatter(\n    data, x=\"x\", y=\"y\", \n    fill=\"category\",  # Color by category\n    r=\"size\",           # Size by data\n    opacity=0.7,\n    title=\"Multi-Channel Scatter\",\n    title_style={\"fontSize\": \"18px\", \"color\": \"#8b5cf6\"},\n    grid_style={\"stroke\": \"#e2e8f0\", \"strokeOpacity\": 0.5}\n)"
     },
 
     // --- Section: Plot vs Convenience Functions ---
@@ -63,7 +63,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-demo-plot-curves",
         type: "code",
-        content: "from pynote_ui.oplot import line\nimport numpy as np\n\n# Demonstrate different curve interpolations\nx = np.linspace(0, 10, 20)  # Only 20 points!\ndata = []\nfor curve_type in [\"linear\", \"step\", \"basis\", \"catmull-rom\"]:\n    data.extend([\n        {\"x\": xi, \"y\": np.sin(xi), \"curve\": curve_type}\n        for xi in x\n    ])\n\n# Use z channel for series grouping\nline(data, x=\"x\", y=\"y\", z=\"curve\", stroke=\"curve\",\n     strokeWidth=2, marker=\"dot\",\n     title=\"Curve Interpolation Comparison\")"
+        content: "from pynote_ui.oplot import line\nimport numpy as np\n\n# Demonstrate different curve interpolations\nx = np.linspace(0, 10, 20)  # Only 20 points!\ndata = []\nfor curve_type in [\"linear\", \"step\", \"basis\", \"catmull-rom\"]:\n    data.extend([\n        {\"x\": xi, \"y\": np.sin(xi), \"curve\": curve_type}\n        for xi in x\n    ])\n\n# Use z channel for series grouping\nline(data, x=\"x\", y=\"y\", z=\"curve\", stroke=\"curve\",\n     stroke_width=2, marker=\"dot\",\n     title=\"Curve Interpolation Comparison\")"
     },
     {
         id: "tut-demo-plot-bar-sorted",
@@ -73,14 +73,14 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-demo-plot-histogram",
         type: "code",
-        content: "from pynote_ui.oplot import histogram\nimport numpy as np\n\n# Grouped histogram with binning\nnp.random.seed(42)\ndata = []\nfor sex in [\"Male\", \"Female\"]:\n    heights = np.random.normal(170 if sex == \"Male\" else 165, 8, 200)\n    data.extend([{\"height\": h, \"sex\": sex} for h in heights])\n\nhistogram(data, x=\"height\", fill=\"sex\",\n          bins=30, stat=\"proportion\",\n          title=\"Height Distribution by Sex\",\n          xLabel=\"Height (cm)\",\n          yLabel=\"Proportion\",\n          yDomain=[0, 0.15])"
+        content: "from pynote_ui.oplot import histogram\nimport numpy as np\n\n# Grouped histogram with binning\nnp.random.seed(42)\ndata = []\nfor sex in [\"Male\", \"Female\"]:\n    heights = np.random.normal(170 if sex == \"Male\" else 165, 8, 200)\n    data.extend([{\"height\": h, \"sex\": sex} for h in heights])\n\nhistogram(data, x=\"height\", fill=\"sex\",\n          bins=30, stat=\"proportion\",\n          title=\"Height Distribution by Sex\",\n          x_label=\"Height (cm)\",\n          y_label=\"Proportion\",\n          y_domain=[0, 0.15])"
     },
 
     // --- Section: Waffle Charts ---
     {
         id: "tut-charts-waffle",
         type: "markdown",
-        content: "## Waffle Charts\n\nWaffle charts subdivide bars into **countable cells**, making it easy to read exact quantities. Great for showing proportions or comparing counts.\n\nUse `waffle()` for the convenience function, or `Plot(..., mark=\"waffleY\")` directly."
+        content: "## Waffle Charts\n\nWaffle charts subdivide bars into **countable cells**, making it easy to read exact quantities. Great for showing proportions or comparing counts.\n\nUse `waffle()` for the convenience function, or `Plot(..., mark=\"waffleY\")` directly.\n\n**Key options:** `unit` (value per cell), `per_row` (cells per row), `rx` (corner radius), `bg_y`/`bg_opacity` (background)."
     },
     {
         id: "tut-demo-waffle-survey",
@@ -96,9 +96,10 @@ survey = [
 
 waffle(survey, x="question", y="yes",
        rx="100%",           # Circular cells
+       per_row=9,           # 9 cells per row
        fill="#f97316",      # Orange
-       bgY=120,             # Background total (shows unfilled portion)
-       bgOpacity=0.4,       # 40% opacity for background
+       bg_y=120,            # Background total (shows unfilled portion)
+       bg_opacity=0.4,      # 40% opacity for background
        title="Syrian Teenagers Survey (of 120)")`
     },
     {
@@ -113,15 +114,16 @@ survey = [
     {"question": "Would like activities but prevented", "yes": 73}
 ]
 
-# With Plot, you can specify any backgroundFill color
+# With Plot, you can specify any background_fill color
 Plot(survey, 
      x="question", y="yes",
      mark="waffleY",
      rx="100%",
-     fill="#f97316",                      # Green for filled
-     backgroundY=120,                     # Total capacity
-     backgroundFill="var(--accent)",  # Gray background
-     title="Survey Results (green = yes, gray = no response)")`
+     per_row=8,                           # 8 cells per row
+     fill="#f97316",                      # Orange for filled
+     background_y=120,                    # Total capacity
+     background_fill="var(--accent)",     # Theme accent for background
+     title="Survey Results (orange = yes, accent = no response)")`
     },
 
     // --- Section: Hexbin Heatmaps ---
@@ -145,10 +147,10 @@ data = [
 ]
 
 hexbin(data, x="x", y="y", 
-       colorScheme="YlGnBu",
+       color_scheme="YlGnBu",
        title="Height vs Weight Distribution (1000 points)",
-       xLabel="Height (cm)", 
-       yLabel="Weight (kg)",
+       x_label="Height (cm)", 
+       y_label="Weight (kg)",
        height=320)`
     },
 
@@ -178,7 +180,7 @@ for opt, count in zip(options, counts):
 stacked_dots(data, x="grade",
              fill="#6366f1", r=6,
              title="Grade Distribution (100 students)",
-             xLabel="Grade",
+             x_label="Grade",
              height=300)`
     },
     {
@@ -197,7 +199,7 @@ for section in ["Morning", "Afternoon"]:
 
 stacked_dots(data, x="grade", fill="section", r=5,
              title="Grades by Class Section",
-             xLabel="Grade",
+             x_label="Grade",
              height=280)`
     },
     {
@@ -235,10 +237,10 @@ stacked_dots(data,
      fill="group",
      r=5,
      title="Test Scores by Gender",
-     xLabel="Score",
-     yLabel="← Female · Male →",
-     xDomain=[54, 101],
-     yDomain=[-10, 10],
+     x_label="Score",
+     y_label="← Female · Male →",
+     x_domain=[54, 101],
+     y_domain=[-10, 10],
      height=350)`
     },
     {
@@ -272,10 +274,10 @@ stacked_dots(data,
      fill="group",
      r=5,
      title="Test Scores by Gender (Horizontal)",
-     yLabel="Score",
-     xLabel="← Female · Male →",
-     yDomain=[48, 102],
-     xDomain=[-20, 20],
+     y_label="Score",
+     x_label="← Female · Male →",
+     y_domain=[48, 102],
+     x_domain=[-20, 20],
      height=900)`
     },
 
@@ -288,7 +290,7 @@ stacked_dots(data,
     {
         id: "tut-demo-plot-interactive",
         type: "code",
-        content: "from pynote_ui.oplot import Plot\nfrom pynote_ui import Slider, Group\nimport numpy as np\n\n# Create frequency slider with fine steps for smooth animation\nfreq_slider = Slider(min=1, max=10, value=2, step=0.1, label=\"Frequency\", width=\"100%\")\n\n# Generate initial data\nx = np.linspace(0, 2 * np.pi, 200)\ninitial_data = [{\"x\": xi, \"y\": np.sin(2 * xi)} for xi in x]\n\n# Create the plot (full width)\nwave_plot = Plot(\n    initial_data, \n    x=\"x\", y=\"y\", \n    mark=\"line\",\n    title=\"Interactive Sine Wave\",\n    width=\"full\",\n    yDomain=[-1.5, 1.5]  # Fix y-axis so it doesn't jump around\n)\n\n# Update plot when slider changes\ndef update_wave(data):\n    freq = data[\"value\"]\n    new_data = [{\"x\": xi, \"y\": np.sin(freq * xi)} for xi in x]\n    wave_plot.data = new_data  # This triggers a re-render!\n\nfreq_slider.on_update(update_wave)\n\n# Display together\nGroup([freq_slider, wave_plot], layout=\"col\")"
+        content: "from pynote_ui.oplot import Plot\nfrom pynote_ui import Slider, Group\nimport numpy as np\n\n# Create frequency slider with fine steps for smooth animation\nfreq_slider = Slider(min=1, max=10, value=2, step=0.1, label=\"Frequency\", width=\"100%\")\n\n# Generate initial data\nx = np.linspace(0, 2 * np.pi, 200)\ninitial_data = [{\"x\": xi, \"y\": np.sin(2 * xi)} for xi in x]\n\n# Create the plot (full width)\nwave_plot = Plot(\n    initial_data, \n    x=\"x\", y=\"y\", \n    mark=\"line\",\n    title=\"Interactive Sine Wave\",\n    width=\"full\",\n    y_domain=[-1.5, 1.5]  # Fix y-axis so it doesn't jump around\n)\n\n# Update plot when slider changes\ndef update_wave(data):\n    freq = data[\"value\"]\n    new_data = [{\"x\": xi, \"y\": np.sin(freq * xi)} for xi in x]\n    wave_plot.data = new_data  # This triggers a re-render!\n\nfreq_slider.on_update(update_wave)\n\n# Display together\nGroup([freq_slider, wave_plot], layout=\"col\")"
     },
 
     // --- Section: Multiple Controls ---
@@ -318,7 +320,7 @@ wave = Plot(
     x="x", y="y", mark="area",
     title="Amplitude × sin(Frequency × x)",
     width="full",
-    yDomain=[-2.5, 2.5]
+    y_domain=[-2.5, 2.5]
 )
 
 # Update functions - each slider triggers a full recalculation
@@ -353,7 +355,7 @@ Group([
     {
         id: "tut-demo-bar",
         type: "code",
-        content: "from pynote_ui.fplot import Chart\nfrom pynote_ui import Slider, Group\n\n# Interactive bar chart with custom styling\nbar_slider = Slider(min=0, max=100, value=50, step=1, label=\"Adjust 'Product B'\", width=\"100%\")\n\nbar_chart = Chart(\n    type=\"bar\",\n    data={\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, 50, 20, 40]}]\n    },\n    title=\"Product Sales\",\n    titleStyle={\"fontWeight\": \"700\"},  # Extra bold title\n    width=\"full\",\n    height=280\n)\n\ndef update_bar(data):\n    new_val = int(data[\"value\"])\n    bar_chart.data = {\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, new_val, 20, 40]}]\n    }\n\nbar_slider.on_update(update_bar)\nGroup([bar_slider, bar_chart], layout=\"col\")"
+        content: "from pynote_ui.fplot import Chart\nfrom pynote_ui import Slider, Group\n\n# Interactive bar chart with custom styling\nbar_slider = Slider(min=0, max=100, value=50, step=1, label=\"Adjust 'Product B'\", width=\"100%\")\n\nbar_chart = Chart(\n    type=\"bar\",\n    data={\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, 50, 20, 40]}]\n    },\n    title=\"Product Sales\",\n    title_style={\"fontWeight\": \"700\"},  # Extra bold title\n    width=\"full\",\n    height=280\n)\n\ndef update_bar(data):\n    new_val = int(data[\"value\"])\n    bar_chart.data = {\n        \"labels\": [\"Product A\", \"Product B\", \"Product C\", \"Product D\"],\n        \"datasets\": [{\"name\": \"Sales\", \"values\": [30, new_val, 20, 40]}]\n    }\n\nbar_slider.on_update(update_bar)\nGroup([bar_slider, bar_chart], layout=\"col\")"
     },
 
     // --- Section: Pie Charts ---
@@ -377,7 +379,7 @@ Group([
     {
         id: "tut-demo-timeseries",
         type: "code",
-        content: "from pynote_ui.uplot import TimeSeries\nfrom pynote_ui import Slider, Group\nimport numpy as np\nimport time\n\n# Generate 5000 data points (fast!)\nn = 5000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Random walk stock price simulation\nnp.random.seed(42)\nreturns = np.random.randn(n) * 0.02  # 2% daily volatility\nprice = 100 * np.exp(np.cumsum(returns))  # Geometric random walk\n\n# Volatility slider with fine steps\nvol_slider = Slider(min=1, max=5, value=2, step=0.1, label=\"Volatility (%)\", width=\"100%\")\n\nts = TimeSeries(\n    data={\"x\": timestamps, \"price\": price.tolist()},\n    series=[{\"label\": \"Stock Price\"}],  # Uses theme accent color by default\n    yLabel=\"Price ($)\",\n    title=\"Simulated Stock Price (5,000 points)\",\n    width=\"full\",\n    height=320\n)\n\ndef regenerate(data):\n    vol = data[\"value\"] / 100\n    new_returns = np.random.randn(n) * vol\n    new_price = 100 * np.exp(np.cumsum(new_returns))\n    ts.data = {\"x\": timestamps, \"price\": new_price.tolist()}\n\nvol_slider.on_update(regenerate)\nGroup([vol_slider, ts], layout=\"col\")"
+        content: "from pynote_ui.uplot import TimeSeries\nfrom pynote_ui import Slider, Group\nimport numpy as np\nimport time\n\n# Generate 5000 data points (fast!)\nn = 5000\nnow = int(time.time())\ntimestamps = list(range(now - n, now))\n\n# Random walk stock price simulation\nnp.random.seed(42)\nreturns = np.random.randn(n) * 0.02  # 2% daily volatility\nprice = 100 * np.exp(np.cumsum(returns))  # Geometric random walk\n\n# Volatility slider with fine steps\nvol_slider = Slider(min=1, max=5, value=2, step=0.1, label=\"Volatility (%)\", width=\"100%\")\n\nts = TimeSeries(\n    data={\"x\": timestamps, \"price\": price.tolist()},\n    series=[{\"label\": \"Stock Price\"}],  # Uses theme accent color by default\n    y_label=\"Price ($)\",\n    title=\"Simulated Stock Price (5,000 points)\",\n    width=\"full\",\n    height=320\n)\n\ndef regenerate(data):\n    vol = data[\"value\"] / 100\n    new_returns = np.random.randn(n) * vol\n    new_price = 100 * np.exp(np.cumsum(new_returns))\n    ts.data = {\"x\": timestamps, \"price\": new_price.tolist()}\n\nvol_slider.on_update(regenerate)\nGroup([vol_slider, ts], layout=\"col\")"
     },
     {
         id: "tut-demo-timeseries-2",
