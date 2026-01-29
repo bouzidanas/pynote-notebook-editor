@@ -93,6 +93,29 @@ class Kernel {
     }
   }
 
+  // Analyze cell for reactive execution mode (extracts variable definitions and references)
+  analyzeCell(cellId: string, code: string): Promise<{ definitions: string[], references: string[] }> {
+    if (!this.worker || this.status === "loading") {
+      return Promise.resolve({ definitions: [], references: [] });
+    }
+
+    return new Promise((resolve) => {
+      const listenerId = `analyze_${cellId}_${Date.now()}`;
+
+      this.listeners.set(listenerId, (msg) => {
+        if (msg.type === "analyze_cell_result") {
+          this.listeners.delete(listenerId);
+          resolve({
+            definitions: msg.definitions || [],
+            references: msg.references || []
+          });
+        }
+      });
+
+      this.worker!.postMessage({ type: "analyze_cell", id: listenerId, code });
+    });
+  }
+
   run(code: string, onUpdate: (data: ExecutionResult) => void): Promise<void> {
     if (!this.worker || (this.status !== "ready" && this.status !== "running")) {
       if (this.status === "stopped") throw new Error("Kernel is stopped");

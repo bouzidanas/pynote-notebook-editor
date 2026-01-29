@@ -3,6 +3,10 @@ import { kernel } from "./pyodide";
 
 export type CellType = "code" | "markdown";
 
+// Execution mode type and app-level default
+export type ExecutionMode = "queue_all" | "hybrid" | "direct" | "reactive";
+export const APP_DEFAULT_EXECUTION_MODE: ExecutionMode = "hybrid";
+
 // Cell-level visibility metadata (for code cells only)
 // These override document/app settings for this specific cell
 // true = force show, false = force hide, undefined = use global setting
@@ -69,6 +73,12 @@ export interface CellData {
 //   - exitContent is needed for redo when cell was deleted and recreated (CodeMirror history is lost)
 type HistoryEntry = string;
 
+// Reactive execution mode: cell dependency tracking (Marimo-style)
+export interface CellDependencyInfo {
+  definitions: Set<string>;  // Variables this cell defines/assigns
+  references: Set<string>;   // Variables this cell references (external to cell)
+}
+
 export interface NotebookState {
   cells: CellData[];
   filename: string;
@@ -76,9 +86,12 @@ export interface NotebookState {
   history: HistoryEntry[];
   historyIndex: number; // Current position in history (-1 = no history)
   presentationMode: boolean;
-  executionMode: "queue_all" | "hybrid" | "direct";
+  executionMode: ExecutionMode;
   executionQueue: string[]; // List of cell IDs waiting to run
   sidebarAlignment: "top" | "center" | "bottom";
+  // Reactive execution mode state (Marimo-style DAG)
+  cellDependencies: Map<string, CellDependencyInfo>;
+  dependenciesStale: boolean; // True when switching to reactive mode, need to analyze all cells
 }
 
 const MAX_HISTORY = 100;
@@ -190,9 +203,12 @@ const [store, setStore] = createStore<NotebookState>({
   history: [],
   historyIndex: -1,
   presentationMode: false,
-  executionMode: "hybrid", // Default to Hybrid as requested
+  executionMode: APP_DEFAULT_EXECUTION_MODE,
   executionQueue: [],
-  sidebarAlignment: "top"
+  sidebarAlignment: "top",
+  // Reactive execution mode (Marimo-style DAG)
+  cellDependencies: new Map(),
+  dependenciesStale: false
 });
 
 export const notebookStore = store;
@@ -441,6 +457,11 @@ export const actions = {
       // Clear editor state before deleting
       actions.clearCellEditorState(id);
 
+      // Reactive mode: remove from dependency tracking
+      if (store.executionMode === "reactive") {
+        actions.removeCellDependencies(id);
+      }
+
       // Add to history before deleting: "d|index|type|id|content"
       addToHistory(`d|${idx}|${cell.type}|${id}|${escapeContent(cell.content)}`);
 
@@ -575,6 +596,7 @@ export const actions = {
   __setAutosaveCallback(cb: () => void) {
     (actions as any).__autosaveCallback = cb;
   },
+
   setEditing: (id: string, isEditing: boolean) => {
     // Session State Tracking for Undo/Redo
     const cell = store.cells.find(c => c.id === id);
@@ -654,20 +676,191 @@ export const actions = {
   },
 
   setExecutionMode: (mode: NotebookState["executionMode"]) => {
+    const oldMode = store.executionMode;
     setStore("executionMode", mode);
+
+    // When switching TO reactive mode, mark dependencies as stale so we analyze all cells
+    if (mode === "reactive" && oldMode !== "reactive") {
+      setStore("dependenciesStale", true);
+    }
   },
 
-  runCell: (id: string, runKernel: (content: string, id: string) => Promise<void>) => {
+  // --- Reactive Execution Mode (Marimo-style DAG) ---
+
+  // Update cell dependencies after analysis
+  setCellDependencies: (cellId: string, definitions: string[], references: string[]) => {
+    const newMap = new Map(store.cellDependencies);
+    newMap.set(cellId, {
+      definitions: new Set(definitions),
+      references: new Set(references)
+    });
+    setStore("cellDependencies", newMap);
+  },
+
+  // Remove cell from dependency tracking
+  removeCellDependencies: (cellId: string) => {
+    const newMap = new Map(store.cellDependencies);
+    newMap.delete(cellId);
+    setStore("cellDependencies", newMap);
+  },
+
+  // Clear stale flag after analyzing all cells
+  setDependenciesStale: (stale: boolean) => {
+    setStore("dependenciesStale", stale);
+  },
+
+  // Build dependency graph: returns Map<cellId, Set<dependentCellIds>>
+  // An edge A → B means "B depends on A" (B references what A defines)
+  getDependencyGraph: (): Map<string, Set<string>> => {
+    const graph = new Map<string, Set<string>>();
+    const deps = store.cellDependencies;
+
+    // Initialize all cells with empty sets
+    for (const cell of store.cells) {
+      if (cell.type === "code") {
+        graph.set(cell.id, new Set());
+      }
+    }
+
+    // Build variable → defining cell mapping
+    const variableToCell = new Map<string, string>();
+    for (const [cellId, info] of deps) {
+      for (const varName of info.definitions) {
+        variableToCell.set(varName, cellId);
+      }
+    }
+
+    // For each cell, find cells that depend on its definitions
+    for (const [cellId, info] of deps) {
+      for (const refVar of info.references) {
+        const definingCell = variableToCell.get(refVar);
+        if (definingCell && definingCell !== cellId) {
+          // definingCell → cellId (cellId depends on definingCell)
+          if (!graph.has(definingCell)) {
+            graph.set(definingCell, new Set());
+          }
+          graph.get(definingCell)!.add(cellId);
+        }
+      }
+    }
+
+    return graph;
+  },
+
+  // Get all downstream cells (cells that depend on the given cell, transitively)
+  // Returns cells in topological order (safe execution order)
+  getDownstreamCells: (cellId: string): string[] => {
+    const graph = actions.getDependencyGraph();
+    const visited = new Set<string>();
+    const result: string[] = [];
+
+    // BFS to find all reachable cells
+    const queue = [cellId];
+    visited.add(cellId);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const dependents = graph.get(current) || new Set();
+
+      for (const dep of dependents) {
+        if (!visited.has(dep)) {
+          visited.add(dep);
+          queue.push(dep);
+          result.push(dep);
+        }
+      }
+    }
+
+    // Topological sort the result (Kahn's algorithm on the subgraph)
+    // This ensures cells are executed in dependency order
+    if (result.length <= 1) return result;
+
+    // Build in-degree map for the subgraph
+    const subgraphNodes = new Set(result);
+    const inDegree = new Map<string, number>();
+    const subgraphEdges = new Map<string, Set<string>>();
+
+    for (const node of result) {
+      inDegree.set(node, 0);
+      subgraphEdges.set(node, new Set());
+    }
+
+    // Count in-degrees within the subgraph
+    for (const node of result) {
+      const dependents = graph.get(node) || new Set();
+      for (const dep of dependents) {
+        if (subgraphNodes.has(dep)) {
+          subgraphEdges.get(node)!.add(dep);
+          inDegree.set(dep, (inDegree.get(dep) || 0) + 1);
+        }
+      }
+    }
+
+    // Also count edges from the source cell
+    const sourceEdges = graph.get(cellId) || new Set();
+    for (const dep of sourceEdges) {
+      if (subgraphNodes.has(dep)) {
+        inDegree.set(dep, (inDegree.get(dep) || 0) + 1);
+      }
+    }
+
+    // Kahn's algorithm
+    const sorted: string[] = [];
+    const zeroInDegree = result.filter(n => inDegree.get(n) === 0);
+
+    while (zeroInDegree.length > 0) {
+      const node = zeroInDegree.shift()!;
+      sorted.push(node);
+
+      for (const dep of subgraphEdges.get(node) || new Set()) {
+        const newDegree = (inDegree.get(dep) || 1) - 1;
+        inDegree.set(dep, newDegree);
+        if (newDegree === 0) {
+          zeroInDegree.push(dep);
+        }
+      }
+    }
+
+    // If sorted doesn't include all nodes, there's a cycle - return in BFS order
+    return sorted.length === result.length ? sorted : result;
+  },
+
+
+  runCell: (id: string, runKernel: (content: string, id: string) => Promise<void>, analyzeCell?: (cellId: string, content: string) => Promise<void>) => {
+    console.log(`[runCell] id=${id}, analyzeCell provided:`, !!analyzeCell);
     const cell = store.cells.find(c => c.id === id);
     if (!cell || cell.type !== "code" || cell.isRunning || cell.isQueued) return;
 
     const mode = store.executionMode;
+    console.log(`[runCell] mode=${mode}`);
     const isKernelRunning = store.cells.some(c => c.isRunning);
     const isKernelLoading = kernel.status === "loading";
     const prevIndex = store.cells.findIndex(c => c.id === id) - 1;
     const prevCell = prevIndex >= 0 ? store.cells[prevIndex] : null;
     const isPrevRunningOrQueued = prevCell && (prevCell.isRunning || prevCell.isQueued);
 
+    // Reactive mode: analyze this cell first (JIT), then queue downstream cells
+    if (mode === "reactive") {
+      // Store the analyzeCell callback for use by executeCell
+      if (analyzeCell) {
+        (actions as any).__pendingAnalyzeCell = analyzeCell;
+        console.log(`[runCell] Stored analyzeCell callback`);
+      } else {
+        console.log(`[runCell] WARNING: No analyzeCell callback provided in reactive mode!`);
+      }
+
+      // If kernel is busy, queue this cell (analysis will happen when it executes)
+      if (isKernelLoading || isKernelRunning) {
+        actions.addToQueue(id);
+      } else {
+        // Execute immediately (will analyze JIT in executeCell)
+        // Pass false for isReactiveCascade since this is user-initiated
+        actions.executeCell(id, runKernel, false);
+      }
+      return;
+    }
+
+    // Non-reactive modes (queue_all, hybrid, direct)
     const shouldQueue =
       isKernelLoading ||
       (mode === "queue_all" ? isKernelRunning :
@@ -681,7 +874,8 @@ export const actions = {
     }
   },
 
-  executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>) => {
+  executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>, isReactiveCascade: boolean = true) => {
+    console.log(`[executeCell] id=${id}, isReactiveCascade=${isReactiveCascade}, mode=${store.executionMode}`);
     actions.setCellRunning(id, true);
     const cell = store.cells.find(c => c.id === id);
     if (!cell) return;
@@ -689,6 +883,29 @@ export const actions = {
     const previousOutputs = cell.outputs;
 
     try {
+      // Reactive mode: JIT analysis before execution
+      // Only analyze and queue downstream for user-initiated runs, not cascade runs
+      if (store.executionMode === "reactive" && !isReactiveCascade) {
+        console.log(`[executeCell] Reactive mode, analyzing cell ${id}`);
+        const analyzeCell = (actions as any).__pendingAnalyzeCell;
+        console.log(`[executeCell] analyzeCell callback exists:`, !!analyzeCell);
+        if (analyzeCell) {
+          // Analyze this cell and update its dependencies
+          await analyzeCell(id, cell.content);
+
+          // Now queue downstream cells based on fresh dependencies
+          const downstream = actions.getDownstreamCells(id);
+          console.log(`[executeCell] Downstream cells:`, downstream);
+          for (const depId of downstream) {
+            // Only queue if not already queued/running
+            const depCell = store.cells.find(c => c.id === depId);
+            if (depCell && !depCell.isRunning && !depCell.isQueued) {
+              actions.addToQueue(depId);
+            }
+          }
+        }
+      }
+
       // Clear old UI state for this cell
       kernel.clearCellState(id);
       // Set context for new UI elements
@@ -708,6 +925,7 @@ export const actions = {
       // Process next in queue
       const nextId = actions.popFromQueue();
       if (nextId) {
+        // Default isReactiveCascade=true handles reactive mode correctly
         actions.executeCell(nextId, runKernel);
       }
     }
@@ -760,13 +978,18 @@ export const actions = {
     }
   },
 
-  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null) => {
+  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null, executionMode?: ExecutionMode) => {
     setStore({
       cells,
       filename,
       activeCellId: activeCellId || null,
       history: history || [],
-      historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1)
+      historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1),
+      // Use document's execution mode if provided, otherwise use app default
+      executionMode: executionMode || APP_DEFAULT_EXECUTION_MODE,
+      // Reset reactive mode state when loading a new notebook
+      cellDependencies: new Map(),
+      dependenciesStale: executionMode === "reactive" // Need to analyze if loading in reactive mode
     });
 
     // Recovery Phase: Check for interrupted edits (orphaned preEditState)
