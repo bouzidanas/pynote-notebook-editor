@@ -270,26 +270,43 @@ Like Marimo, PyNote treats variables starting with \`_\` (underscore) as **local
 This is useful for temporary variables you don't want to propagate.`
     },
     {
+        id: "tut-react-local-base",
+        type: "code",
+        content: `# First, define a public variable
+base_number = 100
+print(f"base_number = {base_number}")`
+    },
+    {
         id: "tut-react-local1",
         type: "code",
-        content: `# _temp is local - won't trigger other cells
-_temp = 999
-public_value = 50
-print(f"_temp = {_temp}, public_value = {public_value}")`
+        content: `# Using local variable (_temp) alongside public variable
+_temp = 999  # Local - no dependencies created
+result_a = base_number + 1
+print(f"_temp = {_temp}, result_a = {result_a}")`
     },
     {
         id: "tut-react-local2",
         type: "code",
-        content: `# This cell depends on public_value, NOT on _temp
-result = public_value * 2
-print(f"result = public_value * 2 = {result}")`
+        content: `# This cell depends on base_number only
+result_b = base_number + 2
+print(f"result_b = {result_b}")`
     },
     {
         id: "tut-react-local-note",
         type: "markdown",
-        content: `**Try it:** Change \`_temp = 999\` to \`_temp = 1\` and run the cell. Notice that the second cell does **not** re-run because \`_temp\` is local.
+        content: `**Key insight:** When you re-run a cell, **all downstream cells that reference its defined variables are re-run**, regardless of whether the values actually changed.
 
-But if you change \`public_value\`, the second cell **will** re-run.`
+**Try it:**
+1. Run all three cells above (if not already run)
+2. Clear the output of the third cell
+3. Edit the second cell to change **only** \`_temp = 999\` to \`_temp = 1\` 
+4. Re-run the second cell
+
+**What happens:** The third cell **WILL run** because you re-executed a cell that defines \`result_a\`, which the dependency graph shows.
+
+**Why underscore variables matter:** While you can't prevent downstream cells from running when you re-execute a cell, underscore variables prevent cells from becoming downstream in the first place. The third cell does NOT depend on \`_temp\`, so if you had a cell that only read \`_temp\`, it wouldn't have been added to the dependency graph at all.
+
+**Better demonstration:** Delete the second cell entirely, then create a new cell with just \`print(_temp)\`. You'll get an error because \`_temp\` is not visible outside its defining cell!`
     },
 
     // ============================================================================

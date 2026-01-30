@@ -157,8 +157,6 @@ from pynote_ui.oplot import line, scatter, bar
 line(data, x="date", y="price", stroke="category")
 ```
 
-Charts are interactive out of the box: hover for values, zoom, pan.
-
 ---
 
 ## How Does It Work?
@@ -274,8 +272,6 @@ All modern, well-maintained technologies with strong communities.
 | Infrastructure costs | Zero infrastructure |
 | Clunky widgets | Native, responsive UI |
 | Complex installation | Just a URL |
-
-**PyNote is the notebook experience people expect in 2026: fast, private, and zero-friction.**
 
 ---
 
