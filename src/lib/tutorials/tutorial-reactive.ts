@@ -30,7 +30,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
         type: "markdown",
         content: `# Reactive Execution Mode
 
-**Reactive Execution** is a powerful feature inspired by [Marimo](https://marimo.io) that automatically re-runs cells when their dependencies change.
+**Reactive Execution** is a powerful feature that automatically re-runs cells when their dependencies change.
 
 ## How It Works
 
@@ -265,7 +265,7 @@ print(report)`
         type: "markdown",
         content: `## Part 5: Local Variables with Underscore
 
-Like Marimo, PyNote treats variables starting with \`_\` (underscore) as **local** to the cell. They won't create dependencies.
+PyNote treats variables starting with \`_\` (underscore) as **local** to the cell. They won't create dependencies.
 
 This is useful for temporary variables you don't want to propagate.`
     },
@@ -306,7 +306,7 @@ print(f"result_b = {result_b}")`
 
 **Why underscore variables matter:** While you can't prevent downstream cells from running when you re-execute a cell, underscore variables prevent cells from becoming downstream in the first place. The third cell does NOT depend on \`_temp\`, so if you had a cell that only read \`_temp\`, it wouldn't have been added to the dependency graph at all.
 
-**Better demonstration:** Delete the second cell entirely, then create a new cell with just \`print(_temp)\`. You'll get an error because \`_temp\` is not visible outside its defining cell!`
+**Better demonstration:** Create a new cell after the second cell with just \`print(_temp)\`. You'll get the value of \`_temp\`, but when you change the value of \`_temp\` in the second cell and rerun the cell, notice that the value printed by the cell you just created does not update to display the new value.`
     },
 
     // ============================================================================

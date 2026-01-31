@@ -40,13 +40,24 @@ PyNote isn't just a wrapper around a Python console; it's a bridge between two w
 npm install
 ```
 
-### Development
+## Development
 
 ```bash
 npm run dev
 ```
 
 Runs the app in development mode. Open [http://localhost:5173](http://localhost:5173) to view it.
+
+### The Use of AI
+
+I stand by the belief that AI is a powerful tool but at the same time, believe that the developer should know what his tools are doing. 
+
+> [!NOTE] 
+> I am not a fan of "vibe coding". I believe the coder/developer should **review** and **understand** every line of code that is added or altered by AI tools. 
+
+During development, I use AI tools to help with debugging, research, exploring ideas, and occasionally, generating some boilerplate code or just adding some comments. I am aware that the latter is controversial. However, I am ok with it for two reasons: one, better to have AI comments than no comments at all, and two, I believe it provides embedded context (memory) that helps AI models remember more details about the code which helps generate better code suggestions, design recommendations, and code analysis later on.
+
+I am not a fan of extensive use of AI models in Agent mode as this can lead to code corruption, loss of previous work, bloat, and other issues down the line. I believe AI should be used as an imperfect assisting tool that should always be supervised and reviewed by the human developer. Simply put, you need a healthy bit of skepticism regarding any thing AI says or does.
 
 ### Build
 
