@@ -50,14 +50,18 @@ Runs the app in development mode. Open [http://localhost:5173](http://localhost:
 
 ### The Use of AI
 
-I stand by the belief that AI is a powerful tool but at the same time, believe that the developer should know what his tools are doing. 
+I stand by the belief that AI is a powerful tool, but, at the same time, believe that the developer should know what his tools are doing. 
 
 > [!NOTE] 
 > I am not a fan of "vibe coding". I believe the coder/developer should **review** and **understand** every line of code that is added or altered by AI tools. 
 
 During development, I use AI tools to help with debugging, research, exploring ideas, and occasionally, generating some boilerplate code or just adding some comments. I am aware that the latter is controversial. However, I am ok with it for two reasons: one, better to have AI comments than no comments at all, and two, I believe it provides embedded context (memory) that helps AI models remember more details about the code which helps generate better code suggestions, design recommendations, and code analysis later on.
 
-I am not a fan of extensive use of AI models in Agent mode as this can lead to code corruption, loss of previous work, bloat, and other issues down the line. I believe AI should be used as an imperfect assisting tool that should always be supervised and reviewed by the human developer. Simply put, you need a healthy bit of skepticism regarding any thing AI says or does.
+One obvious example of where I made use of AI is in the `docs/`, `explanations/`, and `future-feature-specs/` folders. Thes files in these folders were generated in the moment when I could not take time away from what I was doing to code a full spec or doc but I also didnt want to forget about it or lose my thoughts on the matter. 
+
+Another example you can find in the code base is in the Vite config where I had an AI model generate the repetitive if statements that split the Rollup output files into separate chunks based on module names.
+
+That being said, I am not a fan of extensive use of AI models in Agent mode as this can lead to code corruption, loss of previous work, bloat, and other issues down the line. I believe AI should be used as an imperfect assisting tool that should always be supervised and reviewed by the human developer and never given the reigns. Simply put, you need a healthy bit of skepticism regarding any thing AI says or does.
 
 ### Build
 
