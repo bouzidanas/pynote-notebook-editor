@@ -33,7 +33,7 @@ export const tutorialQuickstartCells: CellData[] = [
     {
         id: "tut-intro",
         type: "markdown",
-        content: "# Welcome to PyNote!\n\nThis is an interactive tutorial running right inside your browser. **I am a notebook**, just like the ones you will create.\n\nDouble-click any text cell to edit it, then press `Ctrl + Enter` to render it again.\n\nPyNote runs Python using **WebAssembly (Pyodide)**, so your code executes locally on your machine. No server required!"
+        content: "# Welcome to PyNote!\n\nThis is an interactive tutorial running right inside your browser. **I am a notebook**, just like the ones you will create.\n\nDouble-click any text cell to edit it, then press `Ctrl + Enter` or click outside the cell to render it again.\n\nPyNote runs Python using **WebAssembly (Pyodide)**, so your code executes locally on your machine. No server required!"
     },
 
     // ============================================================================
@@ -49,14 +49,14 @@ export const tutorialQuickstartCells: CellData[] = [
     {
         id: "tut-s1-kernel",
         type: "markdown",
-        content: "## The Kernel & Status\n\nThe \"Kernel\" is the Python engine running in the background. Look at the **top right corner** of the app header for its status:\n\n- 🟢 **Ready**: Waiting for your command.\n- 🟡 **Busy**: Currently running code.\n- 🔴 **Starting/Error**: Setting up or crashed.\n\n**Tip:** If code gets stuck, open the Kernel Menu (top right) to **Interrupt** or **Restart** the engine."
+        content: "## The Kernel & Status\n\nThe \"Kernel\" is the Python engine running in the background. Look at the **top right corner** of the app header for its status:\n\n- 🟢 **READY**: Waiting for code to execute.\n- 🟡 **LOADING**: Pyodide (the Python engine) is starting up.\n- 🟡 **RUNNING**: Currently executing code.\n- 🔴 **ERROR**: Problem starting the kernel.\n- 🔴 **STOPPED**: Kernel was shut down.\n\n**Tip:** If code gets stuck, open the Kernel Menu (top right) to **Restart** or **Shut Down** the engine."
     },
 
     // --- Section 1.2: Code Cells ---
     {
         id: "tut-s1-cells",
         type: "markdown",
-        content: "## Code Cells & Indicators\n\nRun the cell below (`Shift + Enter`) and keep an eye on the visual cues:\n\n1. **Status Dot** (Top Right of cell): Shows a timer, then Green (Success) or Red (Error).\n2. **Stale Indicator** (Left Border): \n   - **Blue/Solid**: The output is fresh and matches the code.\n   - **Gray/Dashed**: The code has been changed since the last run (Stale).\n\n**Try it:** Run the cell, then edit the number `1.5` to `2.0` but **don't** run it. Notice the left border turns gray."
+        content: "## Code Cells & Indicators\n\nRun the cell below (`Shift + Enter`) and keep an eye on the visual cues:\n\n1. **Status Dot** (Below the code editor): Shows Green (Success), Red (Error), or Gray (from a previous kernel session).\n2. **Execution Info**: When you hover or select a cell, you'll see the timestamp and duration of the last run.\n\n**Try it:** Run the cell below and watch the status dot appear, along with the execution time."
     },
     {
         id: "tut-demo-indicators",
@@ -120,7 +120,7 @@ export const tutorialQuickstartCells: CellData[] = [
     {
         id: "tut-s1-view",
         type: "markdown",
-        content: "## Keyboard Shortcuts & View Features\n\nWork faster by keeping your hands on the keyboard:\n\n- **Ctrl/Cmd + Enter**: Run cell.\n- **Shift + Enter**: Run and move to next cell.\n- **Alt + Backspace**: Clear cell output.\n- **Esc**: Exit Edit Mode (focus cell border).\n- **Enter**: Enter Edit Mode (focus editor).\n\n### Presentation Mode\nNeed to share your work? Click the **Presentation Icon** (projection screen) in the toolbar. This hides all menus and sidebars, giving you a clean, focused view of your content. Press `Esc` to exit."
+        content: "## Keyboard Shortcuts & View Features\n\nWork faster by keeping your hands on the keyboard:\n\n- **Ctrl/Cmd + Enter**: Run cell and stay.\n- **Shift + Enter**: Run and select next cell.\n- **Alt + Enter**: Run and insert new cell below.\n- **Alt + Backspace**: Clear cell output.\n- **Esc**: Exit Edit Mode (focus cell border).\n- **Enter**: Enter Edit Mode (focus editor).\n\n### Presentation Mode\nNeed to share your work? Use `Alt + P` or find **Presentation** (eye icon) in the View menu. This hides the toolbar and cell controls, giving you a clean, focused view of your content. Press `Esc` to exit."
     },
 
     // --- Section 1.6: Pyodide Features ---

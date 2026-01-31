@@ -1,16 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 30 30" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      {/* Terminal > prompt */}
-      <path d="M1 9L5 17L1 25" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      {/* Terminal _ underscore */}
-      <line x1="9" y1="27" x2="27.5" y2="27" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" />
-      
-{/* Sticky note outline */}
-      <path d="M21.5 2H10.5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2V8Z" />
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#f38ba8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+     {/* Sticky note outline */}
+      <path d="M15.5 2H4.5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2V8Z" />
       {/* Folded corner */}
-      <path d="M21.5 2.5v6h6" />
+      <path d="M15.5 2.5v6h6" />
  {/* "Py" text */}
       <text
-        x="14.6"
+        x="8.6"
         y="17.5"
         fill="#f38ba8"
         stroke="none"
@@ -23,7 +18,7 @@
       </text>
   
       <text
-        x="22.1"
+        x="16.1"
         y="16.8"
         fill="#f38ba8"
         stroke="none"
