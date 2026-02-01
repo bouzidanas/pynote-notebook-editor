@@ -2,13 +2,17 @@ import { type Component, createEffect, onCleanup, onMount, createMemo } from "so
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { duotoneDarkInit } from "@uiw/codemirror-theme-duotone";
-import { EditorView, keymap, placeholder } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo } from "@codemirror/commands";
-import { EditorState } from "@codemirror/state";
+import { EditorView, keymap, placeholder, lineNumbers, drawSelection, Decoration } from "@codemirror/view";
+import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo, toggleComment } from "@codemirror/commands";
+import { EditorState, StateField, Range, RangeSet, EditorSelection } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
+import { bracketMatching } from "@codemirror/language";
+import { closeBrackets } from "@codemirror/autocomplete";
+import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
 import { currentTheme } from "../lib/theme";
-import { type CellData, actions } from "../lib/store";
+import { type CellData, actions, APP_QUICK_EDIT_MODE } from "../lib/store";
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
+import { codeVisibility } from "../lib/codeVisibility";
 
 // Create custom duotoneDark theme with green function calls
 // Using duotoneDarkInit() with custom styles is the most efficient approach -
@@ -18,6 +22,153 @@ const customDuotoneDark = duotoneDarkInit({
     { tag: tags.function(tags.variableName), color: "#a6e3a1" },
   ]
 });
+
+// Select previous occurrence - reverse direction of selectNextOccurrence
+// Finds previous occurrence of selected text before the first selection
+function selectPreviousOccurrence(view: EditorView): boolean {
+  const { state } = view;
+  const { ranges } = state.selection;
+  
+  // If any selection is empty, expand to word first (same as selectNextOccurrence)
+  if (ranges.some(sel => sel.from === sel.to)) {
+    // Expand to word
+    let newRanges = ranges.map(range => {
+      const word = state.wordAt(range.head);
+      return word ? EditorSelection.range(word.from, word.to) : EditorSelection.cursor(range.head);
+    });
+    const newSel = EditorSelection.create(newRanges, state.selection.mainIndex);
+    if (newSel.eq(state.selection)) return false;
+    view.dispatch(state.update({ selection: newSel }));
+    return true;
+  }
+
+  // Get the search text from first selection
+  const searchedText = state.sliceDoc(ranges[0].from, ranges[0].to);
+  
+  // Verify all selections have the same text
+  if (ranges.some(r => state.sliceDoc(r.from, r.to) !== searchedText)) {
+    return false;
+  }
+
+  // Find previous occurrence before the earliest selection
+  const earliestFrom = Math.min(...ranges.map(r => r.from));
+  
+  // Search backward in chunks (mimicking prevMatchInRange from CodeMirror)
+  let foundRange: { from: number; to: number } | null = null;
+  const chunkSize = 10000;
+  
+  for (let pos = earliestFrom;;) {
+    const start = Math.max(0, pos - chunkSize - searchedText.length);
+    const cursor = new SearchCursor(state.doc, searchedText, start, pos);
+    let lastMatch: { from: number; to: number } | null = null;
+    
+    while (!cursor.next().done) {
+      lastMatch = cursor.value;
+    }
+    
+    if (lastMatch) {
+      foundRange = lastMatch;
+      break;
+    }
+    
+    if (start === 0) {
+      // Wrap around to end of document
+      const docEnd = state.doc.length;
+      const wrapStart = Math.max(0, docEnd - chunkSize - searchedText.length);
+      const wrapCursor = new SearchCursor(state.doc, searchedText, wrapStart, docEnd);
+      let wrapMatch: { from: number; to: number } | null = null;
+      
+      while (!wrapCursor.next().done) {
+        const match = wrapCursor.value;
+        // Skip if this match overlaps with any existing selection
+        if (!ranges.some(r => match.from < r.to && match.to > r.from)) {
+          wrapMatch = match;
+        }
+      }
+      
+      foundRange = wrapMatch;
+      break;
+    }
+    
+    pos -= chunkSize;
+  }
+
+  if (!foundRange) return false;
+
+  view.dispatch(state.update({
+    selection: state.selection.addRange(
+      EditorSelection.range(foundRange.from, foundRange.to),
+      false
+    ),
+    effects: EditorView.scrollIntoView(foundRange.from)
+  }));
+  
+  return true;
+}
+
+// Smart selection matching - handles multi-select properly
+// When multiple selections exist, only match based on the main (first) selection
+// This prevents trying to match concatenated text during Ctrl+D operations
+function smartSelectionMatches() {
+  const decorationMark = Decoration.mark({ class: "cm-selectionMatch" });
+  
+  return StateField.define<RangeSet<Decoration>>({
+    create() {
+      return Decoration.none;
+    },
+    update(_decorations, tr) {
+      const state = tr.state;
+      const selection = state.selection;
+      
+      // Only proceed if there's a non-empty selection
+      if (selection.main.empty) {
+        return Decoration.none;
+      }
+      
+      // Get text from main selection
+      const mainText = state.sliceDoc(selection.main.from, selection.main.to);
+      
+      // Only match if selection is long enough (at least 1 char)
+      if (mainText.length === 0) {
+        return Decoration.none;
+      }
+      
+      // When multiple ranges exist, check if they all contain the same text
+      // If not, don't highlight matches (prevents matching "wordword" when you have two "word" selections)
+      if (selection.ranges.length > 1) {
+        const allSame = selection.ranges.every(range => {
+          if (range.empty) return false;
+          const text = state.sliceDoc(range.from, range.to);
+          return text === mainText;
+        });
+        
+        if (!allSame) {
+          return Decoration.none;
+        }
+      }
+      
+      // Find all matches in the document
+      const decorationRanges: Range<Decoration>[] = [];
+      const cursor = new SearchCursor(state.doc, mainText);
+      
+      while (!cursor.next().done) {
+        const { from, to } = cursor.value;
+        
+        // Skip if this match overlaps with any selection range
+        const overlapsSelection = selection.ranges.some(range => 
+          (from >= range.from && from < range.to) || (to > range.from && to <= range.to)
+        );
+        
+        if (!overlapsSelection) {
+          decorationRanges.push(decorationMark.range(from, to));
+        }
+      }
+      
+      return Decoration.set(decorationRanges, true);
+    },
+    provide: f => EditorView.decorations.from(f)
+  });
+}
 
 interface EditorProps {
   value: string;
@@ -30,6 +181,7 @@ interface EditorProps {
   checkRedefinitions?: (definitions: any[]) => any[];
   onClick?: () => void;
   onBlur?: () => void;
+  isActive?: boolean; // For respecting quick edit mode toggle
 }
 
 const CodeEditor: Component<EditorProps> = (props) => {
@@ -38,31 +190,49 @@ const CodeEditor: Component<EditorProps> = (props) => {
     value: props.value,
   });
 
-  // Handle clicks on readonly editor
+  // Handle clicks on readonly editor - only when quick edit mode is ON
+  // This works around bracket matching intercepting clicks and preventing edit mode
+  // When quick edit is OFF, the original two-click behavior works fine without this
   createEffect(() => {
     const view = editorView();
-    if (view && props.onClick) {
-      const handler = () => {
+    // Only add listener when quick edit is enabled
+    if (view && props.onClick && APP_QUICK_EDIT_MODE) {
+      const handler = (e: MouseEvent) => {
         if (props.readOnly) {
+          // Quick edit ON: activate + enter edit mode in one click
+          actions.setActiveCell(props.cell.id);
           props.onClick?.();
+          // Explicitly focus the editor to ensure edit mode fully activates
+          // This works around bracket matching intercepting the click
+          setTimeout(() => {
+            view.focus();
+          }, 0);
         }
       };
-      view.dom.addEventListener('click', handler);
-      onCleanup(() => view.dom.removeEventListener('click', handler));
+      // Use mousedown in capture phase to run before bracket matching
+      view.dom.addEventListener('mousedown', handler, true);
+      onCleanup(() => view.dom.removeEventListener('mousedown', handler, true));
     }
   });
 
-  // Handle blur to exit edit mode
+  // Handle blur to exit edit mode and close search panel
   createEffect(() => {
     const view = editorView();
     if (view && props.onBlur) {
-      const handler = () => {
+      const handler = (e: FocusEvent) => {
         if (!props.readOnly) {
-          props.onBlur?.();
+          // Check if focus is moving outside the entire editor (including search panel)
+          const relatedTarget = e.relatedTarget as Node;
+          if (!relatedTarget || !view.dom.contains(relatedTarget)) {
+            // Focus left the editor completely - close search panel and exit edit mode
+            closeSearchPanel(view);
+            props.onBlur?.();
+          }
         }
       };
-      view.contentDOM.addEventListener('blur', handler);
-      onCleanup(() => view.contentDOM.removeEventListener('blur', handler));
+      // Use focusout which bubbles and catches focus leaving any child element
+      view.dom.addEventListener('focusout', handler);
+      onCleanup(() => view.dom.removeEventListener('focusout', handler));
     }
   });
 
@@ -227,7 +397,10 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
   });
 
-  // Dynamic Theme
+  // Dynamic Theme - Must use EditorView.theme() API, not global CSS
+  // CodeMirror 6 requires styles for internal classes (.cm-*) to be registered as extensions
+  // for proper scoping, lifecycle management, and access to dynamic JS values.
+  // See: explanations/codemirror-theming.md for detailed rationale
   createExtension(() => EditorView.theme({
     "&": {
       backgroundColor: "transparent !important",
@@ -238,8 +411,11 @@ const CodeEditor: Component<EditorProps> = (props) => {
       fontFamily: "var(--font-mono)",
     },
     ".cm-content": {
-      caretColor: "var(--accent)",
+      caretColor: "var(--accent) !important",
       padding: "1rem"
+    },
+    ".cm-cursor, .cm-dropCursor": {
+      borderLeftColor: "var(--accent) !important"
     },
     ".cm-scroller": {
       fontFamily: "inherit",
@@ -250,7 +426,16 @@ const CodeEditor: Component<EditorProps> = (props) => {
       outline: "none"
     },
     ".cm-gutters": {
-      display: "none" 
+      backgroundColor: "transparent",
+      border: "none",
+      color: "var(--color-secondary)",
+      opacity: "0.3"
+    },
+    ".cm-selectionLayer .cm-selectionBackground": {
+      background: "color-mix(in srgb, var(--color-secondary) 25%, transparent) !important"
+    },
+    ".cm-content ::selection": {
+      background: "color-mix(in srgb, var(--color-secondary) 25%, transparent) !important"
     }
   }, { dark: true }));
 
@@ -267,6 +452,8 @@ const CodeEditor: Component<EditorProps> = (props) => {
 
   // Base extensions
   extensionsConfig = [
+    EditorState.allowMultipleSelections.of(true),
+    drawSelection(),
     python(),
     pythonIntellisense,
     pythonHover,
@@ -274,15 +461,147 @@ const CodeEditor: Component<EditorProps> = (props) => {
     tooltipTheme,
     customDuotoneDark,
     history(),
+    // Auto-close brackets and quotes
+    closeBrackets(),
+    // Bracket matching highlight
+    bracketMatching({
+      afterCursor: true,
+      brackets: "()[]{}",  // Explicitly list brackets to match
+    }),
+    // Smart selection matching - aware of multi-select
+    smartSelectionMatches(),
+    // Search panel with custom theme
+    // Theme must be embedded in search extension config to style dynamically created panel elements
+    // See: explanations/codemirror-theming.md
+    search({
+      top: true,
+    }),
+    // Disable autocomplete in search panel inputs using update listener (efficient, one-time setup)
+    EditorView.updateListener.of((update) => {
+      if (update.view.dom.querySelector('.cm-panel.cm-search input:not([autocomplete])')) {
+        const inputs = update.view.dom.querySelectorAll('.cm-panel.cm-search input');
+        inputs.forEach(input => {
+          input.setAttribute('autocomplete', 'off');
+          input.setAttribute('autocorrect', 'off');
+          input.setAttribute('autocapitalize', 'off');
+          input.setAttribute('spellcheck', 'false');
+        });
+      }
+    }),
+    EditorView.theme({
+      ".cm-searchMatch": {
+        backgroundColor: "color-mix(in srgb, var(--accent) 20%, transparent)",
+        outline: "1px solid var(--accent)",
+      },
+      ".cm-searchMatch-selected": {
+        backgroundColor: "color-mix(in srgb, var(--accent) 40%, transparent)",
+      },
+      ".cm-selectionMatch": {
+        backgroundColor: "transparent !important",
+        outline: "1px solid color-mix(in srgb, var(--color-secondary) 50%, transparent) !important",
+      },
+      "&.cm-focused .cm-matchingBracket": {
+        backgroundColor: "transparent !important",
+        filter: "brightness(1.6)",
+      },
+      ".cm-panel.cm-search": {
+        backgroundColor: "var(--color-background)",
+        border: "1px solid var(--color-foreground)",
+        borderRadius: "0.125rem",
+        padding: "0.5rem",
+      },
+      ".cm-panel.cm-search input, .cm-panel.cm-search button, .cm-panel.cm-search select": {
+        backgroundColor: "var(--color-background) !important",
+        backgroundImage: "none !important",
+        color: "var(--color-secondary)",
+        border: "1px solid var(--color-foreground)",
+        borderRadius: "0.125rem",
+        padding: "0.25rem 0.5rem",
+        fontSize: "0.875rem",
+        fontFamily: "var(--font-mono)",
+      },
+      ".cm-panel.cm-search input": {
+        "&::placeholder": {
+          color: "var(--color-foreground)",
+          opacity: "0.5",
+        },
+      },
+      ".cm-panel.cm-search input:focus": {
+        outline: "none",
+        borderColor: "var(--color-secondary)",
+      },
+      ".cm-panel.cm-search button:hover": {
+        borderColor: "var(--color-secondary)",
+        backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
+      },
+      ".cm-panel.cm-search button[name='close']": {
+        backgroundColor: "transparent",
+        border: "none",
+        color: "var(--color-secondary)",
+      },
+      ".cm-panel.cm-search label": {
+        color: "var(--color-secondary)",
+        fontSize: "0.75rem",
+      },
+      ".cm-panel.cm-search input[type='checkbox']": {
+        appearance: "none",
+        WebkitAppearance: "none",
+        width: "0.875rem !important",
+        height: "0.875rem !important",
+        minWidth: "0.875rem",
+        maxWidth: "0.875rem",
+        minHeight: "0.875rem",
+        maxHeight: "0.875rem",
+        border: "2px solid var(--color-foreground)",
+        borderRadius: "0.125rem",
+        backgroundColor: "transparent",
+        cursor: "pointer",
+        position: "relative",
+        transition: "all 0.2s",
+        verticalAlign: "middle",
+        marginTop: "-0.125rem",
+        marginRight: "0.375rem",
+        flexShrink: "0",
+        boxSizing: "border-box",
+        padding: "0",
+      },
+      ".cm-panel.cm-search input[type='checkbox']:hover": {
+        borderColor: "color-mix(in srgb, var(--color-secondary) 50%, transparent)",
+      },
+      ".cm-panel.cm-search input[type='checkbox']:checked": {
+        backgroundColor: "var(--accent) !important",
+        borderColor: "var(--accent)",
+      },
+      ".cm-panel.cm-search input[type='checkbox']:checked::before": {
+        content: '""',
+        position: "absolute",
+        left: "0.1875rem",
+        top: "0rem",
+        width: "0.25rem",
+        height: "0.5rem",
+        border: "solid var(--color-background)",
+        borderWidth: "0 2px 2px 0",
+        transform: "rotate(45deg)",
+        display: "block",
+      },
+    }),
     keymap.of([
       { key: "Mod-Enter", run: () => false },
+      { key: "Mod-/", run: toggleComment },
+      { key: "Mod-Shift-d", run: selectPreviousOccurrence, preventDefault: true },
       indentWithTab,
       ...defaultKeymap,
-      ...historyKeymap
+      ...historyKeymap,
+      ...searchKeymap
     ]),
     EditorView.lineWrapping
   ];
   createExtension(extensionsConfig);
+  
+  // Reactive line numbers (toggleable via settings)
+  createExtension(createMemo(() => {
+    return codeVisibility.showLineNumbers ? lineNumbers() : [];
+  }));
   
   // Reactive Linter
   createExtension(() => createPythonLinter(props.checkRedefinitions));

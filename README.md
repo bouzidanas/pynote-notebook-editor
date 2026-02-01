@@ -32,6 +32,27 @@ PyNote isn't just a wrapper around a Python console; it's a bridge between two w
 -   **Persistence**: Autosaves your work to local storage; supports importing and exporting `.ipynb` files.
 -   **Smart Shortcuts**: Extensive keyboard shortcuts for efficiently managing cells and execution flow.
 
+## Editor Features
+
+PyNote's code editor is powered by CodeMirror 6 and includes the following features:
+
+### Code Editor Shortcuts
+
+-   **Ctrl+F** (Cmd+F on Mac): Open search panel
+-   **F3** / **Ctrl+G**: Find next
+-   **Shift+F3** / **Shift+Ctrl+G**: Find previous
+-   **Ctrl+D** (Cmd+D on Mac): Select next occurrence (multiselect)
+-   **Ctrl+/** (Cmd+/ on Mac): Toggle comment
+-   **Tab**: Auto-indent or insert tab (configurable)
+-   **Auto-close brackets**: Automatically closes `()`, `[]`, `{}`, and quotes
+
+### Visual Features
+
+-   **Bracket matching**: Highlights matching brackets
+-   **Selection highlighting**: Highlights all occurrences of selected text
+-   **Line numbers**: Toggleable via the code visibility settings
+-   **Search panel styling**: Matches the app's theme
+
 ## Usage
 
 ### Installation

@@ -178,6 +178,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                cell={props.cell}
                placeholderText="Enter Python code..."
                checkRedefinitions={props.checkRedefinitions}
+               isActive={props.isActive}
                onClick={() => {
                  if (APP_QUICK_EDIT_MODE && !props.cell.isEditing) {
                    actions.setEditing(props.cell.id, true);

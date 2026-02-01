@@ -9,6 +9,7 @@ export interface CodeVisibilitySettings {
     showError: boolean;
     showStatusDot: boolean;
     saveToExport: boolean;
+    showLineNumbers: boolean;
 }
 
 const STORAGE_KEY = "pynote-code-visibility";
@@ -51,6 +52,7 @@ const defaultSettings: CodeVisibilitySettings = {
     showError: true,
     showStatusDot: true,
     saveToExport: false,
+    showLineNumbers: false,
 };
 
 // Load from localStorage
@@ -292,6 +294,7 @@ export const getEffectiveVisibility = (
             showError: cellMetadata.showError ?? settings.showError,
             showStatusDot: cellMetadata.showStatusDot ?? settings.showStatusDot,
             saveToExport: settings.saveToExport, // This is app-level only
+            showLineNumbers: settings.showLineNumbers, // This is app-level only
         };
     }
 

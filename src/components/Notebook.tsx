@@ -24,12 +24,13 @@ const SHORTCUTS = {
     { label: "Save Notebook", keys: "Ctrl + S" },
     { label: "Save As", keys: "Ctrl + Shift + S" },
     { label: "Export .ipynb", keys: "Ctrl + E" },
-    { label: "Toggle Shortcuts", keys: "Ctrl + /" },
+    { label: "Toggle Shortcuts", keys: "Ctrl + \\" },
     { label: "Presentation Mode", keys: "Alt + P" },
+    { label: "Theme Configuration", keys: "Alt + T" },
     { label: "Code Visibility", keys: "Alt + V" },
     { label: "Run All Cells", keys: "Alt + R" },
     { label: "Clear All Outputs", keys: "Alt + C" },
-    { label: "Delete All Cells", keys: "Alt + D" },
+    { label: "Delete All Cells", keys: "Alt + Delete" },
     { label: "Restart Kernel", keys: "Alt + K" },
     { label: "Shutdown Kernel", keys: "Alt + Q" }
   ],
@@ -45,8 +46,8 @@ const SHORTCUTS = {
     { label: "Move Down", keys: "Alt/Ctrl+Shift + ↓" },
     { label: "Insert Above", keys: "A" },
     { label: "Insert Below", keys: "B" },
-    { label: "Delete Cell", keys: "Ctrl + D" },
-    { label: "Clear Output", keys: "Alt + Backspace" }
+    { label: "Delete Cell", keys: "Ctrl + Delete" },
+    { label: "Clear Output", keys: "Ctrl + Backspace" }
   ],
   edit: [
     { label: "Run & Stay (Code)", keys: "Ctrl + Enter" },
@@ -54,7 +55,11 @@ const SHORTCUTS = {
     { label: "Run & Edit Next", keys: "Shift + Enter" },
     { label: "Run & Insert", keys: "Alt + Enter" },
     { label: "Exit Edit Mode", keys: "Esc" },
-    { label: "Clear Output", keys: "Alt + Backspace" }
+    { label: "Comment Toggle", keys: "Ctrl + /" },
+    { label: "Multi-Select Next", keys: "Ctrl + D" },
+    { label: "Multi-Select Previous", keys: "Ctrl + Shift + D" },
+    { label: "Find", keys: "Ctrl + F" },
+    { label: "Clear Output", keys: "Ctrl + Backspace" }
   ]
 };
 
@@ -589,23 +594,26 @@ const Notebook: Component = () => {
          // Global Redo (Windows style)
          e.preventDefault();
          actions.redo();
-      } else if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
 
         e.preventDefault();
         setShowShortcuts(!showShortcuts());
       } else if (e.altKey && e.key === "p") {
         e.preventDefault();
         actions.setPresentationMode(!notebookStore.presentationMode);
+      } else if (e.altKey && e.key === "t") {
+        e.preventDefault();
+        setShowThemeDialog(!showThemeDialog());
       } else if (e.altKey && e.key === "v") {
         e.preventDefault();
         setShowCodeVisibility(!showCodeVisibility());
       } else if (e.altKey && e.key === "r") {
         e.preventDefault();
         runAll();
-      } else if (e.altKey && e.key === "c") {
+      } else if (e.altKey && e.key === "Backspace") {
         e.preventDefault();
         actions.clearAllOutputs();
-      } else if (e.altKey && e.key === "d") {
+      } else if (e.altKey && e.key === "Delete") {
         e.preventDefault();
         handleDeleteAllCells();
       } else if (e.altKey && e.key === "k") {
@@ -616,7 +624,7 @@ const Notebook: Component = () => {
         e.preventDefault();
         kernel.terminate();
         actions.resetExecutionState();
-      } else if (e.altKey && e.key === "Backspace") {
+      } else if (e.ctrlKey && e.key === "Backspace") {
         if (notebookStore.activeCellId) {
              e.preventDefault();
              actions.clearCellOutput(notebookStore.activeCellId);
@@ -696,7 +704,7 @@ const Notebook: Component = () => {
              actions.addCell(activeCell?.type || "code", activeIndex);
         } else if (e.key === "b" || e.key === "B") { // Insert Below (Same Type)
              actions.addCell(activeCell?.type || "code", activeIndex + 1);
-        } else if (e.key === "d" && (e.ctrlKey || e.metaKey)) { 
+        } else if (e.key === "Delete" && (e.ctrlKey || e.metaKey)) {
              e.preventDefault();
              actions.deleteCell(activeId);
         } else if (e.key === "m" || e.key === "M") {
@@ -1331,7 +1339,7 @@ const Notebook: Component = () => {
                    </DropdownItem>
                    <DropdownDivider />
                    <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Configuration</div>
-                   <DropdownItem onClick={() => setShowThemeDialog(true)}>
+                   <DropdownItem onClick={() => setShowThemeDialog(true)} shortcut="Alt+T">
                        <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
                    </DropdownItem>
                    <DropdownDivider />
@@ -1352,7 +1360,7 @@ const Notebook: Component = () => {
                    }}>
                        <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                    </DropdownItem>
-                   <DropdownItem onClick={() => setShowShortcuts(!showShortcuts())} shortcut="Ctrl+/">
+                   <DropdownItem onClick={() => setShowShortcuts(!showShortcuts())} shortcut="Ctrl+\">
                        <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                    </DropdownItem>
                </Dropdown>
@@ -1377,14 +1385,14 @@ const Notebook: Component = () => {
                             const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                             return !c || !c.outputs;
                         })()}
-                        shortcut="Alt+Backspace"
+                        shortcut="Ctrl+Backspace"
                    >
                        <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
                    </DropdownItem>
                    <DropdownItem 
                         onClick={deleteSelected}
                         disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
-                        shortcut="Ctrl+D"
+                        shortcut="Ctrl+Delete"
                    >
                        <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
                    </DropdownItem>
@@ -1402,14 +1410,14 @@ const Notebook: Component = () => {
                    <DropdownItem 
                         onClick={() => actions.clearAllOutputs()}
                         disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
-                        shortcut="Alt+C"
+                        shortcut="Alt+Backspace"
                    >
                        <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
                    </DropdownItem>
                    <DropdownItem 
                         onClick={handleDeleteAllCells}
                         disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
-                        shortcut="Alt+D"
+                        shortcut="Alt+Delete"
                    >
                        <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
                    </DropdownItem>
@@ -1536,7 +1544,7 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                          </DropdownItem>
                          <DropdownDivider />
-                         <DropdownItem onClick={() => setShowThemeDialog(true)}>
+                         <DropdownItem onClick={() => setShowThemeDialog(true)} shortcut="Alt+T">
                              <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
                          </DropdownItem>
                          <DropdownDivider />
@@ -1556,7 +1564,7 @@ const Notebook: Component = () => {
                          }}>
                             <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                          </DropdownItem>
-                         <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
+                         <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+\">
                              <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                          </DropdownItem>
                      </DropdownNested>
@@ -1575,14 +1583,14 @@ const Notebook: Component = () => {
                                   const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                                   return !c || !c.outputs;
                               })()}
-                              shortcut="Alt+Backspace"
+                              shortcut="Ctrl+Backspace"
                          >
                              <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
                          </DropdownItem>
                          <DropdownItem 
                               onClick={deleteSelected}
                               disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
-                              shortcut="Ctrl+D"
+                              shortcut="Ctrl+Delete"
                          >
                              <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
                          </DropdownItem>
@@ -1600,14 +1608,14 @@ const Notebook: Component = () => {
                          <DropdownItem 
                               onClick={() => actions.clearAllOutputs()}
                               disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
-                              shortcut="Alt+C"
+                              shortcut="Alt+Backspace"
                          >
                              <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
                          </DropdownItem>
                          <DropdownItem 
                               onClick={handleDeleteAllCells}
                               disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
-                              shortcut="Alt+D"
+                              shortcut="Alt+Delete"
                          >
                              <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
                          </DropdownItem>
@@ -1676,7 +1684,7 @@ const Notebook: Component = () => {
                      <DropdownDivider />
                      {/* Configuration Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Configuration</div>
-                     <DropdownItem onClick={() => setShowThemeDialog(true)}>
+                     <DropdownItem onClick={() => setShowThemeDialog(true)} shortcut="Alt+T">
                          <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
                      </DropdownItem>
                      
@@ -1727,7 +1735,7 @@ const Notebook: Component = () => {
                      }}>
                          <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                      </DropdownItem>
-                     <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+/">
+                     <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+\">
                          <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                      </DropdownItem>
                    </div>
@@ -1844,14 +1852,14 @@ const Notebook: Component = () => {
                               const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
                               return !c || !c.outputs;
                           })()}
-                          shortcut="Alt+Backspace"
+                          shortcut="Ctrl+Backspace"
                      >
                          <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
                      </DropdownItem>
                      <DropdownItem 
                           onClick={deleteSelected}
                           disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
-                          shortcut="Ctrl+D"
+                          shortcut="Ctrl+Delete"
                      >
                          <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
                      </DropdownItem>
@@ -1868,14 +1876,14 @@ const Notebook: Component = () => {
                      <DropdownItem 
                           onClick={() => actions.clearAllOutputs()}
                           disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
-                          shortcut="Alt+C"
+                          shortcut="Alt+Backspace"
                      >
                          <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
                      </DropdownItem>
                      <DropdownItem 
                           onClick={handleDeleteAllCells}
                           disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
-                          shortcut="Alt+D"
+                          shortcut="Alt+Delete"
                      >
                          <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
                      </DropdownItem>

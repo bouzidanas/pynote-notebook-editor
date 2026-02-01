@@ -1,5 +1,5 @@
 import { type Component, createSignal, createEffect, Show } from "solid-js";
-import { X, Code, EyeOff, TriangleAlert, Terminal, FileOutput, AlertCircle, CircleDot, ArrowUp, ArrowDown } from "lucide-solid";
+import { X, Code, EyeOff, TriangleAlert, Terminal, FileOutput, AlertCircle, CircleDot, ArrowUp, ArrowDown, Hash } from "lucide-solid";
 import clsx from "clsx";
 import { 
   codeVisibility, 
@@ -24,6 +24,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     showError: codeVisibility.showError,
     showStatusDot: codeVisibility.showStatusDot,
     saveToExport: codeVisibility.saveToExport,
+    showLineNumbers: codeVisibility.showLineNumbers,
   });
 
   // Local state for output layout (above/below)
@@ -39,6 +40,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       showError: codeVisibility.showError,
       showStatusDot: codeVisibility.showStatusDot,
       saveToExport: codeVisibility.saveToExport,
+      showLineNumbers: codeVisibility.showLineNumbers,
     });
     setLocalOutputLayout(currentTheme.outputLayout);
   });
@@ -57,6 +59,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     updateVisibility("showError", settings.showError);
     updateVisibility("showStatusDot", settings.showStatusDot);
     updateVisibility("saveToExport", settings.saveToExport);
+    updateVisibility("showLineNumbers", settings.showLineNumbers);
     // Persist visibility to localStorage
     saveVisibilitySettings();
     // Update theme output layout
@@ -72,13 +75,14 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     return s.showStdout || s.showStderr || s.showResult || s.showError;
   };
 
-  // Checkbox item with optional position toggle
+  // Checkbox item with optional position toggle or line numbers toggle
   const CheckboxRow: Component<{
     itemKey: keyof CodeVisibilitySettings;
     label: string;
     icon: Component<{ size?: number }>;
     iconColor: string;
     hasPositionToggle?: boolean;
+    hasLineNumbersToggle?: boolean;
   }> = (itemProps) => (
     <div 
       class="flex items-center gap-2 py-1.5 px-2 rounded-sm hover:bg-foreground/50 transition-colors group cursor-pointer"
@@ -117,6 +121,22 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
           </Show>
         </button>
       </Show>
+      
+      {/* Line numbers toggle for code editor */}
+      <Show when={itemProps.hasLineNumbersToggle && localSettings()[itemProps.itemKey]}>
+        <button
+          type="button"
+          class="flex items-center gap-1 px-1.5 py-0.5 text-xs text-secondary/60 hover:text-secondary hover:bg-foreground rounded transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggle("showLineNumbers");
+          }}
+          title={localSettings().showLineNumbers ? "Hide line numbers" : "Show line numbers"}
+        >
+          <Hash size={12} />
+          <Show when={localSettings().showLineNumbers} fallback="off">on</Show>
+        </button>
+      </Show>
     </div>
   );
 
@@ -146,7 +166,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
           <div class="flex-1 p-4 overflow-y-auto border-b sm:border-b-0 sm:border-r border-foreground">
             <h3 class="text-xs font-bold text-accent uppercase mb-2">Show / Hide Elements</h3>
             <div class="space-y-0.5">
-              <CheckboxRow itemKey="showCode" label="Code Editor" icon={Code} iconColor="text-accent" />
+              <CheckboxRow itemKey="showCode" label="Code Editor" icon={Code} iconColor="text-accent" hasLineNumbersToggle={true} />
               <CheckboxRow itemKey="showStatusDot" label="Status Indicator" icon={CircleDot} iconColor="text-green-500" />
               <CheckboxRow itemKey="showStdout" label="Standard Output" icon={Terminal} iconColor="text-secondary" hasPositionToggle={true} />
               <CheckboxRow itemKey="showResult" label="Return Value" icon={FileOutput} iconColor="text-secondary/70" />
@@ -178,9 +198,17 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
               )}>
                 <div class="flex gap-2">
                   <span class="text-secondary/50 select-none">[1]:</span>
-                  <div>
-                    <div><span class="text-[#c678dd]">print</span><span class="text-secondary">(</span><span class="text-[#98c379]">"Hello!"</span><span class="text-secondary">)</span></div>
-                    <div><span class="text-[#d19a66]">42</span></div>
+                  <div class="flex gap-2 flex-1">
+                    <Show when={localSettings().showLineNumbers}>
+                      <div class="text-secondary/30 select-none text-right" style="min-width: 1.5em;">
+                        <div>1</div>
+                        <div>2</div>
+                      </div>
+                    </Show>
+                    <div>
+                      <div><span class="text-[#c678dd]">print</span><span class="text-secondary">(</span><span class="text-[#98c379]">"Hello!"</span><span class="text-secondary">)</span></div>
+                      <div><span class="text-[#d19a66]">42</span></div>
+                    </div>
                   </div>
                 </div>
               </div>
