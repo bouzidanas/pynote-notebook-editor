@@ -7,6 +7,9 @@ export type CellType = "code" | "markdown";
 export type ExecutionMode = "queue_all" | "hybrid" | "direct" | "reactive";
 export const APP_DEFAULT_EXECUTION_MODE: ExecutionMode = "hybrid";
 
+// Quick edit mode: single-click to edit code cells (default: on)
+export const APP_QUICK_EDIT_MODE = true;
+
 // Cell-level visibility metadata (for code cells only)
 // These override document/app settings for this specific cell
 // true = force show, false = force hide, undefined = use global setting

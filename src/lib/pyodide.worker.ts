@@ -7,6 +7,7 @@ const INIT_CODE = `
 import sys
 import io
 import contextvars
+import ast
 from pyodide.code import eval_code_async
 
 # Context variable to track which cell is currently executing
@@ -31,6 +32,132 @@ class ContextAwareOutput(io.TextIOBase):
 
 sys.stdout = ContextAwareOutput("stdout")
 sys.stderr = ContextAwareOutput("stderr")
+
+def get_completions(code, offset):
+    """
+    Simple completion based on runtime introspection.
+    """
+    try:
+        # Get the word ending at offset
+        line_start = code.rfind('\\n', 0, offset) + 1
+        line = code[line_start:offset]
+        
+        # Simple tokenization to find the object to inspect
+        # e.g. "import np; np.li" -> we want to complete "np.li"
+        # We walk back from end to find start of identifier
+        import re
+        match = re.search(r'([a-zA-Z_][a-zA-Z0-9_.]*)$', line)
+        if not match:
+            return []
+            
+        text = match.group(1)
+        
+        # Split into parent and partial child
+        if '.' in text:
+            parts = text.split('.')
+            parent_name = '.'.join(parts[:-1])
+            partial = parts[-1]
+            
+            # Evaluate parent
+            try:
+                parent = eval(parent_name, globals())
+            except:
+                return []
+                
+            # Filter parent attributes
+            options = [n for n in dir(parent) if n.startswith(partial)]
+            return [{"label": n, "type": "function" if callable(getattr(parent, n, None)) else "variable"} for n in options]
+        else:
+            # Global scope completion
+            partial = text
+            options = [n for n in globals() if n.startswith(partial)]
+            import builtins
+            options += [n for n in dir(builtins) if n.startswith(partial)]
+            # Dedup
+            options = list(set(options))
+            return [{"label": n, "type": "variable"} for n in options]
+    except Exception:
+        return []
+
+def get_hover_help(code, offset):
+    """
+    Get docstring and type info for tooltip.
+    """
+    try:
+        # Similar logic to find the full identifier under cursor
+        line_start = code.rfind('\\n', 0, offset) + 1
+        line_end = code.find('\\n', offset)
+        if line_end == -1: line_end = len(code)
+        
+        line = code[line_start:line_end]
+        col = offset - line_start
+        
+        # Expand word at cursor (identifiers including dots)
+        import re
+        # Find all identifiers in the line
+        for match in re.finditer(r'[a-zA-Z_][a-zA-Z0-9_.]*', line):
+            if match.start() <= col <= match.end():
+                word = match.group(0)
+                try:
+                    obj = eval(word, globals())
+                    doc = obj.__doc__ or ""
+                    
+                    # Smart stripping
+                    # 1. Strip leading whitespace
+                    doc = "\\n".join([l.strip() for l in doc.split('\\n')])
+                    # 2. Limit length (first 300 chars or first paragraph)
+                    if "\\n\\n" in doc:
+                        doc = doc.split("\\n\\n")[0]
+                    if len(doc) > 300:
+                        doc = doc[:297] + "..."
+                        
+                    return {
+                        "type": type(obj).__name__,
+                        "doc": doc,
+                        "found": True
+                    }
+                except:
+                    pass
+        return {"found": False}
+    except:
+        return {"found": False}
+
+def lint_code_with_defs(code, extract_defs):
+    """
+    Parse code and extract syntax errors and optionally definitions.
+    """
+    diagnostics = []
+    definitions = []
+    
+    try:
+        tree = ast.parse(code)
+        
+        if extract_defs:
+            # Extract definitions (naive top-level)
+            for node in tree.body:
+                target_infos = []
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            target_infos.append((target.id, target.lineno, target.col_offset))
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    target_infos.append((node.name, node.lineno, node.col_offset))
+                elif isinstance(node, ast.AnnAssign):
+                     if isinstance(node.target, ast.Name):
+                         target_infos.append((node.target.id, node.target.lineno, node.target.col_offset))
+                         
+                for name, line, col in target_infos:
+                    definitions.append({"name": name, "line": line, "col": col})
+                    
+    except SyntaxError as e:
+        # lineno is 1-based, offset is 1-based column
+        lineno = e.lineno or 1
+        col = (e.offset or 1) - 1
+        diagnostics = [{"line": lineno, "col": col, "message": e.msg}]
+    except Exception:
+        pass
+        
+    return {"diagnostics": diagnostics, "definitions": definitions}
 
 async def run_cell_code(code, cell_id):
     token = current_cell_id.set(cell_id)
@@ -1446,6 +1573,49 @@ self.onmessage = async (e) => {
                     references: [],
                     error: String(err)
                 });
+            }
+        }
+    } else if (type === "lint") {
+        if (pyodide) {
+            try {
+                const { code, extract_defs } = e.data;
+                const lint_code_with_defs = pyodide.globals.get("lint_code_with_defs");
+                const result = lint_code_with_defs(code, extract_defs);
+                const jsResult = result.toJs({ dict_converter: Object.fromEntries });
+                result.destroy();
+                lint_code_with_defs.destroy();
+                postMessage({ type: "lint_result", id, diagnostics: jsResult.diagnostics, definitions: jsResult.definitions });
+            } catch (err) {
+                postMessage({ type: "lint_result", id, diagnostics: [], definitions: [] });
+            }
+        }
+    } else if (type === "complete") {
+        if (pyodide) {
+            try {
+                const { code, offset } = e.data;
+                const get_completions = pyodide.globals.get("get_completions");
+                const result = get_completions(code, offset);
+                // Convert JsProxy to JS array
+                const jsResult = result.toJs({ dict_converter: Object.fromEntries });
+                result.destroy();
+                get_completions.destroy();
+                postMessage({ type: "complete_result", id, completions: jsResult });
+            } catch (err) {
+                postMessage({ type: "complete_result", id, completions: [] });
+            }
+        }
+    } else if (type === "inspect") {
+        if (pyodide) {
+            try {
+                const { code, offset } = e.data;
+                const get_hover_help = pyodide.globals.get("get_hover_help");
+                const result = get_hover_help(code, offset);
+                const jsResult = result.toJs({ dict_converter: Object.fromEntries });
+                result.destroy();
+                get_hover_help.destroy();
+                postMessage({ type: "inspect_result", id, result: jsResult });
+            } catch (err) {
+                postMessage({ type: "inspect_result", id, result: { found: false } });
             }
         }
     }

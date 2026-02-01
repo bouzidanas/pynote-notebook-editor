@@ -116,7 +116,58 @@ class Kernel {
     });
   }
 
-  run(code: string, onUpdate: (data: ExecutionResult) => void): Promise<void> {
+  lint(code: string, extractDefs: boolean = false): Promise<{ diagnostics: any[], definitions: { name: string, line: number, col: number }[] }> {
+    if (this.status === "loading") return Promise.resolve({ diagnostics: [], definitions: [] });
+    if (this.status === "running") return Promise.resolve({ diagnostics: [], definitions: [] }); // Skip linting while running
+
+    return new Promise((resolve) => {
+      const id = `lint_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      this.listeners.set(id, (msg) => {
+        if (msg.type === "lint_result") {
+          this.listeners.delete(id);
+          resolve({ diagnostics: msg.diagnostics, definitions: msg.definitions || [] });
+        }
+      });
+      this.worker!.postMessage({ type: "lint", id, code, extract_defs: extractDefs });
+    });
+  }
+
+  complete(code: string, offset: number): Promise<any[]> {
+    if (!this.worker || this.status === "loading" || this.status === "running") return Promise.resolve([]);
+
+    return new Promise((resolve) => {
+      const id = `comp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      this.listeners.set(id, (msg) => {
+        if (msg.type === "complete_result") {
+          this.listeners.delete(id);
+          resolve(msg.completions || []);
+        }
+      });
+      this.worker!.postMessage({ type: "complete", id, code, offset });
+    });
+  }
+
+  inspect(code: string, offset: number): Promise<any> {
+    if (!this.worker || this.status === "loading") return Promise.resolve({ found: false });
+    // Note: We intentionally allow inspect calls even if running (it just might hang until free)
+    // But UI will handle the "running" tooltip check, so here we just try.
+    // However, if we block here, we might accumulate promises.
+    // If running, we should just return "kernel busy" signal or null.
+    if (this.status === "running") return Promise.resolve({ found: false, busy: true });
+
+    return new Promise((resolve) => {
+      const id = `insp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      this.listeners.set(id, (msg) => {
+        if (msg.type === "inspect_result") {
+          this.listeners.delete(id);
+          resolve(msg.result);
+        }
+      });
+      this.worker!.postMessage({ type: "inspect", id, code, offset });
+    });
+  }
+
+  run(code: string, onUpdate: (data: ExecutionResult) => void = () => { }): Promise<void> {
     if (!this.worker || (this.status !== "ready" && this.status !== "running")) {
       if (this.status === "stopped") throw new Error("Kernel is stopped");
       throw new Error("Kernel not ready");

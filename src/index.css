@@ -241,6 +241,11 @@ body {
     border-radius: var(--radius-sm);
 }
 
+/* Markdown cell placeholder text */
+.markdown-placeholder {
+    color: var(--foreground);
+}
+
 /* Fix Tailwind resets for Prose (Presentation Mode) - Removed duplicates, now shared above */
 .prose code {
     font-family: var(--font-mono) !important;

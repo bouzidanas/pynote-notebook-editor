@@ -1,5 +1,5 @@
 import { type Component, createSignal, Show, createEffect, createMemo } from "solid-js";
-import { type CellData, actions } from "../lib/store";
+import { type CellData, actions, notebookStore } from "../lib/store";
 import { currentTheme } from "../lib/theme";
 import CellWrapper, { getLastHeaderLevel } from "./CellWrapper";
 import MarkdownEditor from "./MarkdownEditor";
@@ -124,10 +124,19 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
     return getLastHeaderLevel(props.cell.content || "");
   });
 
+  // Check if cell is empty (shows placeholder message)
+  const isEmpty = createMemo(() => !props.cell.content.trim());
+
+  // Hide empty markdown cells in presentation mode (without unmounting)
+  const shouldHideInPresentation = createMemo(() => {
+    if (!notebookStore.presentationMode) return false;
+    return isEmpty();
+  });
+
   createEffect(async () => {
     try {
       setRenderError(false);
-      const content = props.cell.content || "Double click to edit...";
+      const content = props.cell.content || '<span class="markdown-placeholder">Double click to edit...</span>';
       let html = "";
 
       if (currentTheme.sectionScoping) {
@@ -206,6 +215,7 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
   );
 
   return (
+    <div style={{ display: shouldHideInPresentation() ? 'none' : 'block' }}>
     <CellWrapper
       id={props.cell.id}
       isActive={props.isActive}
@@ -244,6 +254,7 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
         </Show>
       </div>
     </CellWrapper>
+    </div>
   );
 };
 

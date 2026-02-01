@@ -22,6 +22,7 @@ const SHORTCUTS = {
     { label: "New Notebook", keys: "Alt + N" },
     { label: "Open File", keys: "Ctrl + O" },
     { label: "Save Notebook", keys: "Ctrl + S" },
+    { label: "Save As", keys: "Ctrl + Shift + S" },
     { label: "Export .ipynb", keys: "Ctrl + E" },
     { label: "Toggle Shortcuts", keys: "Ctrl + /" },
     { label: "Presentation Mode", keys: "Alt + P" },
@@ -229,6 +230,9 @@ const Notebook: Component = () => {
   // Version signal to force re-mounting of the list on full reloads
   const [notebookVersion, ] = createSignal(0);
   
+  // File System Access API: Store file handle for saving back to opened file
+  let fileHandle: FileSystemFileHandle | null = null;
+  
   // One-shot flag for auto-run on new session
   // Set to true when session is created fresh (no restored data)
   // Page refreshes of existing sessions leave this false
@@ -239,6 +243,15 @@ const Notebook: Component = () => {
 
   // Helper to run a specific cell
   const executeRunner = async (content: string, id: string) => {
+      // In reactive mode, extract definitions and sync ownership BEFORE executing
+      if (notebookStore.executionMode === "reactive") {
+          const result = await kernel.lint(content, true);
+          if (result.definitions) {
+              const defNames = result.definitions.map((d: any) => d.name);
+              await syncOwnership(id, defNames);
+          }
+      }
+      
       await kernel.run(content, (result) => {
           actions.updateCellOutput(id, result);
       });
@@ -249,6 +262,99 @@ const Notebook: Component = () => {
     actions.runCell(id, executeRunner, analyzeCell);
   };
 
+  // --- Strict Reactive Mode Logic ---
+  const variableOwnership = new Map<string, string>();
+
+  // Cascade delete: remove variables and all downstream variables that depend on them
+  const cascadeDeleteVariables = async (deletedVars: Set<string>) => {
+      if (deletedVars.size === 0) return;
+      
+      // Delete the initial set of variables
+      const deletions: Promise<void>[] = [];
+      for (const v of deletedVars) {
+          deletions.push(kernel.run(`try: del ${v}\nexcept: pass`));
+          variableOwnership.delete(v);
+      }
+      await Promise.all(deletions);
+      
+      // Find all cells that reference these deleted variables
+      const cellsToInvalidate = new Set<string>();
+      for (const cell of notebookStore.cells) {
+          if (cell.type !== "code") continue;
+          const deps = notebookStore.cellDependencies.get(cell.id);
+          if (deps && deps.references) {
+              for (const deletedVar of deletedVars) {
+                  if (deps.references.has(deletedVar)) {
+                      cellsToInvalidate.add(cell.id);
+                      break;
+                  }
+              }
+          }
+      }
+      
+      // Collect variables defined by those cells for recursive deletion
+      const nextToDelete = new Set<string>();
+      for (const cellId of cellsToInvalidate) {
+          for (const [v, owner] of variableOwnership.entries()) {
+              if (owner === cellId) {
+                  nextToDelete.add(v);
+              }
+          }
+      }
+      
+      // Recursively delete downstream dependent variables
+      if (nextToDelete.size > 0) {
+          await cascadeDeleteVariables(nextToDelete);
+      }
+  };
+
+  const syncOwnership = async (cellId: string, definitions: string[]) => {
+      if (notebookStore.executionMode !== "reactive") return;
+      
+      const currentOwned = new Set<string>();
+      for (const [v, owner] of variableOwnership.entries()) {
+          if (owner === cellId) currentOwned.add(v);
+      }
+      
+      const newDefs = new Set(definitions);
+      
+      // Identify removed variables
+      const removedVars = new Set<string>();
+      for (const v of currentOwned) {
+          if (!newDefs.has(v)) {
+              removedVars.add(v);
+          }
+      }
+      
+      // Cascade delete removed variables and all downstream dependents
+      await cascadeDeleteVariables(removedVars);
+      
+      // Register new variables
+      for (const v of newDefs) {
+          if (!variableOwnership.has(v) || variableOwnership.get(v) === cellId) {
+             variableOwnership.set(v, cellId);
+          }
+      }
+  };
+
+  const getRedefinitionChecker = (cellId: string) => {
+      // If NOT in strict reactive mode, return undefined
+      // This signals downstream components (Linter) to disable expensive AST scans
+      if (notebookStore.executionMode !== "reactive") return undefined;
+
+      return (definitions: {name: string, line: number, col: number}[]) => {
+          // Only check for conflicts - don't sync ownership (that happens on execution)
+          const conflicts: {name: string, line: number, col: number}[] = [];
+          for (const d of definitions) {
+              const owner = variableOwnership.get(d.name);
+              if (owner && owner !== cellId) {
+                 conflicts.push(d);
+              }
+          }
+          return conflicts;
+      };
+  };
+
   // --- Reactive Execution Mode: Cell Analysis ---
   
   // Analyze a single cell and update its dependencies
@@ -257,6 +363,9 @@ const Notebook: Component = () => {
     
     const result = await kernel.analyzeCell(cellId, content);
     actions.setCellDependencies(cellId, result.definitions, result.references);
+    
+    // Sync strict ownership
+    syncOwnership(cellId, result.definitions);
   };
 
   // Analyze all code cells (called when switching to reactive mode)
@@ -266,6 +375,9 @@ const Notebook: Component = () => {
       return;
     }
     
+    // Clear ownership map on full re-analysis
+    variableOwnership.clear();
+    
     const codeCells = notebookStore.cells.filter(c => c.type === "code");
     
     // Analyze all cells in parallel for speed
@@ -273,6 +385,10 @@ const Notebook: Component = () => {
       codeCells.map(cell => 
         kernel.analyzeCell(cell.id, cell.content).then(result => {
           actions.setCellDependencies(cell.id, result.definitions, result.references);
+          // Sync ownership (order might be random due to parallel, but key/value pairs remain 1:1 consistent per cell)
+          // However, if two cells define same variable, race condition determines "owner".
+          // In strict mode, user should fix this anyway.
+          syncOwnership(cell.id, result.definitions);
         })
       )
     );
@@ -339,10 +455,33 @@ const Notebook: Component = () => {
       }
   };
   
+  const cleanupCellVariables = (cellId: string) => {
+      if (notebookStore.executionMode !== "reactive") return;
+      const map = variableOwnership;
+      const owned: string[] = [];
+      for (const [v, owner] of map.entries()) {
+          if (owner === cellId) owned.push(v);
+      }
+      owned.forEach(v => {
+          kernel.run(`try: del ${v}; except: pass`);
+          map.delete(v);
+      });
+  };
+
   const deleteSelected = () => {
        if (notebookStore.activeCellId) {
+          cleanupCellVariables(notebookStore.activeCellId);
           actions.deleteCell(notebookStore.activeCellId);
       }
+  };
+
+  const handleDeleteAllCells = () => {
+     if (notebookStore.executionMode === "reactive") {
+         const allVars = Array.from(variableOwnership.keys());
+         allVars.forEach(v => kernel.run(`try: del ${v}; except: pass`));
+         variableOwnership.clear();
+     }
+     actions.deleteAllCells();
   };
 
   const isEditingActive = () => {
@@ -412,12 +551,16 @@ const Notebook: Component = () => {
       const isEditing = activeCell?.isEditing;
 
       // Global Shortcuts
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "s") {
+        // Ctrl+Shift+S = Save As (must check before Ctrl+S)
+        e.preventDefault();
+        handleSaveAs();
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault();
         handleSave();
       } else if ((e.ctrlKey || e.metaKey) && e.key === "o") {
         e.preventDefault();
-        fileInput?.click();
+        handleOpenFile();
       } else if (e.altKey && e.key === "n") { // Alt + N for New
         e.preventDefault();
         // Redirect to a completely new session URL
@@ -464,7 +607,7 @@ const Notebook: Component = () => {
         actions.clearAllOutputs();
       } else if (e.altKey && e.key === "d") {
         e.preventDefault();
-        actions.deleteAllCells();
+        handleDeleteAllCells();
       } else if (e.altKey && e.key === "k") {
         e.preventDefault();
         kernel.restart();
@@ -832,12 +975,13 @@ const Notebook: Component = () => {
     }
   };
 
-  const handleSave = () => {
+  // Build notebook JSON for saving
+  const buildNotebookJson = () => {
     // When saving with global codeview settings (saveToExport), remove cell-level overrides
     // since the document metadata now contains the authoritative settings
     const savingGlobalCodeview = codeVisibility.saveToExport;
     
-    const notebook = {
+    return {
       cells: notebookStore.cells.map(c => ({
         cell_type: c.type,
         source: c.content.split('\n').map(l => l + '\n'),
@@ -884,14 +1028,247 @@ const Notebook: Component = () => {
       nbformat: 4,
       nbformat_minor: 5
     };
-    const blob = new Blob([JSON.stringify(notebook, null, 2)], { type: "application/json" });
+  };
+
+  // Download file as fallback
+  const downloadNotebook = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = notebookStore.filename || "notebook.ipynb";
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    // Manual save does NOT clear autosave; user can still restore if needed
+  };
+
+  // Save using File System Access API's save picker
+  const saveWithPicker = async (content: string, suggestedName: string): Promise<boolean> => {
+    if (!('showSaveFilePicker' in window)) return false;
+    
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName,
+        types: [{
+          description: 'Jupyter Notebooks',
+          accept: { 'application/json': ['.ipynb'] }
+        }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      
+      // Update fileHandle for future saves
+      fileHandle = handle;
+      
+      return true;
+    } catch (err: any) {
+      if (err.name === 'AbortError') return true; // User cancelled, don't fallback
+      console.warn("Save picker failed:", err);
+      return false;
+    }
+  };
+
+  const handleSave = async () => {
+    const notebook = buildNotebookJson();
+    const content = JSON.stringify(notebook, null, 2);
+    const filename = notebookStore.filename || "notebook.ipynb";
+    
+    // If we have a file handle from opening a file, save directly to it
+    if (fileHandle) {
+      try {
+        const writable = await fileHandle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return; // Success
+      } catch (err) {
+        // Permission denied or other error - fall through to picker/download
+        console.warn("Failed to save to file handle:", err);
+      }
+    }
+    
+    // No file handle - try save picker (for new documents in supported browsers)
+    if (await saveWithPicker(content, filename)) return;
+    
+    // Fallback: Download the file
+    downloadNotebook(content, filename);
+  };
+
+  const handleSaveAs = async () => {
+    const notebook = buildNotebookJson();
+    const content = JSON.stringify(notebook, null, 2);
+    const filename = notebookStore.filename || "notebook.ipynb";
+    
+    // Try save picker first
+    if (await saveWithPicker(content, filename)) return;
+    
+    // Fallback: Download the file
+    downloadNotebook(content, filename);
+  };
+
+  const handleExport = () => {
+    const notebook = buildNotebookJson();
+    const content = JSON.stringify(notebook, null, 2);
+    const filename = notebookStore.filename || "notebook.ipynb";
+    downloadNotebook(content, filename);
+  };
+
+  // Process loaded notebook content (shared between file input and File System Access API)
+  const processLoadedNotebook = (content: string, filename: string, handle: FileSystemFileHandle | null) => {
+    try {
+      const nb = JSON.parse(content);
+      if (nb.cells && Array.isArray(nb.cells)) {
+        const newCells = nb.cells.map((c: any) => {
+          // Extract cell-level metadata for code visibility
+          const cellCodeview = c.metadata?.pynote?.codeview;
+          return {
+            id: crypto.randomUUID(),
+            type: c.cell_type === "code" || c.cell_type === "markdown" ? c.cell_type : "markdown",
+            content: Array.isArray(c.source) ? c.source.join("") : (c.source || ""),
+            isEditing: false,
+            // Preserve cell metadata if it exists
+            ...(cellCodeview ? {
+              metadata: {
+                pynote: {
+                  codeview: cellCodeview
+                }
+              }
+            } : {})
+          };
+        });
+        // Extract history from PyNote metadata if it exists
+        const history = nb.metadata?.PyNote?.history || [];
+
+        // Extract code visibility settings from document metadata
+        const codeview = nb.metadata?.PyNote?.codeview;
+        let documentVisibilityState = null;
+        
+        if (codeview && shouldLoadMetadataSettings()) {
+           // Validate and extract only known keys
+           const validKeys: (keyof CodeVisibilitySettings)[] = [
+               "showCode", "showStdout", "showStderr", 
+               "showResult", "showError", "showStatusDot"
+           ];
+           
+           const docSettings: Partial<CodeVisibilitySettings> = {};
+           validKeys.forEach(key => {
+               if (typeof codeview[key] === "boolean") {
+                   docSettings[key] = codeview[key];
+               }
+           });
+
+           if (Object.keys(docSettings).length > 0) {
+               // Prepare visibility state for session
+               // Start with current settings, merge document settings
+               documentVisibilityState = {
+                   settings: { ...codeVisibility, ...docSettings },
+                   cellOverrides: {} as Record<string, boolean>,
+                   userHasOverridden: false // Document settings, not user override
+               };
+           }
+        }
+
+        // Extract theme from document metadata
+        const themeData = nb.metadata?.PyNote?.theme;
+        
+        // Extract execution mode from document metadata
+        const validModes: ExecutionMode[] = ["queue_all", "hybrid", "direct", "reactive"];
+        const docExecutionMode = validModes.includes(nb.metadata?.PyNote?.executionMode)
+          ? nb.metadata.PyNote.executionMode as ExecutionMode
+          : undefined; // Will use app default if not specified
+        
+        // Store the file handle for later saving (only if opened via File System Access API)
+        fileHandle = handle;
+        
+        // If we have a file handle, load directly without page reload to preserve it
+        if (handle) {
+          // Apply theme if document has one
+          if (themeData) {
+            updateTheme(themeData);
+            setSessionHasTheme(true);
+          }
+          
+          // Apply code visibility if document has settings
+          if (documentVisibilityState) {
+            restoreSessionState(documentVisibilityState);
+          }
+          
+          // Load notebook directly into current session
+          actions.loadNotebook(
+            newCells,
+            filename,
+            history,
+            history.length - 1,
+            null,
+            docExecutionMode || APP_DEFAULT_EXECUTION_MODE
+          );
+          
+          // Update URL without reload
+          const newSessionId = crypto.randomUUID();
+          const url = new URL(window.location.href);
+          url.searchParams.set("session", newSessionId);
+          url.searchParams.delete("open");
+          window.history.replaceState({}, "", url.toString());
+          
+          // Trigger autosave to persist the new session
+          autosaveNotebookImmediate();
+          return;
+        }
+        
+        // No file handle (fallback path) - use page reload approach
+        // Generate a new session ID for this file
+        const newSessionId = crypto.randomUUID();
+        
+        // Create session data (include theme and visibility if document has them)
+        const sessionData = {
+          cells: newCells,
+          filename: filename,
+          history: history,
+          historyIndex: history.length - 1,
+          activeCellId: null,
+          executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
+          theme: themeData || undefined,
+          codeVisibility: documentVisibilityState || undefined
+        };
+        
+        // Save to the new session slot
+        sessionManager.saveSession(newSessionId, sessionData);
+        
+        // Navigate to the new session URL (pushes to history so Back works)
+        const url = new URL(window.location.href);
+        url.searchParams.set("session", newSessionId);
+        url.searchParams.delete("open"); // Clear tutorial param if present
+        window.location.assign(url.toString()); // Re-loads with new session
+      }
+    } catch (err) {
+      console.error("Failed to load notebook", err);
+      alert("Invalid notebook file");
+    }
+  };
+
+  // Open file using File System Access API (Chromium) or fallback to file input
+  const handleOpenFile = async () => {
+    // Check if File System Access API is available
+    if ('showOpenFilePicker' in window) {
+      try {
+        const [handle] = await (window as any).showOpenFilePicker({
+          types: [{
+            description: 'Jupyter Notebooks',
+            accept: { 'application/json': ['.ipynb'] }
+          }],
+          multiple: false
+        });
+        const file = await handle.getFile();
+        const content = await file.text();
+        processLoadedNotebook(content, file.name, handle);
+        return;
+      } catch (err: any) {
+        // User cancelled or API error - if cancelled, just return silently
+        if (err.name === 'AbortError') return;
+        console.warn("File System Access API failed, falling back to file input:", err);
+      }
+    }
+    // Fallback: trigger the hidden file input
+    fileInput?.click();
   };
 
   const handleLoad = (e: Event) => {
@@ -900,97 +1277,8 @@ const Notebook: Component = () => {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const nb = JSON.parse(content);
-        if (nb.cells && Array.isArray(nb.cells)) {
-          const newCells = nb.cells.map((c: any) => {
-            // Extract cell-level metadata for code visibility
-            const cellCodeview = c.metadata?.pynote?.codeview;
-            return {
-              id: crypto.randomUUID(),
-              type: c.cell_type === "code" || c.cell_type === "markdown" ? c.cell_type : "markdown",
-              content: Array.isArray(c.source) ? c.source.join("") : (c.source || ""),
-              isEditing: false,
-              // Preserve cell metadata if it exists
-              ...(cellCodeview ? {
-                metadata: {
-                  pynote: {
-                    codeview: cellCodeview
-                  }
-                }
-              } : {})
-            };
-          });
-          // Extract history from PyNote metadata if it exists
-          const history = nb.metadata?.PyNote?.history || [];
-
-          // Extract code visibility settings from document metadata
-          const codeview = nb.metadata?.PyNote?.codeview;
-          let documentVisibilityState = null;
-          
-          if (codeview && shouldLoadMetadataSettings()) {
-             // Validate and extract only known keys
-             const validKeys: (keyof CodeVisibilitySettings)[] = [
-                 "showCode", "showStdout", "showStderr", 
-                 "showResult", "showError", "showStatusDot"
-             ];
-             
-             const docSettings: Partial<CodeVisibilitySettings> = {};
-             validKeys.forEach(key => {
-                 if (typeof codeview[key] === "boolean") {
-                     docSettings[key] = codeview[key];
-                 }
-             });
-
-             if (Object.keys(docSettings).length > 0) {
-                 // Prepare visibility state for session
-                 // Start with current settings, merge document settings
-                 documentVisibilityState = {
-                     settings: { ...codeVisibility, ...docSettings },
-                     cellOverrides: {} as Record<string, boolean>,
-                     userHasOverridden: false // Document settings, not user override
-                 };
-             }
-          }
-
-          // Extract theme from document metadata (don't apply yet - will apply after reload)
-          const themeData = nb.metadata?.PyNote?.theme;
-          
-          // Extract execution mode from document metadata
-          const validModes: ExecutionMode[] = ["queue_all", "hybrid", "direct", "reactive"];
-          const docExecutionMode = validModes.includes(nb.metadata?.PyNote?.executionMode)
-            ? nb.metadata.PyNote.executionMode as ExecutionMode
-            : undefined; // Will use app default if not specified
-          
-          // Generate a new session ID for this file
-          const newSessionId = crypto.randomUUID();
-          
-          // Create session data (include theme and visibility if document has them)
-          const sessionData = {
-            cells: newCells,
-            filename: file.name,
-            history: history,
-            historyIndex: history.length - 1,
-            activeCellId: null,
-            executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
-            theme: themeData || undefined,
-            codeVisibility: documentVisibilityState || undefined
-          };
-          
-          // Save to the new session slot
-          sessionManager.saveSession(newSessionId, sessionData);
-          
-          // Navigate to the new session URL (pushes to history so Back works)
-          const url = new URL(window.location.href);
-          url.searchParams.set("session", newSessionId);
-          url.searchParams.delete("open"); // Clear tutorial param if present
-          window.location.assign(url.toString()); // Re-loads with new session
-        }
-      } catch (err) {
-        console.error("Failed to load notebook", err);
-        alert("Invalid notebook file");
-      }
+      const content = e.target?.result as string;
+      processLoadedNotebook(content, file.name, null); // null = no file handle (fallback)
     };
     reader.readAsText(file);
     if (fileInput) fileInput.value = "";
@@ -1029,13 +1317,16 @@ const Notebook: Component = () => {
                    }} shortcut="Alt+N"> 
                        <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                    </DropdownItem>
-                   <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
+                   <DropdownItem onClick={handleOpenFile} shortcut="Ctrl+O">
                        <div class="flex items-center gap-2"><FolderOpen size={18} /> Open</div>
                    </DropdownItem>
                    <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                        <div class="flex items-center gap-2"><Save size={18} /> Save</div>
                    </DropdownItem>
-                   <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
+                   <DropdownItem onClick={handleSaveAs} shortcut="Ctrl+Shift+S">
+                       <div class="flex items-center gap-2"><Save size={18} /> Save As...</div>
+                   </DropdownItem>
+                   <DropdownItem onClick={handleExport} shortcut="Ctrl+E">
                        <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                    </DropdownItem>
                    <DropdownDivider />
@@ -1116,7 +1407,7 @@ const Notebook: Component = () => {
                        <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
                    </DropdownItem>
                    <DropdownItem 
-                        onClick={() => actions.deleteAllCells()}
+                        onClick={handleDeleteAllCells}
                         disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
                         shortcut="Alt+D"
                    >
@@ -1232,13 +1523,16 @@ const Notebook: Component = () => {
                          }} shortcut="Alt+N">
                              <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                          </DropdownItem>
-                         <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
+                         <DropdownItem onClick={handleOpenFile} shortcut="Ctrl+O">
                              <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
                          </DropdownItem>
                          <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                              <div class="flex items-center gap-2"><Save size={18} /> Save</div>
                          </DropdownItem>
-                         <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
+                         <DropdownItem onClick={handleSaveAs} shortcut="Ctrl+Shift+S">
+                             <div class="flex items-center gap-2"><Save size={18} /> Save As...</div>
+                         </DropdownItem>
+                         <DropdownItem onClick={handleExport} shortcut="Ctrl+E">
                              <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                          </DropdownItem>
                          <DropdownDivider />
@@ -1311,7 +1605,7 @@ const Notebook: Component = () => {
                              <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
                          </DropdownItem>
                          <DropdownItem 
-                              onClick={() => actions.deleteAllCells()}
+                              onClick={handleDeleteAllCells}
                               disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
                               shortcut="Alt+D"
                          >
@@ -1366,13 +1660,16 @@ const Notebook: Component = () => {
                      }} shortcut="Alt+N">
                          <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
                      </DropdownItem>
-                     <DropdownItem onClick={() => fileInput?.click()} shortcut="Ctrl+O">
+                     <DropdownItem onClick={handleOpenFile} shortcut="Ctrl+O">
                          <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
                      </DropdownItem>
                      <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
                          <div class="flex items-center gap-2"><Save size={18} /> Save</div>
                      </DropdownItem>
-                     <DropdownItem onClick={handleSave} shortcut="Ctrl+E">
+                     <DropdownItem onClick={handleSaveAs} shortcut="Ctrl+Shift+S">
+                         <div class="flex items-center gap-2"><Save size={18} /> Save As...</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={handleExport} shortcut="Ctrl+E">
                          <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
                      </DropdownItem>
                      
@@ -1576,7 +1873,7 @@ const Notebook: Component = () => {
                          <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
                      </DropdownItem>
                      <DropdownItem 
-                          onClick={() => actions.deleteAllCells()}
+                          onClick={handleDeleteAllCells}
                           disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
                           shortcut="Alt+D"
                      >
@@ -1631,7 +1928,19 @@ const Notebook: Component = () => {
                               when={cell.type === "code"} 
                               fallback={<MarkdownCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} />} 
                            >
-                              <CodeCell cell={cell} isActive={notebookStore.activeCellId === cell.id} index={index()} prevCellId={prevCellId()} runCell={runCell} />
+                              <CodeCell 
+                                  cell={cell} 
+                                  isActive={notebookStore.activeCellId === cell.id} 
+                                  index={index()} 
+                                  prevCellId={prevCellId()} 
+                                  runCell={runCell} 
+                                  // Pass checker ONLY if Reactive. This ensures undefined is passed otherwise.
+                                  checkRedefinitions={
+                                    notebookStore.executionMode === "reactive" 
+                                      ? getRedefinitionChecker(cell.id) 
+                                      : undefined
+                                  }
+                              />
                            </Show>
                          );
                        }}
@@ -1657,29 +1966,11 @@ const Notebook: Component = () => {
              class="flex justify-center gap-4 mt-8 opacity-50 hover:opacity-100 transition-opacity"
              onClick={(e) => e.stopPropagation()}
            >
-             <button onClick={() => {
-               const idx = (() => {
-                 const activeId = notebookStore.activeCellId;
-                 if (!activeId) return undefined;
-                 const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                 if (i === -1) return undefined;
-                 return i + 1;
-               })();
-               actions.addCell("code", idx);
-             }} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
+             <button onClick={() => actions.addCell("code")} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
                 <Plus size={20} />
                 <span class="text-sm font-bold">Code</span>
              </button>
-             <button onClick={() => {
-               const idx = (() => {
-                 const activeId = notebookStore.activeCellId;
-                 if (!activeId) return undefined;
-                 const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                 if (i === -1) return undefined;
-                 return i + 1;
-               })();
-               actions.addCell("markdown", idx);
-             }} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
+             <button onClick={() => actions.addCell("markdown")} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
                 <Plus size={20} />
                 <span class="text-sm font-bold">Text</span>
              </button>

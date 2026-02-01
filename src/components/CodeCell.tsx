@@ -1,5 +1,5 @@
 import { type Component, createSignal, Show, createMemo } from "solid-js";
-import { type CellData, actions } from "../lib/store";
+import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE } from "../lib/store";
 import { kernel } from "../lib/pyodide";
 import { currentTheme } from "../lib/theme";
 import CodeEditor from "./CodeEditor";
@@ -20,6 +20,7 @@ interface CodeCellProps {
   index: number;
   prevCellId: string | null;
   runCell: (id: string) => void;  // Run cell with proper reactive mode support
+  checkRedefinitions?: (definitions: any[]) => any[];
 }
 
 const CodeCell: Component<CodeCellProps> = (props) => {
@@ -49,6 +50,25 @@ const CodeCell: Component<CodeCellProps> = (props) => {
   const showHiddenMessage = createMemo(() => {
     const v = visibility();
     return !v.showCode && !hasAnyOutput();
+  });
+
+  // Calculate if the cell should be completely hidden in presentation mode   v 
+  // Conditions:
+  // 1. Code is hidden and no output (showHiddenMessage is true)
+  // 2. Code is visible but content is empty/whitespace only
+  // Note: SolidJS only subscribes to signals actually READ during execution.
+  // When presentationMode is false, early return means content is never read,
+  // so keystrokes don't trigger this memo at all.
+  const shouldHideInPresentation = createMemo(() => {
+    if (!notebookStore.presentationMode) return false;
+    
+    // Condition 1: Hidden code + no output
+    if (showHiddenMessage()) return true;
+
+    // Condition 2: Visible code + empty content
+    if (visibility().showCode && !props.cell.content.trim()) return true;
+
+    return false;
   });
 
   // We rely on the parent (Notebook) or store logic to handle the run
@@ -101,6 +121,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
   );
 
   return (
+    <div style={{ display: shouldHideInPresentation() ? 'none' : 'block' }}>
     <CellWrapper
       id={props.cell.id}
       isActive={props.isActive}
@@ -155,18 +176,21 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                language="python"
                readOnly={!props.cell.isEditing}
                cell={props.cell}
+               placeholderText="Enter Python code..."
+               checkRedefinitions={props.checkRedefinitions}
+               onClick={() => {
+                 if (APP_QUICK_EDIT_MODE && !props.cell.isEditing) {
+                   actions.setEditing(props.cell.id, true);
+                 } else if (props.isActive && !props.cell.isEditing) {
+                   actions.setEditing(props.cell.id, true);
+                 }
+               }}
+               onBlur={APP_QUICK_EDIT_MODE ? () => {
+                 if (props.cell.isEditing) {
+                   actions.setEditing(props.cell.id, false);
+                 }
+               } : undefined}
              />
-             <Show when={!props.cell.isEditing}>
-               <div 
-                 class="absolute inset-0 z-10 cursor-text"
-                 onClick={(e) => {
-                   if (props.isActive) {
-                     e.stopPropagation();
-                     actions.setEditing(props.cell.id, true);
-                   }
-                 }}
-               />
-             </Show>
            </div>
         </div>
 
@@ -246,6 +270,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         </Show>
       </div>
     </CellWrapper>
+    </div>
   );
 };
 

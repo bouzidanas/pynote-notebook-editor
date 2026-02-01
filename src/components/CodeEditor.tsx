@@ -1,13 +1,14 @@
-import { type Component, createEffect, onCleanup, onMount } from "solid-js";
+import { type Component, createEffect, onCleanup, onMount, createMemo } from "solid-js";
 import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { duotoneDarkInit } from "@uiw/codemirror-theme-duotone";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
 import { currentTheme } from "../lib/theme";
 import { type CellData, actions } from "../lib/store";
+import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 
 // Create custom duotoneDark theme with green function calls
 // Using duotoneDarkInit() with custom styles is the most efficient approach -
@@ -25,6 +26,10 @@ interface EditorProps {
   class?: string;
   readOnly?: boolean;
   cell: CellData; // Add cell prop to access stored state
+  placeholderText?: string;
+  checkRedefinitions?: (definitions: any[]) => any[];
+  onClick?: () => void;
+  onBlur?: () => void;
 }
 
 const CodeEditor: Component<EditorProps> = (props) => {
@@ -32,6 +37,49 @@ const CodeEditor: Component<EditorProps> = (props) => {
     onValueChange: props.onChange,
     value: props.value,
   });
+
+  // Handle clicks on readonly editor
+  createEffect(() => {
+    const view = editorView();
+    if (view && props.onClick) {
+      const handler = () => {
+        if (props.readOnly) {
+          props.onClick?.();
+        }
+      };
+      view.dom.addEventListener('click', handler);
+      onCleanup(() => view.dom.removeEventListener('click', handler));
+    }
+  });
+
+  // Handle blur to exit edit mode
+  createEffect(() => {
+    const view = editorView();
+    if (view && props.onBlur) {
+      const handler = () => {
+        if (!props.readOnly) {
+          props.onBlur?.();
+        }
+      };
+      view.contentDOM.addEventListener('blur', handler);
+      onCleanup(() => view.contentDOM.removeEventListener('blur', handler));
+    }
+  });
+
+  // Conditionally add placeholder only when readOnly (not editing)
+  createExtension(createMemo(() => {
+    if (props.readOnly && props.placeholderText) {
+      return [
+        placeholder(props.placeholderText),
+        EditorView.theme({
+          "& .cm-placeholder": {
+            color: "var(--color-foreground)"
+          }
+        })
+      ];
+    }
+    return [];
+  }));
 
   // Synchronize external content changes (e.g. from store updates not initiated by user typing)
   // This is a bug fix for "One-way binding". It ensures features like Find/Replace, Formatting, 
@@ -220,6 +268,10 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Base extensions
   extensionsConfig = [
     python(),
+    pythonIntellisense,
+    pythonHover,
+    // Linter is added separately to be reactive
+    tooltipTheme,
     customDuotoneDark,
     history(),
     keymap.of([
@@ -231,6 +283,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
     EditorView.lineWrapping
   ];
   createExtension(extensionsConfig);
+  
+  // Reactive Linter
+  createExtension(() => createPythonLinter(props.checkRedefinitions));
 
   // Read-only state
   createExtension(() => EditorState.readOnly.of(!!props.readOnly));
