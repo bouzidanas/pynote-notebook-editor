@@ -197,7 +197,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
     const view = editorView();
     // Only add listener when quick edit is enabled
     if (view && props.onClick && APP_QUICK_EDIT_MODE) {
-      const handler = (e: MouseEvent) => {
+      const handler = () => {
         if (props.readOnly) {
           // Quick edit ON: activate + enter edit mode in one click
           actions.setActiveCell(props.cell.id);
