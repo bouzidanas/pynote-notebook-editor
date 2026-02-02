@@ -1,5 +1,5 @@
 import { linter, type Diagnostic, forEachDiagnostic } from "@codemirror/lint";
-import { type CompletionSource, autocompletion } from "@codemirror/autocomplete";
+import { type CompletionSource, autocompletion, type CompletionResult, acceptCompletion, startCompletion } from "@codemirror/autocomplete";
 import { hoverTooltip } from "@codemirror/view";
 import { kernel } from "./pyodide";
 import { EditorView } from "@codemirror/view";
@@ -50,14 +50,40 @@ export const tooltipTheme = EditorView.theme({
         borderRadius: "8px",
         boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.15)",
         fontFamily: "var(--font-mono)",
-        zIndex: "250"
+        zIndex: "9999"
     },
     ".cm-tooltip-autocomplete > ul": {
-        fontFamily: "var(--font-mono)"
+        fontFamily: "var(--font-mono) !important",
+        fontSize: "0.90rem !important",
+        padding: "0.3rem 0 !important",
+    },
+    ".cm-tooltip-autocomplete > ul > li": {
+        padding: "0.2rem 0.5rem !important",
     },
     ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
-        backgroundColor: "var(--accent)",
-        color: "var(--background)"
+        backgroundColor: "color-mix(in srgb, var(--secondary) 25%, transparent)"
+    },
+    // Style completion section labels (function, property, variable)
+    ".cm-tooltip.cm-tooltip-autocomplete > ul > completion-section": {
+        fontFamily: "var(--font-mono)",
+        textTransform: "uppercase",
+        fontSize: "0.77rem",
+        color: "color-mix(in srgb, var(--color-secondary) 70%, transparent)",
+        borderBottomColor: "var(--foreground)"
+    },
+    // Style completion icons
+    ".cm-completionIcon": {
+        color: "color-mix(in srgb, var(--color-secondary) 70%, transparent)"
+    },
+    // Colored completion items by type - synced with syntax highlighting theme
+    ".cm-tooltip-autocomplete .completion-function .cm-completionLabel": {
+        color: "var(--syntax-function) !important"
+    },
+    ".cm-tooltip-autocomplete .completion-property .cm-completionLabel": {
+        color: "var(--syntax-property) !important"
+    },
+    ".cm-tooltip-autocomplete .completion-variable .cm-completionLabel": {
+        color: "var(--syntax-variable) !important"
     }
 });
 
@@ -124,9 +150,16 @@ export const pythonLinter = createPythonLinter();
 // Autocomplete
 const pythonCompletionSource: CompletionSource = async (context) => {
     // Match word or dot sequence before cursor
-    const word = context.matchBefore(/[\w.]*/);
+    // This regex matches: variable names, dots, and combinations like "np.array"
+    const word = context.matchBefore(/[\w.]+/);
 
-    if (!word || (word.from === word.to && !context.explicit)) return null;
+    // Don't show completions if no match found
+    if (!word) return null;
+    
+    // Show completions if:
+    // 1. Explicitly requested (Ctrl+Space) 
+    // 2. Text was typed (word.from !== word.to)
+    if (word.from === word.to && !context.explicit) return null;
 
     if (kernel.status !== "ready") return null;
 
@@ -134,20 +167,45 @@ const pythonCompletionSource: CompletionSource = async (context) => {
         const options = await kernel.complete(context.state.doc.toString(), context.pos);
         if (!options || options.length === 0) return null;
 
+        // Calculate the correct 'from' position
+        // If we have "np.arr", we want to replace from after the dot (just "arr")
+        // If we have "numpy", we want to replace the whole word
+        let from = word.from;
+        const lastDotIndex = word.text.lastIndexOf('.');
+        if (lastDotIndex !== -1) {
+            // Member access: replace only the part after the dot
+            from = word.from + lastDotIndex + 1;
+        }
+
         return {
-            from: word.from,
-            options: options.map((o: any) => ({
-                label: o.label,
-                type: o.type,
-                apply: o.label
-            }))
-        };
+            from,
+            options: options.map((o: any) => {
+                const itemType = o.type || "variable";
+                return {
+                    label: o.label,
+                    type: itemType,
+                    apply: o.label,
+                    // Add custom CSS class to the completion item's label
+                    boost: 0,
+                    section: itemType
+                };
+            })
+        } as CompletionResult;
     } catch (e) {
         return null;
     }
 };
 
-export const pythonIntellisense = autocompletion({ override: [pythonCompletionSource] });
+export const pythonIntellisense = autocompletion({ 
+    override: [pythonCompletionSource],
+    activateOnTyping: true,
+    closeOnBlur: true,
+    defaultKeymap: false,  // Disable default keymap so we can customize
+    // Custom option renderer to apply colors
+    optionClass: (completion) => {
+        return `completion-${completion.type || 'variable'}`;
+    }
+});
 
 // Hover tooltip for documentation/help - don't show if there's an error at this position
 export const pythonHover = hoverTooltip(async (view, pos, _side) => {

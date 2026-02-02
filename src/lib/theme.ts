@@ -10,6 +10,11 @@ export interface Theme {
     background: string;
     foreground: string;
   };
+  syntax: {
+    function: string;
+    property: string;
+    variable: string;
+  };
   radii: {
     lg: string;
     sm: string;
@@ -42,6 +47,11 @@ export const defaultTheme: Theme = {
     accent: "#89b4fa",
     background: "#1e1e2e",
     foreground: "rgba(205, 214, 244, 0.2)",
+  },
+  syntax: {
+    function: "#a6e3a1",
+    property: "#9a86fd",
+    variable: "#eeebff",
   },
   radii: {
     lg: "9999px",
@@ -90,6 +100,7 @@ export const currentTheme = theme;
 export const updateTheme = (newTheme: any) => {
   if (newTheme.font) setTheme("font", newTheme.font);
   if (newTheme.colors) setTheme("colors", (c) => ({ ...c, ...newTheme.colors }));
+  if (newTheme.syntax) setTheme("syntax", (s) => ({ ...s, ...newTheme.syntax }));
   if (newTheme.radii) setTheme("radii", (r) => ({ ...r, ...newTheme.radii }));
   if (newTheme.spacing) setTheme("spacing", (s) => ({ ...s, ...newTheme.spacing }));
   if (newTheme.typography) setTheme("typography", (t) => ({ ...t, ...newTheme.typography }));
@@ -125,6 +136,10 @@ export const initTheme = () => {
     root.style.setProperty("--accent", theme.colors.accent);
     root.style.setProperty("--background", theme.colors.background);
     root.style.setProperty("--foreground", theme.colors.foreground);
+
+    root.style.setProperty("--syntax-function", theme.syntax.function);
+    root.style.setProperty("--syntax-property", theme.syntax.property);
+    root.style.setProperty("--syntax-variable", theme.syntax.variable);
 
     root.style.setProperty("--radius-lg", theme.radii.lg);
     root.style.setProperty("--radius-sm", theme.radii.sm);

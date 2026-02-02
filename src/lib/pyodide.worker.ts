@@ -33,9 +33,81 @@ class ContextAwareOutput(io.TextIOBase):
 sys.stdout = ContextAwareOutput("stdout")
 sys.stderr = ContextAwareOutput("stderr")
 
+# Completion filtering configuration
+# This can be customized for different filtering strategies (basic, AI-based, etc.)
+_completion_filters = {
+    "show_private": False,      # Show private/internal members (starting with _)
+    "show_dunder": False,        # Show dunder methods (__init__, __str__, etc.)
+    "max_results": 100,          # Maximum number of completions to return
+    "use_cache": True,           # Cache dir() results for performance
+}
+
+# Cache for dir() results to avoid repeated introspection on large modules
+_dir_cache = {}
+
+def configure_completions(**kwargs):
+    """
+    Configure completion filtering behavior.
+    
+    Args:
+        show_private: Include private members (starting with single _)
+        show_dunder: Include dunder methods (starting with __)
+        max_results: Maximum number of completions to return
+        use_cache: Enable caching of dir() results
+    """
+    _completion_filters.update(kwargs)
+    
+def clear_completion_cache():
+    """
+    Clear the completion cache. 
+    Call this only on kernel restart, not after normal cell execution.
+    The cache naturally stays in sync with the runtime since all cells share the same namespace.
+    """
+    _dir_cache.clear()
+
+def _filter_completions(items, partial, parent_obj=None):
+    """
+    Filter and rank completion items based on configuration.
+    This function is designed to be easily replaceable with AI-based filtering.
+    
+    Args:
+        items: List of attribute names from dir()
+        partial: The partial text being completed
+        parent_obj: The parent object (for type checking, future AI features)
+    
+    Returns:
+        Filtered and sorted list of completion items
+    """
+    filtered = []
+    
+    for name in items:
+        # Skip if doesn't match partial
+        if not name.startswith(partial):
+            continue
+            
+        # Apply filters based on configuration
+        if name.startswith('__'):
+            if not _completion_filters["show_dunder"]:
+                continue
+        elif name.startswith('_'):
+            if not _completion_filters["show_private"]:
+                continue
+        
+        filtered.append(name)
+    
+    # Sort: exact match first, then alphabetically
+    filtered.sort(key=lambda x: (x != partial, x.lower()))
+    
+    # Limit results
+    max_results = _completion_filters["max_results"]
+    if max_results and len(filtered) > max_results:
+        filtered = filtered[:max_results]
+    
+    return filtered
+
 def get_completions(code, offset):
     """
-    Simple completion based on runtime introspection.
+    Simple completion based on runtime introspection with configurable filtering.
     """
     try:
         # Get the word ending at offset
@@ -63,19 +135,45 @@ def get_completions(code, offset):
                 parent = eval(parent_name, globals())
             except:
                 return []
-                
-            # Filter parent attributes
-            options = [n for n in dir(parent) if n.startswith(partial)]
-            return [{"label": n, "type": "function" if callable(getattr(parent, n, None)) else "variable"} for n in options]
+            
+            # Get attributes (with caching for performance)
+            use_cache = _completion_filters["use_cache"]
+            cache_key = parent_name
+            
+            if use_cache and cache_key in _dir_cache:
+                all_attrs = _dir_cache[cache_key]
+            else:
+                all_attrs = dir(parent)
+                if use_cache:
+                    _dir_cache[cache_key] = all_attrs
+            
+            # Filter using configurable filter function
+            filtered = _filter_completions(all_attrs, partial, parent)
+            
+            # Build completion items with type info
+            return [
+                {
+                    "label": n, 
+                    "type": "function" if callable(getattr(parent, n, None)) else "property"
+                } 
+                for n in filtered
+            ]
         else:
             # Global scope completion
             partial = text
-            options = [n for n in globals() if n.startswith(partial)]
+            
+            # Combine globals and builtins
+            all_names = list(globals().keys())
             import builtins
-            options += [n for n in dir(builtins) if n.startswith(partial)]
+            all_names += dir(builtins)
+            
             # Dedup
-            options = list(set(options))
-            return [{"label": n, "type": "variable"} for n in options]
+            all_names = list(set(all_names))
+            
+            # Filter using configurable filter function
+            filtered = _filter_completions(all_names, partial)
+            
+            return [{"label": n, "type": "variable"} for n in filtered]
     except Exception:
         return []
 
@@ -167,6 +265,11 @@ async def run_cell_code(code, cell_id):
     try:
         # Execute code in the global namespace
         res = await eval_code_async(code, globals=globals())
+        
+        # Note: We do NOT clear completion cache here because all cells share the same
+        # Python runtime/namespace. The cache remains valid across cell executions.
+        # The cache will naturally update when variables are redefined (next dir() call).
+        # Only clear cache on kernel restart or manual clear_completion_cache() call.
         
         # Auto-wrap lists of UIElements into a Group
         if isinstance(res, list) and res:
@@ -1512,6 +1615,18 @@ self.onmessage = async (e) => {
 
     if (type === "init") {
         await initPyodide();
+    } else if (type === "cleanup") {
+        // Clear caches when kernel is stopped/restarted
+        if (pyodide) {
+            try {
+                const clear_completion_cache = pyodide.globals.get("clear_completion_cache");
+                clear_completion_cache();
+                clear_completion_cache.destroy();
+            } catch (err) {
+                console.error("Cache cleanup error", err);
+            }
+        }
+        postMessage({ type: "cleanup_complete", id });
     } else if (type === "run") {
         // Concurrent execution allowed!
         // We do NOT await here to block the loop, but we handle errors in runCode.

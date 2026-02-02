@@ -229,6 +229,7 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
       onActionClick={toggleEdit}
       hasError={renderError()}
       prevCellId={props.prevCellId}
+      cellIndex={props.index}
       lastHeaderLevel={lastHeaderLevel()}
     >
       <div 

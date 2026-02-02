@@ -224,8 +224,22 @@ class Kernel {
 
   terminate() {
     if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
+      // Request cache cleanup before terminating
+      // Note: We don't await this since terminate needs to be synchronous
+      // The worker will be killed regardless, but this gives it a chance to cleanup
+      try {
+        this.worker.postMessage({ type: "cleanup", id: Date.now() });
+      } catch (err) {
+        // Worker might already be dead, ignore
+      }
+      
+      // Small delay to allow cleanup message to be processed
+      setTimeout(() => {
+        if (this.worker) {
+          this.worker.terminate();
+          this.worker = null;
+        }
+      }, 10);
     }
     // Reject all pending promises
     for (const [, listener] of this.listeners) {

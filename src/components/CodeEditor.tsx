@@ -7,21 +7,25 @@ import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, und
 import { EditorState, StateField, Range, RangeSet, EditorSelection } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
 import { bracketMatching } from "@codemirror/language";
-import { closeBrackets } from "@codemirror/autocomplete";
+import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
 import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
 import { currentTheme } from "../lib/theme";
 import { type CellData, actions, APP_QUICK_EDIT_MODE } from "../lib/store";
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
 
-// Create custom duotoneDark theme with green function calls
+// Create custom duotoneDark theme with function color from theme
 // Using duotoneDarkInit() with custom styles is the most efficient approach -
 // single-pass highlighting with our color baked into the theme
-const customDuotoneDark = duotoneDarkInit({
+const getCustomDuotoneDark = (functionColor: string) => duotoneDarkInit({
   styles: [
-    { tag: tags.function(tags.variableName), color: "#a6e3a1" },
+    { tag: tags.function(tags.variableName), color: functionColor },
   ]
 });
+
+// Note: Code Mirror has a built-in search command called 'selectNextOccurrence' 
+// but does not have a version that selects previous occurrences. The following
+// is very similar to the built-in command but the difference is that it searches
 
 // Select previous occurrence - reverse direction of selectNextOccurrence
 // Finds previous occurrence of selected text before the first selection
@@ -50,7 +54,8 @@ function selectPreviousOccurrence(view: EditorView): boolean {
     return false;
   }
 
-  // Find previous occurrence before the earliest selection
+  // This finds the earliest position among all selections
+  // We need this to know where to start searching backward from
   const earliestFrom = Math.min(...ranges.map(r => r.from));
   
   // Search backward in chunks (mimicking prevMatchInRange from CodeMirror)
@@ -58,14 +63,19 @@ function selectPreviousOccurrence(view: EditorView): boolean {
   const chunkSize = 10000;
   
   for (let pos = earliestFrom;;) {
+    // Define chunk to search for matches
     const start = Math.max(0, pos - chunkSize - searchedText.length);
     const cursor = new SearchCursor(state.doc, searchedText, start, pos);
     let lastMatch: { from: number; to: number } | null = null;
     
+    // Find the last match in this chunk
+    // Logic: Loop through all matches and store them in the same variable overwriting the previous one stored
+    //        After the loop, the variable will contain the last match found because it will be the last to overwrite
     while (!cursor.next().done) {
       lastMatch = cursor.value;
     }
     
+    // If a match was found, store it in foundRange and exit the loop
     if (lastMatch) {
       foundRange = lastMatch;
       break;
@@ -95,6 +105,7 @@ function selectPreviousOccurrence(view: EditorView): boolean {
 
   if (!foundRange) return false;
 
+  // Add foundRange to selections and scroll into view
   view.dispatch(state.update({
     selection: state.selection.addRange(
       EditorSelection.range(foundRange.from, foundRange.to),
@@ -107,8 +118,14 @@ function selectPreviousOccurrence(view: EditorView): boolean {
 }
 
 // Smart selection matching - handles multi-select properly
-// When multiple selections exist, only match based on the main (first) selection
-// This prevents trying to match concatenated text during Ctrl+D operations
+// when multiple selections exist, only match based on the main (first) selection.
+// - This prevents trying to match concatenated text during Ctrl+D operations.
+// - This allows both multi-select and match highlighting to work together smoothly.
+// - This aims to replace the highlightSelectionMatches extension.
+// - This extension highlights all other occurrences of the selected text,
+//   but is designed to still work when the selection contains multiple 
+//   occurrences of the same selected text. Instead of trying to find matches
+//   for the whole concatenated selection, it only matches based on the main selection.
 function smartSelectionMatches() {
   const decorationMark = Decoration.mark({ class: "cm-selectionMatch" });
   
@@ -215,24 +232,35 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
   });
 
-  // Handle blur to exit edit mode and close search panel
+  // Exit edit mode when clicking outside the editor
+  // Uses document mousedown listener (only when cell is in edit mode) to detect clicks
+  // outside the editor boundaries. This reliably exits edit mode and closes the search panel
+  // when clicking cell background, output, or other cells.
+  // Note: The search panel is the only panel in this editor that needs explicit closing.
+  // Other UI elements (autocomplete, tooltips, lint diagnostics) automatically dismiss on outside clicks.
+  // Only ONE document listener exists at any time (from whichever cell is actively editing).
+  // The listener is automatically removed when the cell exits edit mode via onCleanup.
   createEffect(() => {
     const view = editorView();
-    if (view && props.onBlur) {
-      const handler = (e: FocusEvent) => {
-        if (!props.readOnly) {
-          // Check if focus is moving outside the entire editor (including search panel)
-          const relatedTarget = e.relatedTarget as Node;
-          if (!relatedTarget || !view.dom.contains(relatedTarget)) {
-            // Focus left the editor completely - close search panel and exit edit mode
-            closeSearchPanel(view);
-            props.onBlur?.();
-          }
+    // Only attach listener when in edit mode (not readonly)
+    if (view && props.onBlur && !props.readOnly) {
+      const mousedownHandler = (e: MouseEvent) => {
+        const target = e.target as Node;
+        const isInsideEditor = view.dom.contains(target);
+        
+        // If clicked outside the editor, close search panel and exit edit mode
+        if (!isInsideEditor) {
+          closeSearchPanel(view);
+          props.onBlur?.();
         }
       };
-      // Use focusout which bubbles and catches focus leaving any child element
-      view.dom.addEventListener('focusout', handler);
-      onCleanup(() => view.dom.removeEventListener('focusout', handler));
+      
+      // Attach to document but only when this cell is in edit mode
+      document.addEventListener('mousedown', mousedownHandler, true);
+      
+      onCleanup(() => {
+        document.removeEventListener('mousedown', mousedownHandler, true);
+      });
     }
   });
 
@@ -346,7 +374,8 @@ const CodeEditor: Component<EditorProps> = (props) => {
       const position = undoDepth(view.state);
       
       if (currentReadOnly) {
-        // Exiting edit mode (becoming read-only)
+        // Exiting edit mode (becoming read-only) - close search panel and commit history
+        closeSearchPanel(view);
         actions.commitCodeCellEditSession(props.cell.id, position);
       } else {
         // Entering edit mode (becoming editable)
@@ -459,7 +488,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
     pythonHover,
     // Linter is added separately to be reactive
     tooltipTheme,
-    customDuotoneDark,
     history(),
     // Auto-close brackets and quotes
     closeBrackets(),
@@ -502,7 +530,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
       },
       "&.cm-focused .cm-matchingBracket": {
         backgroundColor: "transparent !important",
-        filter: "brightness(1.6)",
+        filter: "brightness(1.8)",
       },
       ".cm-panel.cm-search": {
         backgroundColor: "var(--color-background)",
@@ -528,10 +556,10 @@ const CodeEditor: Component<EditorProps> = (props) => {
       },
       ".cm-panel.cm-search input:focus": {
         outline: "none",
-        borderColor: "var(--color-secondary)",
+        borderColor: "var(--accent)",
       },
       ".cm-panel.cm-search button:hover": {
-        borderColor: "var(--color-secondary)",
+        borderColor: "var(--accent)",
         backgroundColor: "color-mix(in srgb, var(--accent) 10%, transparent)",
       },
       ".cm-panel.cm-search button[name='close']": {
@@ -559,7 +587,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
         position: "relative",
         transition: "all 0.2s",
         verticalAlign: "middle",
-        marginTop: "-0.125rem",
+        marginTop: "0rem",
         marginRight: "0.375rem",
         flexShrink: "0",
         boxSizing: "border-box",
@@ -586,6 +614,13 @@ const CodeEditor: Component<EditorProps> = (props) => {
       },
     }),
     keymap.of([
+      // Custom completion keymap (replaces default since we disabled it)
+      { key: "Ctrl-Space", run: acceptCompletion },
+      { key: "Escape", run: closeCompletion },
+      { key: "ArrowDown", run: moveCompletionSelection(true) },
+      { key: "ArrowUp", run: moveCompletionSelection(false) },
+      { key: "Ctrl-Shift-Space", run: startCompletion },
+      // Other custom bindings
       { key: "Mod-Enter", run: () => false },
       { key: "Mod-/", run: toggleComment },
       { key: "Mod-Shift-d", run: selectPreviousOccurrence, preventDefault: true },
@@ -597,6 +632,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
     EditorView.lineWrapping
   ];
   createExtension(extensionsConfig);
+  
+  // Reactive duotone theme (updates when syntax colors change)
+  createExtension(() => getCustomDuotoneDark(currentTheme.syntax.function));
   
   // Reactive line numbers (toggleable via settings)
   createExtension(createMemo(() => {

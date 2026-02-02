@@ -67,6 +67,8 @@ interface CellWrapperProps {
   hasHiddenElements?: boolean; // Whether any visibility settings are hiding elements
   isShowingAll?: boolean;      // Whether this cell is in "show all" override mode
   onToggleVisibility?: () => void; // Toggle between show-all and user settings
+  // For stacking order control
+  cellIndex?: number;          // Cell position in notebook (for reverse z-index stacking)
 }
 
 const CellWrapper: Component<CellWrapperProps> = (props) => {
@@ -145,6 +147,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         transform: `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)`,
         "margin-top": "var(--cell-margin)",
         "margin-bottom": "var(--cell-margin)",
+        "z-index": props.cellIndex !== undefined ? 10 - props.cellIndex : "auto",
         ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {})
       }}
       onClick={(e) => {

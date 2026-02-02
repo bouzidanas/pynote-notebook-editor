@@ -137,6 +137,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       isQueued={props.cell.isQueued}
       hasError={!!props.cell.outputs?.error}
       prevCellId={props.prevCellId}
+      cellIndex={props.index}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       // Pass visibility toggle info for sidebar button
