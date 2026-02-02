@@ -1,5 +1,5 @@
 import { linter, type Diagnostic, forEachDiagnostic } from "@codemirror/lint";
-import { type CompletionSource, autocompletion, type CompletionResult, acceptCompletion, startCompletion } from "@codemirror/autocomplete";
+import { type CompletionSource, autocompletion, type CompletionResult } from "@codemirror/autocomplete";
 import { hoverTooltip } from "@codemirror/view";
 import { kernel } from "./pyodide";
 import { EditorView } from "@codemirror/view";
