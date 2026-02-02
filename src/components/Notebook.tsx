@@ -1296,7 +1296,7 @@ const Notebook: Component = () => {
     <div class="pb-32">
        {/* Global Toolbar */}
        <div 
-         class={`sticky top-0 z-20 max-xs:z-60 bg-background/80 backdrop-blur-md border-b border-foreground mb-8 shadow-sm transition-transform duration-300 ${notebookStore.presentationMode ? "-translate-y-full" : ""}`}
+         class={`sticky top-0 z-[200000] bg-background/80 backdrop-blur-md border-b border-foreground mb-8 shadow-sm transition-transform duration-300 ${notebookStore.presentationMode ? "-translate-y-full" : ""}`}
          onClick={(e) => {
            e.stopPropagation();
            // Deselect all cells when clicking the background
