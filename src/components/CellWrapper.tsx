@@ -147,7 +147,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         transform: `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)`,
         "margin-top": "var(--cell-margin)",
         "margin-bottom": "var(--cell-margin)",
-        "z-index": props.cellIndex !== undefined ? 10 - props.cellIndex : "auto",
+        "z-index": props.cellIndex !== undefined ? 100000 - props.cellIndex : "auto",
         ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {})
       }}
       onClick={(e) => {
