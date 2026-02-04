@@ -29,7 +29,7 @@ const SHORTCUTS = {
     { label: "Theme Configuration", keys: "Alt + T" },
     { label: "Code Visibility", keys: "Alt + V" },
     { label: "Run All Cells", keys: "Alt + R" },
-    { label: "Clear All Outputs", keys: "Alt + C" },
+    { label: "Clear All Outputs", keys: "Alt + Backspace" },
     { label: "Delete All Cells", keys: "Alt + Delete" },
     { label: "Restart Kernel", keys: "Alt + K" },
     { label: "Shutdown Kernel", keys: "Alt + Q" }
@@ -55,6 +55,8 @@ const SHORTCUTS = {
     { label: "Run & Edit Next", keys: "Shift + Enter" },
     { label: "Run & Insert", keys: "Alt + Enter" },
     { label: "Exit Edit Mode", keys: "Esc" },
+    { label: "Undo", keys: "Ctrl + Z" },
+    { label: "Redo", keys: "Ctrl + Shift + Z" },
     { label: "Comment Toggle", keys: "Ctrl + /" },
     { label: "Multi-Select Next", keys: "Ctrl + D" },
     { label: "Multi-Select Previous", keys: "Ctrl + Shift + D" },
