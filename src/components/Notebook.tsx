@@ -65,10 +65,10 @@ const SHORTCUTS = {
 
 const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; onClose: () => void }> = (props) => {
   return (
-     <div class="fixed left-[calc(50%+28rem)] top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col gap-6 text-secondary/60 transition-opacity duration-300 group z-50">
+     <div class="fixed left-[calc(50%+28rem)] top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col gap-6 text-secondary/60 transition-opacity duration-300 group z-[300000]">
         <button 
             onClick={props.onClose}
-            class="absolute -top-2 -right-2 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 cursor-pointer"
+            class="absolute -top-2 -right-2 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 z-[300000] cursor-pointer"
             title="Hide Shortcuts"
         >
             <X size={16} />
@@ -2007,7 +2007,7 @@ const Notebook: Component = () => {
 
        {/* Keyboard Shortcuts Modal */}
        <Show when={showShortcuts()}>
-         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowShortcuts(false)}>
+         <div class="fixed inset-0 z-[300000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowShortcuts(false)}>
            <div class="bg-background border border-foreground rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
              <div class="flex items-center justify-between p-4 border-b border-foreground shrink-0">
                <h2 class="text-lg font-bold flex items-center gap-2"><Keyboard /> Keyboard Shortcuts</h2>
