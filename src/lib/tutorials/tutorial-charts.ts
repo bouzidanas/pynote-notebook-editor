@@ -9,6 +9,8 @@ export const tutorialChartsCells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
+<br />
+
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -400,9 +402,14 @@ Group([
 
 You now know how to create beautiful, interactive visualizations. Continue to the API Reference for complete details:
 
+<br />
+
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components and chart types |
+
+<br />
 
 Or go back to **[Quick Start](?open=tutorial)** or **[Interactive UI](?open=tutorial_ui)**.`
     }

@@ -9,6 +9,8 @@ export const tutorialAPICells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
+<br />
+
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -153,11 +155,15 @@ Plot(data, x="x", y="y", title="My Chart",
 
 ## 📚 Full Tutorial Navigation
 
+
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
 | **[Interactive UI](?open=tutorial_ui)** | Sliders, text, groups, layouts, and display functions |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |  
+
+<br />
 
 Happy coding! 🐍`
     }

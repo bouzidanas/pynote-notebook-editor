@@ -9,6 +9,8 @@ export const tutorialReactiveCells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
+<br />
+
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -357,12 +359,13 @@ You now understand how PyNote's reactive execution mode works:
 - **Automatic Propagation**: Running a cell triggers all its dependents
 - **Local Variables**: Use \`_underscore\` prefix for cell-local variables
 
+<br />
+
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
-| **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
-| **[Interactive UI](?open=tutorial_ui)** | Build reactive widgets with sliders, text, and groups |
-| **[Charts & Plotting](?open=tutorial_charts)** | Create beautiful visualizations |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all components |
+
+<br />
 
 Happy coding! 🐍⚡`
     }

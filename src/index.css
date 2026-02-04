@@ -132,7 +132,6 @@ body {
     overflow-x: auto;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
-    margin: 1.25em 0 !important;
 }
 
 /* Table inside wrapper stretches to fit or overflow */
@@ -168,7 +167,7 @@ body {
     width: 100%;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
-    margin: 1.25em 0 !important;
+    margin: 0 !important;
 }
 
 .milkdown .editor table:not(.table-wrapper table) > * {

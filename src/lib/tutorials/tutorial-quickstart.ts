@@ -9,6 +9,8 @@ export const tableOfContentsCells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
+<br />
+
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown *(you are here)* |
@@ -152,12 +154,16 @@ export const tutorialQuickstartCells: CellData[] = [
 
 You now know the basics of PyNote. Continue your learning:
 
+<br />
+
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
 | **[Interactive UI](?open=tutorial_ui)** | Build reactive widgets with sliders, text, and groups |
 | **[Charts & Plotting](?open=tutorial_charts)** | Create beautiful visualizations with Observable Plot, uPlot, and Frappe |
 | **[Reactive Execution](?open=tutorial_reactive)** | Auto-run dependent cells with DAG-based propagation |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
+
+<br />
 
 Happy coding! 🐍`
     }
