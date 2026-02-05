@@ -61,58 +61,64 @@ const SHORTCUTS = {
     { label: "Multi-Select Next", keys: "Ctrl + D" },
     { label: "Multi-Select Previous", keys: "Ctrl + Shift + D" },
     { label: "Find", keys: "Ctrl + F" },
+    { label: "Move Line Up", keys: "Ctrl + Shift + ↑" },
+    { label: "Move Line Down", keys: "Ctrl + Shift + ↓" },
+    { label: "Duplicate Line Up", keys: "Shift + Alt + ↑" },
+    { label: "Duplicate Line Down", keys: "Shift + Alt + ↓" },
+    { label: "Delete Line", keys: "Ctrl + Shift + K" },
+    { label: "Jump to Bracket", keys: "Ctrl + M" },
     { label: "Clear Output", keys: "Ctrl + Backspace" }
   ]
 };
 
 const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; onClose: () => void }> = (props) => {
+  // Determine which section to show: Global (no selection), Command (selected), or Edit (editing)
+  const section = () => {
+    if (!props.activeId) return "global";
+    if (props.isEditing) return "edit";
+    return "command";
+  };
+
   return (
-     <div class="fixed left-[calc(50%+28rem)] top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col gap-6 text-secondary/60 transition-opacity duration-300 group z-[300000]">
+     <div class="fixed left-[calc(50%+28rem)] px-2 top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-[300000]">
         <button 
             onClick={props.onClose}
-            class="absolute -top-2 -right-2 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 z-[300000] cursor-pointer"
+            class="self-end -mb-5 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer z-300002"
             title="Hide Shortcuts"
         >
             <X size={16} />
         </button>
 
-        {/* Global - Always show */}
-        <div class="space-y-2">
-            <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Global</h3>
-            <For each={SHORTCUTS.global}>
-                {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
-            </For>
-        </div>
+        <div class="flex flex-col gap-6 max-h-[calc(100vh-12rem)] overflow-x-hidden overflow-y-auto">
+        {/* Global - shown when no cell is selected */}
+        <Show when={section() === "global"}>
+          <div class="space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Global</h3>
+              <For each={SHORTCUTS.global}>
+                  {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
+              </For>
+          </div>
+        </Show>
 
-        {/* Dynamic Context Section using Grid for stacking */}
-        <div class="grid grid-cols-1">
-            {/* Command Mode */}
-            <div 
-                class={`col-start-1 row-start-1 space-y-2 transition-all ease-out ${
-                    props.activeId && !props.isEditing 
-                    ? "opacity-100 translate-x-0 duration-300 delay-100" 
-                    : "opacity-0 translate-x-4 duration-100 pointer-events-none"
-                }`}
-            >
-                <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Command Mode</h3>
-                <For each={SHORTCUTS.command}>
-                    {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
-                </For>
-            </div>
+        {/* Command Mode - shown when cell is selected but not editing */}
+        <Show when={section() === "command"}>
+          <div class="space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Command Mode</h3>
+              <For each={SHORTCUTS.command}>
+                  {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
+              </For>
+          </div>
+        </Show>
 
-            {/* Edit Mode */}
-            <div 
-                class={`col-start-1 row-start-1 space-y-2 transition-all ease-out ${
-                    props.activeId && props.isEditing 
-                    ? "opacity-100 translate-x-0 duration-300 delay-100" 
-                    : "opacity-0 translate-x-4 duration-100 pointer-events-none"
-                }`}
-            >
-                <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Edit Mode</h3>
-                <For each={SHORTCUTS.edit}>
-                    {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
-                </For>
-            </div>
+        {/* Edit Mode - shown when editing */}
+        <Show when={section() === "edit"}>
+          <div class="space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Edit Mode</h3>
+              <For each={SHORTCUTS.edit}>
+                  {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
+              </For>
+          </div>
+        </Show>
         </div>
      </div>
   );
