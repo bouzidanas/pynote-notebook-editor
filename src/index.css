@@ -16,6 +16,9 @@
   --breakpoint-xs: 30rem;
   --breakpoint-menu: 35rem;
   --breakpoint-lg: 56.25rem;
+  
+  /* Extra small text size for xs UI components (83% of --text-xs) */
+  --text-2xs: calc(var(--text-xs) * 0.833);
 }
 
 :root {
@@ -66,6 +69,26 @@ body {
     scrollbar-width: thin;
     scrollbar-color: var(--primary) transparent;
   }
+}
+
+/* Override browser autofill styling to match theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: var(--secondary) !important;
+  background-color: var(--background) !important;
+  box-shadow: 0 0 0 1000px var(--background) inset !important;
+  caret-color: var(--secondary) !important;
 }
 
 /* Utilities */

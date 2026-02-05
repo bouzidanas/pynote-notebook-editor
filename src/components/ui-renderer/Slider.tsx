@@ -2,6 +2,15 @@ import { type Component, createEffect, createSignal, onMount, onCleanup } from "
 import { kernel } from "../../lib/pyodide";
 import { usePyNoteThemeStyles } from "./utils";
 
+// Size presets for custom slider styling
+const SIZE_PRESETS = {
+  xs: { trackHeight: 4, thumbSize: 10, padding: 2, labelSize: "text-[9px]", valueSize: "text-xs", tickSize: "text-[8px]", thumbOffset: -3 },
+  sm: { trackHeight: 5, thumbSize: 12, padding: 2, labelSize: "text-[10px]", valueSize: "text-xs", tickSize: "text-[9px]", thumbOffset: -3.5 },
+  md: { trackHeight: 7, thumbSize: 16, padding: 3, labelSize: "text-xs", valueSize: "text-sm", tickSize: "text-[10px]", thumbOffset: -4.5 },
+  lg: { trackHeight: 9, thumbSize: 20, padding: 4, labelSize: "text-xs", valueSize: "text-base", tickSize: "text-[11px]", thumbOffset: -5.5 },
+  xl: { trackHeight: 12, thumbSize: 26, padding: 5, labelSize: "text-sm", valueSize: "text-lg", tickSize: "text-xs", thumbOffset: -7 },
+} as const;
+
 interface SliderProps {
   id: string;
   props: {
@@ -10,6 +19,7 @@ interface SliderProps {
     value: number;
     step: number;
     label: string;
+    size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     width?: string | number | null;
     height?: string | number | null;
     grow?: number | null;
@@ -21,7 +31,11 @@ interface SliderProps {
 const Slider: Component<SliderProps> = (p) => {
   const componentId = p.id;
   const [value, setValue] = createSignal(p.props.value);
+  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
   let containerRef: HTMLDivElement | undefined;
+  
+  // Get size preset (default to md)
+  const sizeConfig = () => SIZE_PRESETS[size()];
   
   createEffect(() => {
     setValue(p.props.value);
@@ -38,6 +52,9 @@ const Slider: Component<SliderProps> = (p) => {
     kernel.registerComponentListener(componentId, (data: any) => {
         if (typeof data.value === "number") {
             setValue(data.value);
+        }
+        if (data.size !== undefined) {
+            setSize(data.size ?? "md");
         }
     });
   });
@@ -109,7 +126,7 @@ const Slider: Component<SliderProps> = (p) => {
       <style>
         {`
           .${sliderClass}::-webkit-slider-runnable-track {
-            height: 7px;
+            height: ${sizeConfig().trackHeight}px;
             background: var(--slider-gradient) !important;
             border-radius: var(--radius-sm);
             border: none !important;
@@ -118,31 +135,31 @@ const Slider: Component<SliderProps> = (p) => {
           .${sliderClass}::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            height: 16px;
-            width: 16px;
+            height: ${sizeConfig().thumbSize}px;
+            width: ${sizeConfig().thumbSize}px;
             background: var(--primary) !important;
             border-radius: 50%;
             border: none !important;
             box-shadow: none !important;
-            margin-top: -4.5px; /* Centers 16px thumb on 7px track */
+            margin-top: ${sizeConfig().thumbOffset}px;
           }
           
           /* Firefox */
           .${sliderClass}::-moz-range-track {
-            height: 7px;
-            background: var(--foreground) !important; /* Firefox uses progress for fill */
+            height: ${sizeConfig().trackHeight}px;
+            background: var(--foreground) !important;
             border-radius: var(--radius-sm);
             border: none !important;
             box-shadow: none !important;
           }
           .${sliderClass}::-moz-range-progress {
-            height: 7px;
+            height: ${sizeConfig().trackHeight}px;
             background: var(--primary) !important;
             border-radius: var(--radius-sm);
           }
           .${sliderClass}::-moz-range-thumb {
-            height: 16px;
-            width: 16px;
+            height: ${sizeConfig().thumbSize}px;
+            width: ${sizeConfig().thumbSize}px;
             background: var(--primary) !important;
             border: none !important;
             border-radius: 50%;
@@ -150,12 +167,18 @@ const Slider: Component<SliderProps> = (p) => {
           }
         `}
       </style>
-      <div class="flex items-center justify-between gap-3 px-3 py-2 bg-base-200/50 border-b-2 border-foreground">
-        <span class="text-xs font-semibold uppercase tracking-wider text-secondary/70">{p.props.label}</span>
-        <span class="font-mono text-sm font-bold text-[var(--primary)]">{value()}</span>
+      <div 
+        class={`flex items-center justify-between gap-3 bg-base-200/50 border-b-2 border-foreground`}
+        style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px` }}
+      >
+        <span class={`${sizeConfig().labelSize} font-semibold uppercase tracking-wider text-secondary/70`}>{p.props.label}</span>
+        <span class={`font-mono ${sizeConfig().valueSize} font-bold text-[var(--primary)]`}>{value()}</span>
       </div>
       
-      <div class="p-3 flex flex-col gap-1">
+      <div 
+        class={`flex flex-col gap-1`}
+        style={{ padding: `${sizeConfig().padding * 4}px`, "padding-bottom": `${Math.max(4, (sizeConfig().padding - 1) * 4)}px` }}
+      >
           <input 
             type="range" 
             min={p.props.min} 
@@ -172,8 +195,8 @@ const Slider: Component<SliderProps> = (p) => {
             }}
           />
           <div class="flex justify-between w-full px-0.5 mt-1">
-            <span class="text-[10px] font-mono text-secondary/40">{p.props.min}</span>
-            <span class="text-[10px] font-mono text-secondary/40">{p.props.max}</span>
+            <span class={`${sizeConfig().tickSize} font-mono text-secondary/40`}>{p.props.min}</span>
+            <span class={`${sizeConfig().tickSize} font-mono text-secondary/40`}>{p.props.max}</span>
           </div>
       </div>
     </div>

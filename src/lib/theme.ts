@@ -156,6 +156,13 @@ export const initTheme = () => {
     root.style.setProperty("--background", theme.colors.background);
     root.style.setProperty("--foreground", theme.colors.foreground);
 
+    // Also set DaisyUI's color variables to use our theme
+    root.style.setProperty("--color-primary", theme.colors.primary);
+    root.style.setProperty("--color-secondary", theme.colors.secondary);
+    root.style.setProperty("--color-accent", theme.colors.accent);
+    root.style.setProperty("--color-base-100", theme.colors.background);
+    root.style.setProperty("--color-base-content", theme.colors.secondary);
+
     root.style.setProperty("--syntax-function", theme.syntax.function);
     root.style.setProperty("--syntax-property", theme.syntax.property);
     root.style.setProperty("--syntax-variable", theme.syntax.variable);

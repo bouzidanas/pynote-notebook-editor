@@ -1,10 +1,20 @@
 import { type Component, createSignal, onMount, onCleanup } from "solid-js";
 import { kernel } from "../../lib/pyodide";
 
+// Size presets for Text component - uses Tailwind's CSS variables
+const SIZE_PRESETS = {
+  xs: { padding: "p-1.5", textSize: "text-[length:var(--text-2xs)]" },
+  sm: { padding: "p-2", textSize: "text-xs" },
+  md: { padding: "p-3", textSize: "text-sm" },
+  lg: { padding: "p-4", textSize: "text-base" },
+  xl: { padding: "p-5", textSize: "text-lg" },
+} as const;
+
 interface TextProps {
   id: string;
   props: {
     content: string;
+    size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     width?: string | number | null;
     height?: string | number | null;
     grow?: number | null;
@@ -18,10 +28,15 @@ interface TextProps {
 const Text: Component<TextProps> = (p) => {
   const componentId = p.id;
   const [content, setContent] = createSignal(p.props.content);
+  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  
+  // Get size preset (default to md)
+  const sizeConfig = () => SIZE_PRESETS[size()];
 
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
       if (data.content !== undefined) setContent(data.content);
+      if (data.size !== undefined) setSize(data.size ?? "md");
     });
   });
 
@@ -88,7 +103,7 @@ const Text: Component<TextProps> = (p) => {
 
   return (
     <div 
-      class="p-3 bg-base-200/50 border-2 border-foreground rounded-sm font-mono text-sm text-secondary"
+      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono ${sizeConfig().textSize} text-secondary`}
       style={componentStyles()}
     >
       {content()}
