@@ -147,7 +147,7 @@ const CustomDragOverlay: Component<{ height: number | null; grabOffsetX: number;
   return (
     <Show when={state.active.draggable && props.height}>
       <div 
-        class="fixed pointer-events-none z-50" 
+        class="fixed pointer-events-none z-100001" 
         style={{ 
           // Position the pill so it maintains the grab offset from the cell
           // The pill is 832px wide, the cell is cellWidth, so we extend equally on both sides
@@ -1307,7 +1307,9 @@ const Notebook: Component = () => {
            }
          }}
        >
-         <div class="max-w-202 mx-auto px-7.5 max-xs:pl-6.5 max-xs:pr-2 py-4 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
+         <div class="px-7.5 max-xs:pl-6.5 max-xs:pr-2 py-4 flex items-center justify-between" 
+              style={{ "max-width": "var(--page-max-width-header)", "margin-left": "var(--page-margin-x-header)", "margin-right": "var(--page-margin-x-header)" }} 
+              onClick={(e) => e.stopPropagation()}>
            <div class="flex items-center gap-2">
              <div class="btn-toolbar bg-primary! text-background! hover:bg-primary/90! flex items-center justify-center font-bold! text-xl! leading-none sm:flex border-primary">PyNote</div>
              <div class="h-8 w-px bg-foreground mx-1 hidden xs:block"></div>
@@ -1920,7 +1922,7 @@ const Notebook: Component = () => {
          </div>
        </div>
 
-       <div class="max-w-208 mx-auto">
+       <div style={{ "max-width": "var(--page-max-width-content)", "margin-left": "var(--page-margin-x-content)", "margin-right": "var(--page-margin-x-content)" }}>
          {/* Cells List */}
          <DragDropProvider onDragStart={onDragStart} onDragEnd={onDragEnd} collisionDetector={closestCorners}>
            <AutoScroller />

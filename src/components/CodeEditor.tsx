@@ -435,7 +435,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
       backgroundColor: "transparent !important",
       height: "auto",
       minHeight: "1.5rem",
-      maxHeight: currentTheme.editor.maxCodeHeight,
+      maxHeight: "var(--editor-max-code-height)",
       fontSize: "1rem",
       fontFamily: "var(--font-mono)",
     },

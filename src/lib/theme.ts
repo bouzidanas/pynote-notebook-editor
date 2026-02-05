@@ -36,6 +36,7 @@ export interface Theme {
   sectionScoping: boolean;
   tableOverflow: "scroll" | "wrap";
   outputLayout: "above" | "below";
+  pageWidth: "normal" | "wide" | "full";
   saveToExport: boolean;
 }
 
@@ -74,6 +75,7 @@ export const defaultTheme: Theme = {
   sectionScoping: true,
   tableOverflow: "scroll",
   outputLayout: "above",
+  pageWidth: "normal",
   saveToExport: false,
 };
 
@@ -106,7 +108,9 @@ export const updateTheme = (newTheme: any) => {
   if (newTheme.typography) setTheme("typography", (t) => ({ ...t, ...newTheme.typography }));
   if (newTheme.editor) setTheme("editor", (e) => ({ ...e, ...newTheme.editor }));
   if (newTheme.sectionScoping !== undefined) setTheme("sectionScoping", newTheme.sectionScoping);
+  if (newTheme.tableOverflow) setTheme("tableOverflow", newTheme.tableOverflow);
   if (newTheme.outputLayout) setTheme("outputLayout", newTheme.outputLayout);
+  if (newTheme.pageWidth) setTheme("pageWidth", newTheme.pageWidth);
   if (newTheme.saveToExport !== undefined) setTheme("saveToExport", newTheme.saveToExport);
 };
 
@@ -152,6 +156,8 @@ export const initTheme = () => {
     root.style.setProperty("--font-size-delta", theme.typography.headerDelta);
     root.style.setProperty("--header-margin-bottom", theme.typography.headerMarginBottom);
 
+    root.style.setProperty("--editor-max-code-height", theme.editor.maxCodeHeight);
+
     // Header Colors Logic
     const colors = theme.typography.headerColors || [];
     const h1Color = colors[0] || theme.colors.primary;
@@ -165,6 +171,24 @@ export const initTheme = () => {
     root.style.setProperty("--header-color-4", h4Color);
 
     root.style.setProperty("--table-overflow", theme.tableOverflow);
+
+    // Page width variables (header and content have slightly different widths)
+    if (theme.pageWidth === "wide") {
+      root.style.setProperty("--page-max-width-header", "62.5rem"); // max-w-250
+      root.style.setProperty("--page-margin-x-header", "auto");
+      root.style.setProperty("--page-max-width-content", "64rem"); // max-w-256
+      root.style.setProperty("--page-margin-x-content", "auto");
+    } else if (theme.pageWidth === "full") {
+      root.style.setProperty("--page-max-width-header", "100%");
+      root.style.setProperty("--page-margin-x-header", "2.5rem"); // mx-10
+      root.style.setProperty("--page-max-width-content", "100%");
+      root.style.setProperty("--page-margin-x-content", "2rem"); // mx-8
+    } else { // normal
+      root.style.setProperty("--page-max-width-header", "50.5rem"); // max-w-202
+      root.style.setProperty("--page-margin-x-header", "auto");
+      root.style.setProperty("--page-max-width-content", "52rem"); // max-w-208
+      root.style.setProperty("--page-margin-x-content", "auto");
+    }
 
     // Update meta theme color for browser UI (avoids white flash in new tabs)
     const metaTheme = document.getElementById('meta-theme-color');
