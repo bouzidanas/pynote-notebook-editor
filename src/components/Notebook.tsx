@@ -147,7 +147,7 @@ const CustomDragOverlay: Component<{ height: number | null; grabOffsetX: number;
   return (
     <Show when={state.active.draggable && props.height}>
       <div 
-        class="fixed pointer-events-none z-50" 
+        class="fixed pointer-events-none z-100001" 
         style={{ 
           // Position the pill so it maintains the grab offset from the cell
           // The pill is 832px wide, the cell is cellWidth, so we extend equally on both sides
