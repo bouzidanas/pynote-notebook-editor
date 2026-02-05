@@ -436,8 +436,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
       height: "auto",
       minHeight: "1.5rem",
       maxHeight: "var(--editor-max-code-height)",
-      fontSize: "1rem",
-      fontFamily: "var(--font-mono)",
+      fontSize: "var(--code-editor-font-size)",
+      fontFamily: "var(--code-font-family)",
+      fontWeight: "var(--code-font-weight)",
     },
     ".cm-content": {
       caretColor: "var(--accent) !important",
@@ -545,8 +546,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
         border: "1px solid var(--color-foreground)",
         borderRadius: "0.125rem",
         padding: "0.25rem 0.5rem",
-        fontSize: "0.875rem",
-        fontFamily: "var(--font-mono)",
+        fontSize: "var(--code-base-font-size)",
+        fontFamily: "var(--code-font-family)",
+        fontWeight: "var(--code-font-weight)",
       },
       ".cm-panel.cm-search input": {
         "&::placeholder": {

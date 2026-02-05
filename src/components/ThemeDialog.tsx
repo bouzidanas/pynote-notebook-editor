@@ -18,6 +18,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
     radii: { ...currentTheme.radii },
     spacing: { ...currentTheme.spacing },
     typography: { ...currentTheme.typography },
+    codeTypography: { ...currentTheme.codeTypography },
     editor: { ...currentTheme.editor },
     sectionScoping: currentTheme.sectionScoping,
     tableOverflow: currentTheme.tableOverflow,
@@ -615,9 +616,9 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
               />
             </div>
 
-            {/* Typography Section */}
+            {/* Markdown Typography Section */}
             <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Typography</h3>
+              <h3 class="text-xs font-bold text-accent uppercase mb-2">Markdown Typography</h3>
               <InputField
                 label="Font Family"
                 value={currentTheme.font}
@@ -637,6 +638,44 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, headerDelta: v } })}
                 placeholder="0.225rem"
                 step={0.0125}
+              />
+            </div>
+
+            {/* Code Typography Section */}
+            <div class="space-y-2">
+              <h3 class="text-xs font-bold text-accent uppercase mb-2">Code Typography</h3>
+              <InputField
+                label="Font Family"
+                value={currentTheme.codeTypography.fontFamily}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontFamily: v } })}
+                placeholder='"JetBrains Mono Variable", monospace'
+              />
+              <NumberUnitInput
+                label="Base Font Size"
+                value={currentTheme.codeTypography.baseFontSize}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, baseFontSize: v } })}
+                placeholder="0.875rem"
+                step={0.0625}
+              />
+              <NumberUnitInput
+                label="Inline Font Size"
+                value={currentTheme.codeTypography.inlineFontSize}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, inlineFontSize: v } })}
+                placeholder="0.875rem"
+                step={0.0625}
+              />
+              <NumberUnitInput
+                label="Editor Font Size"
+                value={currentTheme.codeTypography.editorFontSize}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, editorFontSize: v } })}
+                placeholder="1rem"
+                step={0.0625}
+              />
+              <InputField
+                label="Font Weight"
+                value={currentTheme.codeTypography.fontWeight}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontWeight: v } })}
+                placeholder="400"
               />
             </div>
 

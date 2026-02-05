@@ -233,8 +233,9 @@ body {
 }
 
 .milkdown .editor code {
-    font-family: var(--font-mono);
-    font-size: 0.875em;
+    font-family: var(--code-font-family);
+    font-size: var(--code-inline-font-size);
+    font-weight: var(--code-font-weight);
     background-color: color-mix(in srgb, var(--foreground) 20%, transparent);
     padding: 0.2em 0.4em;
     border-radius: var(--radius-sm);
@@ -247,13 +248,13 @@ body {
 
 /* Fix Tailwind resets for Prose (Presentation Mode) - Removed duplicates, now shared above */
 .prose code {
-    font-family: var(--font-mono) !important;
-    font-size: 0.875em !important;
+    font-family: var(--code-font-family) !important;
+    font-size: var(--code-inline-font-size) !important;
+    font-weight: var(--code-font-weight) !important;
     background-color: color-mix(in srgb, var(--accent) 8%, transparent);
     padding: 0.2em 0.5em;
     border-radius: var(--radius-sm);
     color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
-    font-weight: normal !important;
 }
 
 /* Code blocks (pre > code) - distinct block styling */
@@ -272,10 +273,10 @@ body {
     background-color: transparent !important;
     padding: 0 !important;
     border-radius: 0 !important;
-    font-family: var(--font-mono) !important;
-    font-size: 0.875em !important;
+    font-family: var(--code-font-family) !important;
+    font-size: var(--code-base-font-size) !important;
+    font-weight: var(--code-font-weight) !important;
     color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
-    font-weight: normal !important;
 }
 
 /* highlight.js theme - Duotone Dark matching CodeMirror */
