@@ -30,6 +30,13 @@ export interface Theme {
     headerColors?: string[];
     headerMarginBottom: string;
   };
+  codeTypography: {
+    fontFamily: string;
+    fontWeight: string;
+    baseFontSize: string;
+    inlineFontSize: string;
+    editorFontSize: string;
+  };
   editor: {
     maxCodeHeight: string;
   };
@@ -69,6 +76,13 @@ export const defaultTheme: Theme = {
     headerColors: ["#f38ba8", "#fab387", "#f9e2af", "#a6e3a1"],
     headerMarginBottom: "1.75rem",
   },
+  codeTypography: {
+    fontFamily: '"JetBrains Mono Variable", monospace',
+    fontWeight: "400",
+    baseFontSize: "0.875rem",
+    inlineFontSize: "0.875rem",
+    editorFontSize: "1rem",
+  },
   editor: {
     maxCodeHeight: "none",
   },
@@ -106,6 +120,7 @@ export const updateTheme = (newTheme: any) => {
   if (newTheme.radii) setTheme("radii", (r) => ({ ...r, ...newTheme.radii }));
   if (newTheme.spacing) setTheme("spacing", (s) => ({ ...s, ...newTheme.spacing }));
   if (newTheme.typography) setTheme("typography", (t) => ({ ...t, ...newTheme.typography }));
+  if (newTheme.codeTypography) setTheme("codeTypography", (ct) => ({ ...ct, ...newTheme.codeTypography }));
   if (newTheme.editor) setTheme("editor", (e) => ({ ...e, ...newTheme.editor }));
   if (newTheme.sectionScoping !== undefined) setTheme("sectionScoping", newTheme.sectionScoping);
   if (newTheme.tableOverflow) setTheme("tableOverflow", newTheme.tableOverflow);
@@ -155,6 +170,12 @@ export const initTheme = () => {
     root.style.setProperty("--font-size-base", theme.typography.fontSize);
     root.style.setProperty("--font-size-delta", theme.typography.headerDelta);
     root.style.setProperty("--header-margin-bottom", theme.typography.headerMarginBottom);
+
+    root.style.setProperty("--code-font-family", theme.codeTypography.fontFamily);
+    root.style.setProperty("--code-font-weight", theme.codeTypography.fontWeight);
+    root.style.setProperty("--code-base-font-size", theme.codeTypography.baseFontSize);
+    root.style.setProperty("--code-inline-font-size", theme.codeTypography.inlineFontSize);
+    root.style.setProperty("--code-editor-font-size", theme.codeTypography.editorFontSize);
 
     root.style.setProperty("--editor-max-code-height", theme.editor.maxCodeHeight);
 

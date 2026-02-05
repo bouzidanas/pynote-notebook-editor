@@ -34,7 +34,7 @@ export const tooltipTheme = EditorView.theme({
     },
     ".cm-diagnostic": {
         padding: "0",
-        fontFamily: "var(--font-mono)"
+        fontFamily: "var(--code-font-family)"
     },
     ".cm-diagnostic-error": {
         paddingLeft: "0",
@@ -49,11 +49,11 @@ export const tooltipTheme = EditorView.theme({
         border: "1px solid var(--color-foreground)",
         borderRadius: "8px",
         boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.15)",
-        fontFamily: "var(--font-mono)",
+        fontFamily: "var(--code-font-family)",
         zIndex: "9999"
     },
     ".cm-tooltip-autocomplete > ul": {
-        fontFamily: "var(--font-mono) !important",
+        fontFamily: "var(--code-font-family) !important",
         fontSize: "0.90rem !important",
         padding: "0.3rem 0 !important",
     },
@@ -65,7 +65,7 @@ export const tooltipTheme = EditorView.theme({
     },
     // Style completion section labels (function, property, variable)
     ".cm-tooltip.cm-tooltip-autocomplete > ul > completion-section": {
-        fontFamily: "var(--font-mono)",
+        fontFamily: "var(--code-font-family)",
         textTransform: "uppercase",
         fontSize: "0.77rem",
         color: "color-mix(in srgb, var(--color-secondary) 70%, transparent)",
@@ -155,7 +155,7 @@ const pythonCompletionSource: CompletionSource = async (context) => {
 
     // Don't show completions if no match found
     if (!word) return null;
-    
+
     // Show completions if:
     // 1. Explicitly requested (Ctrl+Space) 
     // 2. Text was typed (word.from !== word.to)
@@ -196,7 +196,7 @@ const pythonCompletionSource: CompletionSource = async (context) => {
     }
 };
 
-export const pythonIntellisense = autocompletion({ 
+export const pythonIntellisense = autocompletion({
     override: [pythonCompletionSource],
     activateOnTyping: true,
     closeOnBlur: true,
