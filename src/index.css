@@ -44,12 +44,6 @@ body {
 }
 
 /* Scrollbar styling */
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) transparent;
-}
-
 /* Chrome, Edge, Safari */
 ::-webkit-scrollbar {
   width: 5px;
@@ -59,16 +53,19 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--primary);
+  background: var(--foreground);
   border-radius: var(--radius-lg);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
-::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+
+/* Firefox only - apply standard scrollbar properties */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+  }
 }
 
 /* Utilities */

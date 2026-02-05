@@ -631,7 +631,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
       ...historyKeymap,
       ...searchKeymap
     ]),
-    EditorView.lineWrapping
   ];
   createExtension(extensionsConfig);
   
@@ -641,6 +640,11 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Reactive line numbers (toggleable via settings)
   createExtension(createMemo(() => {
     return codeVisibility.showLineNumbers ? lineNumbers() : [];
+  }));
+  
+  // Reactive line wrapping (toggleable via settings)
+  createExtension(createMemo(() => {
+    return codeVisibility.lineWrap ? EditorView.lineWrapping : [];
   }));
   
   // Reactive Linter

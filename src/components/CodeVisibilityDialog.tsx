@@ -1,5 +1,5 @@
 import { type Component, createSignal, createEffect, Show } from "solid-js";
-import { X, Code, EyeOff, TriangleAlert, Terminal, FileOutput, AlertCircle, CircleDot, ArrowUp, ArrowDown, Hash } from "lucide-solid";
+import { X, Code, EyeOff, TriangleAlert, Terminal, FileOutput, AlertCircle, CircleDot, ArrowUp, ArrowDown, Hash, WrapText } from "lucide-solid";
 import clsx from "clsx";
 import { 
   codeVisibility, 
@@ -25,6 +25,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     showStatusDot: codeVisibility.showStatusDot,
     saveToExport: codeVisibility.saveToExport,
     showLineNumbers: codeVisibility.showLineNumbers,
+    lineWrap: codeVisibility.lineWrap,
   });
 
   // Local state for output layout (above/below)
@@ -41,6 +42,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       showStatusDot: codeVisibility.showStatusDot,
       saveToExport: codeVisibility.saveToExport,
       showLineNumbers: codeVisibility.showLineNumbers,
+      lineWrap: codeVisibility.lineWrap,
     });
     setLocalOutputLayout(currentTheme.outputLayout);
   });
@@ -60,6 +62,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     updateVisibility("showStatusDot", settings.showStatusDot);
     updateVisibility("saveToExport", settings.saveToExport);
     updateVisibility("showLineNumbers", settings.showLineNumbers);
+    updateVisibility("lineWrap", settings.lineWrap);
     // Persist visibility to localStorage
     saveVisibilitySettings();
     // Update theme output layout
@@ -82,7 +85,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     icon: Component<{ size?: number }>;
     iconColor: string;
     hasPositionToggle?: boolean;
-    hasLineNumbersToggle?: boolean;
+    hasEditorToggles?: boolean;
   }> = (itemProps) => (
     <div 
       class="flex items-center gap-2 py-1.5 px-2 rounded-sm hover:bg-foreground/50 transition-colors group cursor-pointer"
@@ -123,7 +126,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       </Show>
       
       {/* Line numbers toggle for code editor */}
-      <Show when={itemProps.hasLineNumbersToggle && localSettings()[itemProps.itemKey]}>
+      <Show when={itemProps.hasEditorToggles && localSettings()[itemProps.itemKey]}>
         <button
           type="button"
           class="flex items-center gap-1 px-1.5 py-0.5 text-xs text-secondary/60 hover:text-secondary hover:bg-foreground rounded transition-colors"
@@ -135,6 +138,18 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
         >
           <Hash size={12} />
           <Show when={localSettings().showLineNumbers} fallback="off">on</Show>
+        </button>
+        <button
+          type="button"
+          class="flex items-center gap-1 px-1.5 py-0.5 text-xs text-secondary/60 hover:text-secondary hover:bg-foreground rounded transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggle("lineWrap");
+          }}
+          title={localSettings().lineWrap ? "Disable line wrap" : "Enable line wrap"}
+        >
+          <WrapText size={12} />
+          <Show when={localSettings().lineWrap} fallback="off">on</Show>
         </button>
       </Show>
     </div>
@@ -166,7 +181,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
           <div class="flex-1 p-4 overflow-y-auto border-b sm:border-b-0 sm:border-r border-foreground">
             <h3 class="text-xs font-bold text-accent uppercase mb-2">Show / Hide Elements</h3>
             <div class="space-y-0.5">
-              <CheckboxRow itemKey="showCode" label="Code Editor" icon={Code} iconColor="text-accent" hasLineNumbersToggle={true} />
+              <CheckboxRow itemKey="showCode" label="Code Editor" icon={Code} iconColor="text-accent" hasEditorToggles={true} />
               <CheckboxRow itemKey="showStatusDot" label="Status Indicator" icon={CircleDot} iconColor="text-green-500" />
               <CheckboxRow itemKey="showStdout" label="Standard Output" icon={Terminal} iconColor="text-secondary" hasPositionToggle={true} />
               <CheckboxRow itemKey="showResult" label="Return Value" icon={FileOutput} iconColor="text-secondary/70" />
