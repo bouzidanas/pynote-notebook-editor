@@ -3,10 +3,10 @@ import { createCodeMirror } from "solid-codemirror";
 import { python } from "@codemirror/lang-python";
 import { duotoneDarkInit } from "@uiw/codemirror-theme-duotone";
 import { EditorView, keymap, placeholder, lineNumbers, drawSelection, Decoration } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo, toggleComment } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo, toggleComment, deleteLine, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
 import { EditorState, StateField, Range, RangeSet, EditorSelection } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
-import { bracketMatching } from "@codemirror/language";
+import { bracketMatching, matchBrackets } from "@codemirror/language";
 import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
 import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
 import { currentTheme } from "../lib/theme";
@@ -185,6 +185,30 @@ function smartSelectionMatches() {
     },
     provide: f => EditorView.decorations.from(f)
   });
+}
+
+// Jump to matching bracket - moves cursor to the paired bracket
+function jumpToMatchingBracket(view: EditorView): boolean {
+  const { state } = view;
+  const pos = state.selection.main.head;
+  
+  // Try to match bracket at cursor position
+  const match = matchBrackets(state, pos, -1) || matchBrackets(state, pos, 1);
+  
+  if (match && match.matched && match.end) {
+    // Move cursor to the matching bracket position
+    // If we're at the opening bracket, go to closing bracket's position + 1
+    // If we're at the closing bracket, go to opening bracket's position
+    const targetPos = match.end.from;
+    
+    view.dispatch({
+      selection: EditorSelection.cursor(targetPos),
+      scrollIntoView: true
+    });
+    return true;
+  }
+  
+  return false;
 }
 
 interface EditorProps {
@@ -626,6 +650,14 @@ const CodeEditor: Component<EditorProps> = (props) => {
       { key: "Mod-Enter", run: () => false },
       { key: "Mod-/", run: toggleComment },
       { key: "Mod-Shift-d", run: selectPreviousOccurrence, preventDefault: true },
+      // Line manipulation - use Ctrl+Shift+Arrow to avoid Linux WM interception of Alt+Arrow
+      { key: "Ctrl-Shift-ArrowUp", run: moveLineUp, preventDefault: true },
+      { key: "Ctrl-Shift-ArrowDown", run: moveLineDown, preventDefault: true },
+      { key: "Shift-Alt-ArrowUp", run: copyLineUp, preventDefault: true },
+      { key: "Shift-Alt-ArrowDown", run: copyLineDown, preventDefault: true },
+      { key: "Mod-Shift-k", run: deleteLine, preventDefault: true },
+      // Bracket navigation
+      { key: "Mod-m", run: jumpToMatchingBracket, preventDefault: true },
       indentWithTab,
       ...defaultKeymap,
       ...historyKeymap,
