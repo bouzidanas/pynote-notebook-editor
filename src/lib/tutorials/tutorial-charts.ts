@@ -30,7 +30,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-charts-intro",
         type: "markdown",
-        content: "# Charts & Plotting\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | Flexible, declarative plots with channels, transforms, scales | ~55KB |\n| `TimeSeries` | uPlot | High-performance time series (100K+ points) | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, percentage charts | ~16KB |\n\nObservable Plot is particularly powerful with support for **15+ mark types**, data **channels** (position, color, size), **transforms** (sort, bin, stack), and smooth **curve interpolation**."
+        content: "# Charts & Plotting\n\nPyNote includes three lightweight charting libraries that integrate with `pynote_ui`. Charts are **lazy-loaded** — they only download when you first use them, keeping the app fast.\n\n<br/>\n\n| Component | Library | Best For | Size |\n|-----------|---------|----------|------|\n| `Plot` | Observable Plot | Flexible, declarative plots with channels, transforms, scales | ~55KB |\n| `TimeSeries` | uPlot | High-performance time series (100K+ points) | ~15KB |\n| `Chart` | Frappe Charts | Pie, donut, percentage charts | ~16KB |\n\n<br/>\n\nObservable Plot is particularly powerful with support for **15+ mark types**, data **channels** (position, color, size), **transforms** (sort, bin, stack), and smooth **curve interpolation**."
     },
 
     // --- Section: Basic Plotting ---
