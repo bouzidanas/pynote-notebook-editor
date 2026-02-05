@@ -165,12 +165,12 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         )}>
            {/* Line numbers gutter could go here */}
            <div class={clsx(
-             "w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono",
+             "w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono shrink-0",
              props.cell.outputs?.executionKernelId === kernel.id ? "text-secondary/50 font-bold" : "text-foreground"
            )}>
               [{props.index + 1}]:
            </div>
-           <div class="flex-1 bg-accent/2 relative">
+           <div class="flex-1 min-w-0 bg-accent/2 relative">
              <CodeEditor
                value={props.cell.content}
                onChange={(val) => actions.updateCell(props.cell.id, val)}
