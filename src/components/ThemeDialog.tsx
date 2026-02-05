@@ -22,6 +22,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
     sectionScoping: currentTheme.sectionScoping,
     tableOverflow: currentTheme.tableOverflow,
     outputLayout: currentTheme.outputLayout,
+    pageWidth: currentTheme.pageWidth,
     saveToExport: currentTheme.saveToExport,
   };
 
@@ -637,13 +638,6 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 placeholder="0.225rem"
                 step={0.0125}
               />
-              <NumberUnitInput
-                label="Header Margin Bottom"
-                value={currentTheme.typography.headerMarginBottom}
-                onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, headerMarginBottom: v } })}
-                placeholder="1.5rem"
-                step={0.125}
-              />
             </div>
 
             {/* Spacing Section */}
@@ -670,6 +664,13 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 placeholder="1.25rem"
                 step={0.125}
               />
+              <NumberUnitInput
+                label="Header Margin"
+                value={currentTheme.typography.headerMarginBottom}
+                onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, headerMarginBottom: v } })}
+                placeholder="1.5rem"
+                step={0.125}
+              />
             </div>
 
             {/* Border Radius Section */}
@@ -693,14 +694,21 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
               />
             </div>
 
-            {/* Behavior Section */}
+            {/* Layout Section */}
             <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Behavior</h3>
-              <ToggleField
-                label="Section Scoping"
-                value={currentTheme.sectionScoping}
-                onChange={() => updateTheme({ sectionScoping: !currentTheme.sectionScoping })}
-              />
+              <h3 class="text-xs font-bold text-accent uppercase mb-2">Layout</h3>
+              <div class="space-y-1">
+                <label class="text-xs font-semibold text-secondary/80">Page Width</label>
+                <select
+                  value={currentTheme.pageWidth}
+                  onChange={(e) => updateTheme({ pageWidth: e.currentTarget.value as "normal" | "wide" | "full" })}
+                  class="w-full h-9 px-2 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors"
+                >
+                  <option value="normal">Normal (52rem)</option>
+                  <option value="wide">Wide (64rem)</option>
+                  <option value="full">Full Page</option>
+                </select>
+              </div>
               <div class="space-y-1">
                 <label class="text-xs font-semibold text-secondary/80">Table Overflow</label>
                 <select
@@ -712,6 +720,16 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                   <option value="wrap">Force 100% Width (Wrap)</option>
                 </select>
               </div>
+            </div>
+
+            {/* Markdown Section */}
+            <div class="space-y-2">
+              <h3 class="text-xs font-bold text-accent uppercase mb-2">Markdown</h3>
+              <ToggleField
+                label="Section Scoping"
+                value={currentTheme.sectionScoping}
+                onChange={() => updateTheme({ sectionScoping: !currentTheme.sectionScoping })}
+              />
             </div>
           </div>
 
