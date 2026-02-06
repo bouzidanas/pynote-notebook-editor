@@ -166,14 +166,14 @@ const Group: Component<GroupProps> = (p) => {
     </div>
   );
 
-  // Determine if we need the fieldset wrapper (label or border)
+  // Determine if we need the wrapper (label or border)
   const needsWrapper = () => {
     const borderValue = p.props.border;
     return p.props.label || borderValue === true || (typeof borderValue === 'string' && borderValue !== "none");
   };
   
-  // Apply custom border to fieldset
-  const fieldsetBorderClass = () => {
+  // Apply custom border to container
+  const containerBorderClass = () => {
     const borderValue = p.props.border;
     if (borderValue === true) {
       return 'border-2 border-foreground bg-base-200/20';
@@ -183,7 +183,7 @@ const Group: Component<GroupProps> = (p) => {
     return '';
   };
   
-  const fieldsetBorderStyle = () => {
+  const containerBorderStyle = () => {
     const borderValue = p.props.border;
     if (typeof borderValue === 'string' && borderValue !== "none") {
       return { border: borderValue };
@@ -193,20 +193,31 @@ const Group: Component<GroupProps> = (p) => {
     return {};
   };
 
+  // Label background should match container background for proper border-cutting effect
+  const labelBgClass = () => {
+    const borderValue = p.props.border;
+    // If we have a border (which adds bg-base-200/20), match it
+    if (borderValue === true || (typeof borderValue === 'string' && borderValue !== "none")) {
+      return 'bg-base-200/20';
+    }
+    // Fallback to page background
+    return 'bg-base-100';
+  };
+
   return (
     <div style={componentStyles()}>
       <Show when={needsWrapper()} fallback={content}>
-        <fieldset 
-          class={`rounded-sm w-full ${fieldsetBorderClass()}`}
-          style={{ padding: computePadding(), ...fieldsetBorderStyle() }}
+        <div 
+          class={`relative rounded-sm w-full ${containerBorderClass()}`}
+          style={{ padding: computePadding(), ...containerBorderStyle() }}
         >
           <Show when={p.props.label}>
-            <legend class="px-2 text-xs font-bold uppercase tracking-wider text-secondary/70">
+            <span class={`absolute left-3 -top-2 px-2 text-xs font-bold uppercase tracking-wider text-secondary/70 ${labelBgClass()}`}>
               {p.props.label}
-            </legend>
+            </span>
           </Show>
           {content}
-        </fieldset>
+        </div>
       </Show>
     </div>
   );
