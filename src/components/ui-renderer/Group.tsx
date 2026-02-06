@@ -12,7 +12,7 @@ interface GroupProps {
     align?: "start" | "left" | "center" | "end" | "right" | "stretch";
     grow?: number | null;
     shrink?: number | null;
-    border?: boolean;
+    border?: boolean | string;
     padding?: string | number;
     gap?: string | number;
     overflow?: "visible" | "hidden" | "scroll" | "auto" | "scroll-x" | "scroll-y";
@@ -57,7 +57,8 @@ const Group: Component<GroupProps> = (p) => {
     }
     // Default behavior based on label and border
     const hasLabel = !!p.props.label;
-    const hasBorder = !!p.props.border;
+    const borderValue = p.props.border;
+    const hasBorder = borderValue === true || (typeof borderValue === 'string' && borderValue !== "none");
     const defaultPad = "0.75rem"; // matches p-3
     
     if (hasBorder) {
@@ -166,14 +167,38 @@ const Group: Component<GroupProps> = (p) => {
   );
 
   // Determine if we need the fieldset wrapper (label or border)
-  const needsWrapper = () => p.props.label || p.props.border;
+  const needsWrapper = () => {
+    const borderValue = p.props.border;
+    return p.props.label || borderValue === true || (typeof borderValue === 'string' && borderValue !== "none");
+  };
+  
+  // Apply custom border to fieldset
+  const fieldsetBorderClass = () => {
+    const borderValue = p.props.border;
+    if (borderValue === true) {
+      return 'border-2 border-foreground bg-base-200/20';
+    } else if (typeof borderValue === 'string' && borderValue !== "none") {
+      return 'bg-base-200/20';
+    }
+    return '';
+  };
+  
+  const fieldsetBorderStyle = () => {
+    const borderValue = p.props.border;
+    if (typeof borderValue === 'string' && borderValue !== "none") {
+      return { border: borderValue };
+    } else if (borderValue === "none") {
+      return { border: "none" };
+    }
+    return {};
+  };
 
   return (
     <div style={componentStyles()}>
       <Show when={needsWrapper()} fallback={content}>
         <fieldset 
-          class={`rounded-sm w-full ${p.props.border ? 'border-2 border-foreground bg-base-200/20' : ''}`}
-          style={{ padding: computePadding() }}
+          class={`rounded-sm w-full ${fieldsetBorderClass()}`}
+          style={{ padding: computePadding(), ...fieldsetBorderStyle() }}
         >
           <Show when={p.props.label}>
             <legend class="px-2 text-xs font-bold uppercase tracking-wider text-secondary/70">

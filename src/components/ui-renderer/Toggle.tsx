@@ -14,6 +14,7 @@ interface ToggleProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
   };
 }
 
@@ -38,6 +39,7 @@ const Toggle: Component<ToggleProps> = (p) => {
   // Get the color for checked state
   const getCheckedColor = () => {
     const color = p.props.color;
+    if (color === "neutral") return "var(--foreground)";
     if (color) return `var(--${color})`;
     return "var(--primary)";
   };
@@ -104,11 +106,23 @@ const Toggle: Component<ToggleProps> = (p) => {
 
   // Calculate thumb position (2px gap from edge)
   const thumbOffset = () => checked() ? sizeConfig().trackWidth - sizeConfig().thumbSize - 2 : 2;
+  
+  // Apply custom border
+  const borderStyles = () => {
+    const borderValue = p.props.border;
+    if (borderValue === false || borderValue === "none") {
+      return { border: "none" };
+    } else if (borderValue && typeof borderValue === 'string') {
+      return { border: borderValue };
+    }
+    // true or null/undefined: Default border (from classes)
+    return {};
+  };
 
   return (
     <label 
       class={`flex items-center gap-2 cursor-pointer font-mono text-secondary bg-base-200/50 border-2 border-foreground rounded-sm ${sizeConfig().textSize}`}
-      style={{ ...componentStyles(), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
     >
       <input
         type="checkbox"

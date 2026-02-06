@@ -2,15 +2,16 @@ from .core import UIElement
 
 class Slider(UIElement):
     def __init__(self, value=0, min=0, max=100, step=1, label="Slider", size=None,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, color=None):
         self._value = value
+        self._size = size
         self.min = min
         self.max = max
         self.step = step
         self.label = label
         super().__init__(
             value=value, min=min, max=max, step=step, label=label, size=size,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, color=color
         )
 
     @property
@@ -21,6 +22,15 @@ class Slider(UIElement):
     def value(self, new_value):
         self._value = new_value
         self.send_update(value=new_value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
 
     def handle_interaction(self, data):
         if "value" in data:
@@ -34,12 +44,13 @@ class Slider(UIElement):
         super().handle_interaction(data)
 
 class Text(UIElement):
-    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top"):
+    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, color=None):
         self._content = content
+        self._size = size
         super().__init__(
             content=content, size=size,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
-            align_h=align_h, align_v=align_v
+            align_h=align_h, align_v=align_v, border=border, color=color
         )
 
     @property
@@ -50,6 +61,15 @@ class Text(UIElement):
     def content(self, value):
         self._content = value
         self.send_update(content=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
 
 class Group(UIElement):
     def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False):
@@ -162,13 +182,14 @@ class Group(UIElement):
 
 class Button(UIElement):
     def __init__(self, label="Button", color=None, style=None, size=None, disabled=False, loading=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._label = label
         self._disabled = disabled
         self._loading = loading
+        self._size = size
         super().__init__(
             label=label, color=color, style=style, size=size, disabled=disabled, loading=loading,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 
     @property
@@ -198,6 +219,15 @@ class Button(UIElement):
         self._loading = value
         self.send_update(loading=value)
 
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
+
     def handle_interaction(self, data):
         if data.get("clicked"):
             # Clicked state is passed to callback
@@ -207,15 +237,16 @@ class Button(UIElement):
 
 class Select(UIElement):
     def __init__(self, options=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         if options is None:
             options = []
         self._value = value
         self._options = options
         self._disabled = disabled
+        self._size = size
         super().__init__(
             options=options, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 
     @property
@@ -245,6 +276,15 @@ class Select(UIElement):
         self._disabled = value
         self.send_update(disabled=value)
 
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
+
     def handle_interaction(self, data):
         if "value" in data:
             self._value = data["value"]
@@ -254,12 +294,13 @@ class Select(UIElement):
 
 class Input(UIElement):
     def __init__(self, value="", placeholder="", input_type="text", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._value = value
         self._disabled = disabled
+        self._size = size
         super().__init__(
             value=value, placeholder=placeholder, input_type=input_type, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 
     @property
@@ -279,6 +320,15 @@ class Input(UIElement):
     def disabled(self, value):
         self._disabled = value
         self.send_update(disabled=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
 
     def handle_interaction(self, data):
         if "value" in data:
@@ -289,12 +339,13 @@ class Input(UIElement):
 
 class Textarea(UIElement):
     def __init__(self, value="", placeholder="", rows=4, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._value = value
         self._disabled = disabled
+        self._size = size
         super().__init__(
             value=value, placeholder=placeholder, rows=rows, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 
     @property
@@ -315,6 +366,15 @@ class Textarea(UIElement):
         self._disabled = value
         self.send_update(disabled=value)
 
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
+
     def handle_interaction(self, data):
         if "value" in data:
             self._value = data["value"]
@@ -324,12 +384,13 @@ class Textarea(UIElement):
 
 class Toggle(UIElement):
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._checked = checked
         self._disabled = disabled
+        self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 
     @property
@@ -349,6 +410,15 @@ class Toggle(UIElement):
     def disabled(self, value):
         self._disabled = value
         self.send_update(disabled=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
 
     def handle_interaction(self, data):
         if "checked" in data:
@@ -359,12 +429,13 @@ class Toggle(UIElement):
 
 class Checkbox(UIElement):
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._checked = checked
         self._disabled = disabled
+        self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 
     @property
@@ -384,6 +455,15 @@ class Checkbox(UIElement):
     def disabled(self, value):
         self._disabled = value
         self.send_update(disabled=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
 
     def handle_interaction(self, data):
         if "checked" in data:

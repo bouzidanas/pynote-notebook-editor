@@ -15,6 +15,7 @@ interface InputProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
   };
 }
 
@@ -96,29 +97,65 @@ const Input: Component<InputProps> = (p) => {
     return styles;
   };
 
-  // Build input classes based on DaisyUI API
+  // Unique class for scoped styles
+  const inputClass = `input-${componentId}`;
+  
+  // Build input classes
   const inputClasses = () => {
-    const classes = ["input", "font-mono", "border-2", "border-foreground", "rounded-sm", "bg-base-100/30", "focus-visible:outline-none", "focus-visible:border-primary", sizeConfig().textSize];
-    
+    return [
+      inputClass,
+      "input",
+      "font-mono",
+      "border-2",
+      "border-foreground",
+      "rounded-sm",
+      "bg-base-100/30",
+      "focus-visible:outline-none",
+      "focus-visible:border-primary",
+      sizeConfig().textSize
+    ].join(" ");
+  };
+  
+  // Generate color styles for focus state
+  const generateColorStyles = () => {
     const color = p.props.color;
-    if (color) {
-      classes.push(`input-${color}`);
-    }
+    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
     
-    return classes.join(" ");
+    return `
+      .${inputClass}:focus-visible {
+        border-color: ${colorVar} !important;
+      }
+    `;
+  };
+  
+  // Apply custom border
+  const borderStyles = () => {
+    const borderValue = p.props.border;
+    if (borderValue === false || borderValue === "none") {
+      return { border: "none" };
+    } else if (borderValue && typeof borderValue === 'string') {
+      return { border: borderValue };
+    }
+    // true or null/undefined: Default border (from classes)
+    return {};
   };
 
   return (
-    <input
+    <>
+      <style>
+        {generateColorStyles()}
+      </style>
+      <input
       type={p.props.input_type ?? "text"}
       class={inputClasses()}
-      style={{ ...componentStyles(), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
       value={value()}
       placeholder={p.props.placeholder ?? ""}
       onInput={handleInput}
       onKeyDown={(e) => e.stopPropagation()}
       disabled={disabled()}
     />
+    </>
   );
 };
 

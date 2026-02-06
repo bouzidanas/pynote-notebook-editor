@@ -14,6 +14,7 @@ interface CheckboxProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
   };
 }
 
@@ -95,22 +96,47 @@ const Checkbox: Component<CheckboxProps> = (p) => {
     return styles;
   };
 
-  // Build checkbox classes based on DaisyUI API
+  // Unique class for scoped styles
+  const checkboxClass = `checkbox-${componentId}`;
+  
+  // Build checkbox classes
   const checkboxClasses = () => {
-    const classes = ["checkbox", "border-2", "border-foreground"];
-    
+    return [checkboxClass, "checkbox", "border-2", "border-foreground"].join(" ");
+  };
+  
+  // Generate color styles for checked state
+  const generateColorStyles = () => {
     const color = p.props.color;
-    if (color) {
-      classes.push(`checkbox-${color}`);
-    }
+    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
     
-    return classes.join(" ");
+    return `
+      .${checkboxClass}:checked {
+        background-color: ${colorVar};
+        border-color: ${colorVar};
+      }
+    `;
+  };
+  
+  // Apply custom border
+  const borderStyles = () => {
+    const borderValue = p.props.border;
+    if (borderValue === false || borderValue === "none") {
+      return { border: "none" };
+    } else if (borderValue && typeof borderValue === 'string') {
+      return { border: borderValue };
+    }
+    // true or null/undefined: Default border (from classes)
+    return {};
   };
 
   return (
-    <label 
+    <>
+      <style>
+        {generateColorStyles()}
+      </style>
+      <label 
       class={`flex items-center gap-2 cursor-pointer font-mono text-secondary bg-base-200/50 border-2 border-foreground rounded-sm ${sizeConfig().textSize}`}
-      style={{ ...componentStyles(), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
     >
       <input
         type="checkbox"
@@ -124,6 +150,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
         <span class="select-none">{p.props.label}</span>
       </Show>
     </label>
+    </>
   );
 };
 

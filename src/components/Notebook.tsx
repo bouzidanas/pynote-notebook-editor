@@ -1915,9 +1915,9 @@ const Notebook: Component = () => {
   
            <div class="flex items-center gap-2 max-xs:flex-1 max-xs:justify-center">
              <div class={`text-xs font-mono py-1 rounded-sm flex items-center gap-2 ${
-                 kernel.status === "ready" ? "text-green-500" :
-                 (kernel.status === "loading" || kernel.status === "running") ? "text-yellow-500" :
-                 "text-red-600"
+                 kernel.status === "ready" ? "text-success" :
+                 (kernel.status === "loading" || kernel.status === "running") ? "text-warning" :
+                 "text-error"
              }`}>
                <div class={`w-2 h-2 rounded-full bg-current max-xs:-mr-1.5 ${ 
                    kernel.status === "running" || kernel.status === "loading" ? "animate-pulse" : "" 

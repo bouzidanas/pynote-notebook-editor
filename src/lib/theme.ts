@@ -9,6 +9,10 @@ export interface Theme {
     accent: string;
     background: string;
     foreground: string;
+    success: string;
+    error: string;
+    warning: string;
+    info: string;
   };
   syntax: {
     function: string;
@@ -55,6 +59,10 @@ export const defaultTheme: Theme = {
     accent: "#89b4fa",
     background: "#1e1e2e",
     foreground: "rgba(205, 214, 244, 0.2)",
+    success: "#a6e3a1",
+    error: "#f38ba8",
+    warning: "#f9e2af",
+    info: "#89dceb",
   },
   syntax: {
     function: "#a6e3a1",
@@ -155,6 +163,10 @@ export const initTheme = () => {
     root.style.setProperty("--accent", theme.colors.accent);
     root.style.setProperty("--background", theme.colors.background);
     root.style.setProperty("--foreground", theme.colors.foreground);
+    root.style.setProperty("--success", theme.colors.success);
+    root.style.setProperty("--error", theme.colors.error);
+    root.style.setProperty("--warning", theme.colors.warning);
+    root.style.setProperty("--info", theme.colors.info);
 
     // Also set DaisyUI's color variables to use our theme
     root.style.setProperty("--color-primary", theme.colors.primary);
@@ -162,6 +174,10 @@ export const initTheme = () => {
     root.style.setProperty("--color-accent", theme.colors.accent);
     root.style.setProperty("--color-base-100", theme.colors.background);
     root.style.setProperty("--color-base-content", theme.colors.secondary);
+    root.style.setProperty("--color-success", theme.colors.success);
+    root.style.setProperty("--color-error", theme.colors.error);
+    root.style.setProperty("--color-warning", theme.colors.warning);
+    root.style.setProperty("--color-info", theme.colors.info);
 
     root.style.setProperty("--syntax-function", theme.syntax.function);
     root.style.setProperty("--syntax-property", theme.syntax.property);

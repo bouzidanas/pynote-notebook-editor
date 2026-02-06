@@ -25,6 +25,8 @@ interface SliderProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
+    color?: string | null;
   };
 }
 
@@ -72,6 +74,13 @@ const Slider: Component<SliderProps> = (p) => {
   
   const sliderClass = `slider-${componentId}`;
   
+  // Get color variable for thumb, track fill, and value text
+  const getColorVar = () => {
+    const color = p.props.color;
+    if (color === "neutral") return "var(--foreground)";
+    return color ? `var(--${color})` : "var(--primary)";
+  };
+  
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
@@ -117,11 +126,40 @@ const Slider: Component<SliderProps> = (p) => {
     return styles;
   };
   
+  // Determine border styling
+  const borderValue = () => p.props.border;
+  const outerBorderClass = () => {
+    const border = borderValue();
+    return (border === false || border === "none") ? "" : "border-2 border-foreground";
+  };
+  const outerBorderStyle = () => {
+    const border = borderValue();
+    if (border === false || border === "none") {
+      return { border: "none" };
+    } else if (border && typeof border === 'string') {
+      return { border };
+    }
+    return {};
+  };
+  
+  // Header divider border class and padding
+  const headerBorderClass = () => {
+    const border = borderValue();
+    return border === false ? "" : "border-b-2 border-foreground";
+  };
+  const headerBottomPadding = () => {
+    const border = borderValue();
+    if (border === false) {
+      return "0px"; // false: Remove bottom padding
+    }
+    return `${Math.max(4, (sizeConfig().padding - 1) * 4)}px`; // Default bottom padding
+  };
+  
   return (
     <div 
         ref={containerRef}
-        class="flex flex-col border-2 border-foreground rounded-sm bg-base-100/30 overflow-hidden"
-        style={{ ...usePyNoteThemeStyles(() => containerRef), ...componentStyles() }}
+        class={`flex flex-col ${outerBorderClass()} rounded-sm bg-base-100/30 overflow-hidden`}
+        style={{ ...usePyNoteThemeStyles(() => containerRef), ...componentStyles(), ...outerBorderStyle() }}
     >
       <style>
         {`
@@ -137,7 +175,7 @@ const Slider: Component<SliderProps> = (p) => {
             appearance: none;
             height: ${sizeConfig().thumbSize}px;
             width: ${sizeConfig().thumbSize}px;
-            background: var(--primary) !important;
+            background: ${getColorVar()} !important;
             border-radius: 50%;
             border: none !important;
             box-shadow: none !important;
@@ -154,13 +192,13 @@ const Slider: Component<SliderProps> = (p) => {
           }
           .${sliderClass}::-moz-range-progress {
             height: ${sizeConfig().trackHeight}px;
-            background: var(--primary) !important;
+            background: ${getColorVar()} !important;
             border-radius: var(--radius-sm);
           }
           .${sliderClass}::-moz-range-thumb {
             height: ${sizeConfig().thumbSize}px;
             width: ${sizeConfig().thumbSize}px;
-            background: var(--primary) !important;
+            background: ${getColorVar()} !important;
             border: none !important;
             border-radius: 50%;
             box-shadow: none !important;
@@ -168,11 +206,11 @@ const Slider: Component<SliderProps> = (p) => {
         `}
       </style>
       <div 
-        class={`flex items-center justify-between gap-3 bg-base-200/50 border-b-2 border-foreground`}
-        style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px` }}
+        class={`flex items-center justify-between gap-3 bg-base-200/50 ${headerBorderClass()}`}
+        style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px ${headerBottomPadding()} ${sizeConfig().padding * 4}px` }}
       >
         <span class={`${sizeConfig().labelSize} font-semibold uppercase tracking-wider text-secondary/70`}>{p.props.label}</span>
-        <span class={`font-mono ${sizeConfig().valueSize} font-bold text-[var(--primary)]`}>{value()}</span>
+        <span class={`font-mono ${sizeConfig().valueSize} font-bold text-[${getColorVar()}]`}>{value()}</span>
       </div>
       
       <div 
@@ -191,7 +229,7 @@ const Slider: Component<SliderProps> = (p) => {
                 "appearance": "none",
                 "-webkit-appearance": "none",
                 "background": "transparent",
-                "--slider-gradient": `linear-gradient(to right, var(--primary) 0%, var(--primary) ${percentage()}%, var(--foreground) ${percentage()}%, var(--foreground) 100%)`
+                "--slider-gradient": `linear-gradient(to right, ${getColorVar()} 0%, ${getColorVar()} ${percentage()}%, var(--foreground) ${percentage()}%, var(--foreground) 100%)`
             }}
           />
           <div class="flex justify-between w-full px-0.5 mt-1">

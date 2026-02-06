@@ -22,6 +22,8 @@ interface TextProps {
     force_dimensions?: boolean;
     align_h?: "left" | "center" | "right";
     align_v?: "top" | "center" | "bottom";
+    border?: boolean | string | null;
+    color?: string | null;
   };
 }
 
@@ -32,6 +34,13 @@ const Text: Component<TextProps> = (p) => {
   
   // Get size preset (default to md)
   const sizeConfig = () => SIZE_PRESETS[size()];
+  
+  // Get color variable for text color
+  const getColorVar = () => {
+    const color = p.props.color;
+    if (color === "neutral") return "var(--foreground)";
+    return color ? `var(--${color})` : "var(--secondary)";
+  };
 
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
@@ -100,11 +109,23 @@ const Text: Component<TextProps> = (p) => {
     
     return styles;
   };
+  
+  // Apply custom border
+  const borderStyles = () => {
+    const borderValue = p.props.border;
+    if (borderValue === false || borderValue === "none") {
+      return { border: "none" };
+    } else if (borderValue && typeof borderValue === 'string') {
+      return { border: borderValue };
+    }
+    // true or null/undefined: Default border (from classes)
+    return {};
+  };
 
   return (
     <div 
-      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono ${sizeConfig().textSize} text-secondary`}
-      style={componentStyles()}
+      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono ${sizeConfig().textSize}`}
+      style={{ ...componentStyles(), ...borderStyles(), color: getColorVar() }}
     >
       {content()}
     </div>

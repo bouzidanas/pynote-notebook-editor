@@ -151,7 +151,7 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
             </button>
              <button 
                 onClick={clearAll}
-                class="p-1 hover:bg-foreground/10 rounded-sm text-xs flex items-center gap-1 text-red-500"
+                class="p-1 hover:bg-foreground/10 rounded-sm text-xs flex items-center gap-1 text-error"
                 title="Clear All Cells"
             >
                 <Trash size={14} />
@@ -177,11 +177,17 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
                             <Show when={m.name === "FID"}><Clock size={14} /></Show>
                             <span class="text-xs font-bold">{m.name}</span>
                         </div>
-                        <div class={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
-                            m.rating === "good" ? "bg-green-500/20 text-green-600" :
-                            m.rating === "needs-improvement" ? "bg-yellow-500/20 text-yellow-600" :
-                            "bg-red-500/20 text-red-600"
-                        }`}>
+                        <div
+                            class="text-xs font-mono font-bold px-2 py-0.5 rounded"
+                            style={{
+                                "background-color": m.rating === "good" ? "color-mix(in oklch, var(--color-success) 20%, transparent)" :
+                                                   m.rating === "needs-improvement" ? "color-mix(in oklch, var(--color-warning) 20%, transparent)" :
+                                                   "color-mix(in oklch, var(--color-error) 20%, transparent)",
+                                "color": m.rating === "good" ? "var(--color-success)" :
+                                        m.rating === "needs-improvement" ? "var(--color-warning)" :
+                                        "var(--color-error)"
+                            }}
+                        >
                             {m.value.toFixed(2)}{m.unit}
                         </div>
                     </div>

@@ -15,6 +15,7 @@ interface TextareaProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
   };
 }
 
@@ -96,22 +97,57 @@ const Textarea: Component<TextareaProps> = (p) => {
     return styles;
   };
 
-  // Build textarea classes based on DaisyUI API
+  // Unique class for scoped styles
+  const textareaClass = `textarea-${componentId}`;
+  
+  // Build textarea classes
   const textareaClasses = () => {
-    const classes = ["textarea", "font-mono", "border-2", "border-foreground", "rounded-sm", "bg-base-100/30", "focus-visible:outline-none", "focus-visible:border-primary", sizeConfig().textSize];
-    
+    return [
+      textareaClass,
+      "textarea",
+      "font-mono",
+      "border-2",
+      "border-foreground",
+      "rounded-sm",
+      "bg-base-100/30",
+      "focus-visible:outline-none",
+      "focus-visible:border-primary",
+      sizeConfig().textSize
+    ].join(" ");
+  };
+  
+  // Generate color styles for focus state
+  const generateColorStyles = () => {
     const color = p.props.color;
-    if (color) {
-      classes.push(`textarea-${color}`);
-    }
+    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
     
-    return classes.join(" ");
+    return `
+      .${textareaClass}:focus-visible {
+        border-color: ${colorVar} !important;
+      }
+    `;
+  };
+  
+  // Apply custom border
+  const borderStyles = () => {
+    const borderValue = p.props.border;
+    if (borderValue === false || borderValue === "none") {
+      return { border: "none" };
+    } else if (borderValue && typeof borderValue === 'string') {
+      return { border: borderValue };
+    }
+    // true or null/undefined: Default border (from classes)
+    return {};
   };
 
   return (
-    <textarea
+    <>
+      <style>
+        {generateColorStyles()}
+      </style>
+      <textarea
       class={textareaClasses()}
-      style={{ ...componentStyles(), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
       value={value()}
       placeholder={p.props.placeholder ?? ""}
       rows={p.props.rows ?? 4}
@@ -119,6 +155,7 @@ const Textarea: Component<TextareaProps> = (p) => {
       onKeyDown={(e) => e.stopPropagation()}
       disabled={disabled()}
     />
+    </>
   );
 };
 

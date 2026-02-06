@@ -260,6 +260,87 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
         content: "from pynote_ui import Input, Select, Textarea, Toggle, Checkbox, Button, Text, Group, display\n\n# Form fields\nname_field = Input(placeholder=\"Your name\", grow=1)\nemail_field = Input(placeholder=\"Email\", input_type=\"email\", grow=1)\nrole_select = Select(\n    options=[\"Developer\", \"Designer\", \"Manager\", \"Other\"],\n    placeholder=\"Select role\",\n    grow=1\n)\nbio_area = Textarea(placeholder=\"Tell us about yourself...\", rows=3, grow=1)\nnewsletter_toggle = Toggle(label=\"Subscribe to newsletter\", color=\"primary\")\nterms_checkbox = Checkbox(label=\"I accept the terms of service\", color=\"success\")\nsubmit_btn = Button(label=\"Submit\", color=\"primary\", style=\"soft\", disabled=True)\nresult_text = Text(content=\"\")\n\n# Enable submit only when terms are checked\ndef on_terms_change(data):\n    submit_btn.disabled = not data['checked']\nterms_checkbox.on_update(on_terms_change)\n\n# Handle submit\ndef on_submit(data):\n    result_text.content = f\"Submitted: {name_field.value} ({email_field.value})\"\nsubmit_btn.on_update(on_submit)\n\n# Layout the form\nGroup([\n    Group([name_field, email_field], layout=\"row\"),\n    role_select,\n    bio_area,\n    newsletter_toggle,\n    terms_checkbox,\n    submit_btn,\n    result_text\n], layout=\"col\", label=\"Registration Form\", border=True, gap=2)"
     },
 
+    // --- Border Styling ---
+    {
+        id: "tut-ui-borders",
+        type: "markdown",
+        content: "## Border Styling\n\nAll components support a `border` prop that accepts CSS border strings. You can remove borders entirely with `border=\"none\"` or apply custom styles like `border=\"3px solid red\"`."
+    },
+
+    // --- Borderless Example ---
+    {
+        id: "tut-ui-borders-none",
+        type: "markdown",
+        content: "### Borderless Components\n\nCreate a clean, minimal look by removing all borders:"
+    },
+    {
+        id: "tut-demo-borders-none",
+        type: "code",
+        content: `from pynote_ui import Button, Slider, Input, Select, Textarea, Toggle, Checkbox, Text, Group
+
+# All components with no borders (border=False for special cleanup)
+borderless_slider = Slider(value=50, label="Volume", border=False, grow=1)
+borderless_input = Input(value="No borders", placeholder="Type here...", border=False, grow=1)
+borderless_select = Select(
+    options=["Option 1", "Option 2", "Option 3"],
+    value="Option 1",
+    border=False,
+    grow=1
+)
+borderless_textarea = Textarea(value="Minimalist design", rows=2, border=False, grow=1)
+borderless_toggle = Toggle(checked=True, label="Enable feature", border=False)
+borderless_checkbox = Checkbox(checked=False, label="I agree", border=False)
+borderless_button = Button(label="Click Me", color="primary", border=False)
+borderless_text = Text(content="Clean text display", border=False, width="100%", align_h="center")
+
+# Group them in a borderless container
+Group([
+    borderless_slider,
+    Group([borderless_input, borderless_select], layout="row"),
+    borderless_textarea,
+    Group([borderless_toggle, borderless_checkbox], layout="row"),
+    borderless_button,
+    borderless_text
+], layout="col", border=False, gap=3, padding=16)`
+    },
+
+    // --- Colored Borders Example ---
+    {
+        id: "tut-ui-borders-colored",
+        type: "markdown",
+        content: "### Custom Colored Borders\n\nAdd visual hierarchy and emphasis with custom border colors:"
+    },
+    {
+        id: "tut-demo-borders-colored",
+        type: "code",
+        content: `from pynote_ui import Button, Slider, Input, Select, Textarea, Toggle, Checkbox, Text, Group
+
+# Each component with a different colored border
+red_slider = Slider(value=75, label="Red Slider", border="3px solid #ef4444", grow=1)
+blue_input = Input(value="Blue input", placeholder="Type here...", border="2px solid #3b82f6", grow=1)
+green_select = Select(
+    options=["Green", "Forest", "Lime"],
+    value="Green",
+    border="2px solid #22c55e",
+    grow=1
+)
+purple_textarea = Textarea(value="Purple textarea", rows=2, border="2px solid #a855f7", grow=1)
+orange_toggle = Toggle(checked=True, label="Orange toggle", border="2px solid #f97316")
+pink_checkbox = Checkbox(checked=False, label="Pink checkbox", border="2px solid #ec4899")
+yellow_button = Button(label="Yellow Button", border="3px solid #eab308")
+cyan_text = Text(content="Cyan text box", border="2px dashed #06b6d4", width="100%", align_h="center")
+
+# Group with indigo border
+Group([
+    red_slider,
+    Group([blue_input, green_select], layout="row"),
+    purple_textarea,
+    Group([orange_toggle, pink_checkbox], layout="row", align="center"),
+    yellow_button,
+    cyan_text
+], layout="col", border="3px solid #6366f1", label="Colorful Borders", gap=2)`
+    },
+
     // --- Next Steps ---
     {
         id: "tut-ui-next",

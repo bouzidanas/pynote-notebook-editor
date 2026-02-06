@@ -15,6 +15,7 @@ interface ButtonProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
   };
 }
 
@@ -100,14 +101,19 @@ const Button: Component<ButtonProps> = (p) => {
     return styles;
   };
 
-  // Build button classes based on DaisyUI API
+  // Unique class for scoped styles
+  const buttonClass = `button-${componentId}`;
+  
+  // Build button classes
   const buttonClasses = () => {
-    const classes = ["btn", "font-mono", "border-2", "border-foreground", "rounded-sm", "hover:bg-foreground", "hover:border-primary", "active:bg-primary", "active:text-background"];
+    const borderValue = p.props.border;
+    const noBorder = borderValue === "none";
     
-    // Color
-    const color = p.props.color;
-    if (color) {
-      classes.push(`btn-${color}`);
+    const classes = ["btn", "font-mono", "rounded-sm", buttonClass];
+    
+    // Add non-border classes unless border="none"
+    if (!noBorder) {
+      classes.push("hover:bg-foreground", "active:bg-primary", "active:text-background");
     }
     
     // Style
@@ -123,17 +129,94 @@ const Button: Component<ButtonProps> = (p) => {
     
     return classes.join(" ");
   };
+  
+  // Generate color styles for background and active states
+  const generateColorStyles = () => {
+    const color = p.props.color;
+    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
+    const borderValue = p.props.border;
+    const noBorder = borderValue === "none";
+    
+    // Only apply color styling if not border="none"
+    if (noBorder) return "";
+    
+    return `
+      .${buttonClass}:active {
+        background-color: ${colorVar} !important;
+        color: var(--background) !important;
+      }
+    `;
+  };
+  
+  // Generate border styles including hover/active states
+  const generateBorderStyles = () => {
+    const borderValue = p.props.border;
+    
+    if (borderValue === false) {
+      // false: Remove all borders including interactions
+      return `
+        .${buttonClass} {
+          border: none !important;
+        }
+        .${buttonClass}:hover,
+        .${buttonClass}:focus,
+        .${buttonClass}:focus-within,
+        .${buttonClass}:active {
+          border: none !important;
+        }
+      `;
+    } else if (borderValue === "none") {
+      // "none": Just remove CSS border, no other changes
+      return `
+        .${buttonClass} {
+          border: none;
+        }
+      `;
+    } else if (borderValue && typeof borderValue === 'string') {
+      // Custom border - apply to default state, but allow hover/active to change color
+      return `
+        .${buttonClass} {
+          border: ${borderValue};
+        }
+        .${buttonClass}:hover {
+          border-color: var(--primary);
+        }
+        .${buttonClass}:active {
+          border-color: var(--primary);
+        }
+      `;
+    } else {
+      // true or null/undefined: Default border
+      return `
+        .${buttonClass} {
+          border: 2px solid var(--foreground);
+        }
+        .${buttonClass}:hover {
+          border-color: var(--primary);
+        }
+        .${buttonClass}:active {
+          border-color: var(--primary);
+        }
+      `;
+    }
+  };
 
   return (
-    <button
-      class={buttonClasses()}
-      style={{ ...componentStyles(), padding: `${sizeConfig().padding}px`, "font-size": `${sizeConfig().fontSize}px` }}
-      onClick={handleClick}
-      disabled={disabled() || loading()}
-    >
-      {loading() && <span class="loading loading-spinner loading-sm mr-2"></span>}
-      {label()}
-    </button>
+    <>
+      <style>
+        {generateColorStyles()}
+        {generateBorderStyles()}
+      </style>
+      <button
+        class={buttonClasses()}
+        style={{ ...componentStyles(), padding: `${sizeConfig().padding}px`, "font-size": `${sizeConfig().fontSize}px` }}
+        onClick={handleClick}
+        disabled={disabled() || loading()}
+      >
+        {loading() && <span class="loading loading-spinner loading-sm mr-2"></span>}
+        {label()}
+      </button>
+    </>
   );
 };
 

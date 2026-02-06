@@ -15,6 +15,7 @@ interface SelectProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    border?: boolean | string | null;
   };
 }
 
@@ -111,6 +112,25 @@ const Select: Component<SelectProps> = (p) => {
     }
   };
 
+  // Apply custom border
+  const applyBorder = () => {
+    const borderValue = p.props.border;
+    if (borderValue === false || borderValue === "none") {
+      return "border: none !important;";
+    } else if (borderValue && typeof borderValue === 'string') {
+      return `border: ${borderValue} !important;`;
+    }
+    // true or null/undefined: Default border
+    return "border: 2px solid var(--foreground) !important;";
+  };
+  
+  // Get color variable
+  const getColorVar = () => {
+    const color = p.props.color;
+    if (color === "neutral") return "var(--foreground)";
+    return color ? `var(--${color})` : "var(--primary)";
+  };
+  
   return (
     <>
       <style>
@@ -123,7 +143,7 @@ const Select: Component<SelectProps> = (p) => {
             outline: none !important;
             
             /* Custom border styling */
-            border: 2px solid var(--foreground) !important;
+            ${applyBorder()}
             border-radius: var(--radius-sm);
             
             /* Size-based padding and font */
@@ -151,7 +171,7 @@ const Select: Component<SelectProps> = (p) => {
           
           /* Highlight border only when dropdown is open (not on focus) */
           .${selectClass}:open {
-            border-color: var(--primary) !important;
+            border-color: ${getColorVar()} !important;
           }
 
           .${selectClass}:focus {
@@ -181,7 +201,7 @@ const Select: Component<SelectProps> = (p) => {
           }
 
           .${selectClass} option:checked {
-            background-color: var(--primary);
+            background-color: ${getColorVar()};
             color: var(--background);
           }
           
@@ -189,14 +209,14 @@ const Select: Component<SelectProps> = (p) => {
           .${selectClass}::picker(select) {
             appearance: base-select;
             background-color: var(--background);
-            border: 2px solid var(--primary);
+            border: 2px solid ${getColorVar()};
             border-radius: var(--radius-sm);
           }
           
           /* Style selected option in picker */
           .${selectClass}::picker(select) option:checked,
           .${selectClass} option:checked::checkmark {
-            background-color: var(--primary);
+            background-color: ${getColorVar()};
             color: var(--background);
           }
           

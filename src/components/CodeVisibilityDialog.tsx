@@ -182,11 +182,11 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
             <h3 class="text-xs font-bold text-accent uppercase mb-2">Show / Hide Elements</h3>
             <div class="space-y-0.5">
               <CheckboxRow itemKey="showCode" label="Code Editor" icon={Code} iconColor="text-accent" hasEditorToggles={true} />
-              <CheckboxRow itemKey="showStatusDot" label="Status Indicator" icon={CircleDot} iconColor="text-green-500" />
+              <CheckboxRow itemKey="showStatusDot" label="Status Indicator" icon={CircleDot} iconColor="text-success" />
               <CheckboxRow itemKey="showStdout" label="Standard Output" icon={Terminal} iconColor="text-secondary" hasPositionToggle={true} />
               <CheckboxRow itemKey="showResult" label="Return Value" icon={FileOutput} iconColor="text-secondary/70" />
-              <CheckboxRow itemKey="showStderr" label="Warnings (stderr)" icon={TriangleAlert} iconColor="text-amber-400" />
-              <CheckboxRow itemKey="showError" label="Errors" icon={AlertCircle} iconColor="text-primary" />
+              <CheckboxRow itemKey="showStderr" label="Warnings (stderr)" icon={TriangleAlert} iconColor="text-warning" />
+              <CheckboxRow itemKey="showError" label="Errors" icon={AlertCircle} iconColor="text-error" />
             </div>
             
             {/* Info note */}
@@ -231,7 +231,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
               {/* Status Dot Preview */}
               <Show when={localSettings().showStatusDot}>
                 <div class="flex items-center gap-2 px-2 py-1">
-                  <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                  <div class="w-2 h-2 rounded-full bg-success"></div>
                   <span class="text-[10px] text-secondary/40">14:32:05</span>
                   <span class="text-[10px] text-secondary/30 font-mono">42ms</span>
                 </div>
