@@ -17,6 +17,7 @@ interface ButtonProps {
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    hidden?: boolean;
   };
   onSubmit?: () => void;
 }
@@ -27,6 +28,7 @@ const Button: Component<ButtonProps> = (p) => {
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [loading, setLoading] = createSignal(p.props.loading ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
   const buttonType = p.props.button_type ?? "default";
 
   // Size presets - uses CSS variables for global customization
@@ -47,6 +49,7 @@ const Button: Component<ButtonProps> = (p) => {
       if (data.disabled !== undefined) setDisabled(data.disabled);
       if (data.loading !== undefined) setLoading(data.loading);
       if (data.size !== undefined) setSize(data.size ?? "md");
+      if (data.hidden !== undefined) setHidden(data.hidden);
     });
   });
 
@@ -59,6 +62,8 @@ const Button: Component<ButtonProps> = (p) => {
       // If this is a submit button and we're in a form, trigger form submission
       if (buttonType === "submit" && p.onSubmit) {
         p.onSubmit();
+        // Also send interaction to Python so button's callback is triggered
+        kernel.sendInteraction(componentId, { clicked: true, label: label() });
       } else {
         // Normal button behavior - send interaction to Python with label for identification
         kernel.sendInteraction(componentId, { clicked: true, label: label() });
@@ -72,6 +77,12 @@ const Button: Component<ButtonProps> = (p) => {
     const grow = p.props.grow;
     const shrink = p.props.shrink;
     const force = p.props.force_dimensions;
+
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
 
     // Only set flex properties when explicitly provided
     if (grow != null) {

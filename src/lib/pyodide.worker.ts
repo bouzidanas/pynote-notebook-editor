@@ -151,13 +151,29 @@ def get_completions(code, offset):
             filtered = _filter_completions(all_attrs, partial, parent)
             
             # Build completion items with type info
-            return [
-                {
-                    "label": n, 
-                    "type": "function" if callable(getattr(parent, n, None)) else "property"
-                } 
-                for n in filtered
-            ]
+            import inspect
+            result = []
+            for n in filtered:
+                try:
+                    attr = getattr(parent, n, None)
+                    if attr is not None:
+                        # Determine type using inspect module (check module first)
+                        if inspect.ismodule(attr):
+                            item_type = "module"
+                        elif inspect.isclass(attr):
+                            item_type = "class"
+                        elif inspect.isfunction(attr) or inspect.isbuiltin(attr) or inspect.ismethod(attr):
+                            item_type = "function"
+                        elif callable(attr):
+                            item_type = "function"
+                        else:
+                            item_type = "property"
+                        result.append({"label": n, "type": item_type})
+                    else:
+                        result.append({"label": n, "type": "property"})
+                except:
+                    result.append({"label": n, "type": "property"})
+            return result
         else:
             # Global scope completion
             partial = text
@@ -173,7 +189,35 @@ def get_completions(code, offset):
             # Filter using configurable filter function
             filtered = _filter_completions(all_names, partial)
             
-            return [{"label": n, "type": "variable"} for n in filtered]
+            # Build completion items with type info
+            import inspect
+            result = []
+            for n in filtered:
+                try:
+                    obj = None
+                    # Try to get from globals first, then builtins
+                    if n in globals():
+                        obj = globals()[n]
+                    else:
+                        obj = getattr(builtins, n, None)
+                    
+                    if obj is not None:
+                        # Determine type (check module first)
+                        if inspect.ismodule(obj):
+                            item_type = "module"
+                        elif inspect.isclass(obj):
+                            item_type = "class"
+                        elif inspect.isfunction(obj) or inspect.isbuiltin(obj) or inspect.ismethod(obj) or callable(obj):
+                            item_type = "function"
+                        else:
+                            item_type = "variable"
+                        result.append({"label": n, "type": item_type})
+                    else:
+                        result.append({"label": n, "type": "variable"})
+                except:
+                    result.append({"label": n, "type": "variable"})
+            
+            return result
     except Exception:
         return []
 
@@ -192,6 +236,7 @@ def get_hover_help(code, offset):
         
         # Expand word at cursor (identifiers including dots)
         import re
+        import inspect
         # Find all identifiers in the line
         for match in re.finditer(r'[a-zA-Z_][a-zA-Z0-9_.]*', line):
             if match.start() <= col <= match.end():
@@ -199,6 +244,20 @@ def get_hover_help(code, offset):
                 try:
                     obj = eval(word, globals())
                     doc = obj.__doc__ or ""
+                    
+                    # Determine proper type using inspect module
+                    # Check module FIRST before class (some edge cases)
+                    if inspect.ismodule(obj):
+                        obj_type = "module"
+                    elif inspect.isclass(obj):
+                        obj_type = "class"
+                    elif inspect.isfunction(obj) or inspect.isbuiltin(obj) or inspect.ismethod(obj):
+                        obj_type = "function"
+                    elif callable(obj):
+                        obj_type = "callable"
+                    else:
+                        # Fall back to type name for instances
+                        obj_type = type(obj).__name__
                     
                     # Smart stripping
                     # 1. Strip leading whitespace
@@ -210,7 +269,7 @@ def get_hover_help(code, offset):
                         doc = doc[:297] + "..."
                         
                     return {
-                        "type": type(obj).__name__,
+                        "type": obj_type,
                         "doc": doc,
                         "found": True
                     }
@@ -304,6 +363,11 @@ async def run_cell_code(code, cell_id):
         return { "__pynote_error__": generated_tb }
     finally:
         current_cell_id.reset(token)
+        # Clear cell context after execution. However, components created in callbacks
+        # will inherit their parent component's cell_id (captured during on_update registration),
+        # so lazy-loaded components still register to the correct cell.
+        from pynote_ui import set_current_cell
+        set_current_cell(None)
 
 import ast
 
@@ -426,12 +490,12 @@ from .core import (
     MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
     MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END
 )
-from .elements import Slider, Text, Group, Button, Select, Input, Textarea, Toggle, Checkbox
+from .elements import Slider, Text, Group, Form, Button, Select, Input, Textarea, Toggle, Checkbox
 from . import oplot, uplot, fplot
 
 __all__ = [
     "UIElement", "StateManager", "handle_interaction", 
-    "Slider", "Text", "Group", "Button", "Select", "Input", "Textarea", "Toggle", "Checkbox",
+    "Slider", "Text", "Group", "Form", "Button", "Select", "Input", "Textarea", "Toggle", "Checkbox",
     "oplot", "uplot", "fplot",
     "set_current_cell", "clear_cell", "register_comm_target",
     "display", "print_md",
@@ -479,8 +543,8 @@ class StateManager:
 
     @classmethod
     def register(cls, instance):
-        cls._instances[instance.id] = instance
         cell_id = _current_cell_id.get()
+        cls._instances[instance.id] = instance
         if cell_id:
             if cell_id not in cls._instances_by_cell:
                 cls._instances_by_cell[cell_id] = []
@@ -516,6 +580,9 @@ class UIElement:
         self.id = str(uuid.uuid4())
         self.props = kwargs
         self._on_update = None
+        self._hidden = kwargs.get('hidden', False)
+        # Capture the cell_id at creation time for proper cleanup
+        self._cell_id = _current_cell_id.get()
         StateManager.register(self)
 
     def to_json(self):
@@ -540,12 +607,39 @@ class UIElement:
         return f"<{self.__class__.__name__} id={self.id}>"
 
     def on_update(self, callback):
+        """Register callback. Context is preserved for lazy-component creation."""
+        # Store the callback directly - context restoration happens in handle_interaction
         self._on_update = callback
+
+    @property
+    def hidden(self):
+        """Get visibility state (True = hidden, False = visible)."""
+        return self._hidden
+
+    @hidden.setter
+    def hidden(self, value):
+        """Set visibility state."""
+        self._hidden = value
+        self.send_update(hidden=value)
+
+    def hide(self):
+        """Hide this component (display: none)."""
+        self.hidden = True
+
+    def show(self):
+        """Show this component."""
+        self.hidden = False
 
     def handle_interaction(self, data):
         """Override in subclasses to handle updates from frontend"""
         if self._on_update:
-            self._on_update(data)
+            # Restore cell context for this callback's execution
+            # This allows lazy-loaded components to register to the correct cell
+            token = _current_cell_id.set(self._cell_id)
+            try:
+                self._on_update(data)
+            finally:
+                _current_cell_id.reset(token)
     
     def send_update(self, **kwargs):
         """Send property updates to the frontend"""
@@ -643,7 +737,7 @@ from .core import UIElement
 
 class Slider(UIElement):
     def __init__(self, value=0, min=0, max=100, step=1, label="Slider", size=None,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, color=None):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, color=None, hidden=False):
         self._value = value
         self._size = size
         self.min = min
@@ -652,7 +746,7 @@ class Slider(UIElement):
         self.label = label
         super().__init__(
             value=value, min=min, max=max, step=step, label=label, size=size,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, color=color
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, color=color, hidden=hidden
         )
 
     @property
@@ -685,13 +779,13 @@ class Slider(UIElement):
         super().handle_interaction(data)
 
 class Text(UIElement):
-    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, color=None):
+    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, color=None, hidden=False):
         self._content = content
         self._size = size
         super().__init__(
             content=content, size=size,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
-            align_h=align_h, align_v=align_v, border=border, color=color
+            align_h=align_h, align_v=align_v, border=border, color=color, hidden=hidden
         )
 
     @property
@@ -713,7 +807,7 @@ class Text(UIElement):
         self.send_update(size=new_size)
 
 class Group(UIElement):
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
         self.children = children
 
         super().__init__(
@@ -729,7 +823,8 @@ class Group(UIElement):
             padding=padding,
             gap=gap,
             overflow=overflow,
-            force_dimensions=force_dimensions
+            force_dimensions=force_dimensions,
+            hidden=hidden
         )
 
     @property
@@ -822,7 +917,7 @@ class Group(UIElement):
 
 
 class Form(UIElement):
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=True, padding=None, gap=None, overflow=None, force_dimensions=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=True, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
         self.children = children
         self._value = {}  # Dictionary of child values
         
@@ -839,7 +934,8 @@ class Form(UIElement):
             padding=padding,
             gap=gap,
             overflow=overflow,
-            force_dimensions=force_dimensions
+            force_dimensions=force_dimensions,
+            hidden=hidden
         )
 
     @property
@@ -889,14 +985,14 @@ class Form(UIElement):
 
 class Button(UIElement):
     def __init__(self, label="Button", button_type=None, color=None, style=None, size=None, disabled=False, loading=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
         self._label = label
         self._disabled = disabled
         self._loading = loading
         self._size = size
         super().__init__(
             label=label, button_type=button_type, color=color, style=style, size=size, disabled=disabled, loading=loading,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
         )
 
     @property
@@ -943,7 +1039,7 @@ class Button(UIElement):
 
 class Select(UIElement):
     def __init__(self, options=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
         if options is None:
             options = []
         self._value = value
@@ -952,7 +1048,7 @@ class Select(UIElement):
         self._size = size
         super().__init__(
             options=options, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
         )
 
     @property
@@ -1000,13 +1096,13 @@ class Select(UIElement):
 
 class Input(UIElement):
     def __init__(self, value="", placeholder="", input_type="text", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, input_type=input_type, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
         )
 
     @property
@@ -1045,13 +1141,13 @@ class Input(UIElement):
 
 class Textarea(UIElement):
     def __init__(self, value="", placeholder="", rows=4, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, rows=rows, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
         )
 
     @property
@@ -1090,13 +1186,13 @@ class Textarea(UIElement):
 
 class Toggle(UIElement):
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
         )
 
     @property
@@ -1127,21 +1223,25 @@ class Toggle(UIElement):
         self.send_update(size=new_size)
 
     def handle_interaction(self, data):
+        # Handle both "checked" (normal) and "value" (from Form submission)
         if "checked" in data:
             self._checked = data["checked"]
+            self.props["checked"] = self._checked
+        elif "value" in data:
+            self._checked = data["value"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
 
 
 class Checkbox(UIElement):
     def __init__(self, checked=False, label=None, color="primary", size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
         )
 
     @property
@@ -1172,8 +1272,12 @@ class Checkbox(UIElement):
         self.send_update(size=new_size)
 
     def handle_interaction(self, data):
+        # Handle both "checked" (normal) and "value" (from Form submission)
         if "checked" in data:
             self._checked = data["checked"]
+            self.props["checked"] = self._checked
+        elif "value" in data:
+            self._checked = data["value"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
 `);

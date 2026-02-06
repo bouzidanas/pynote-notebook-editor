@@ -130,7 +130,7 @@ Group([
         content: `from pynote_ui import Button, Text, Group
 
 # Build a working calculator with nested Groups
-display = Text(content="0", width="100%", align_h="right", size="xl")
+calc_display = Text(content="0", width="100%", align_h="right", size="xl")
 
 # Calculator state
 calc_state = {"current": "0", "previous": "", "operation": None, "new_number": True}
@@ -146,13 +146,13 @@ def handle_number(data):
             calc_state["current"] = num
         else:
             calc_state["current"] += num
-    display.content = calc_state["current"]
+    calc_display.content = calc_state["current"]
 
 def handle_decimal(data):
     """Handle decimal point"""
     if "." not in calc_state["current"]:
         calc_state["current"] += "."
-        display.content = calc_state["current"]
+        calc_display.content = calc_state["current"]
 
 def handle_operation(data):
     """Handle operation buttons - uses data['label'] to identify the operation"""
@@ -175,7 +175,7 @@ def handle_equals(data):
             result = a / b if b != 0 else "Error"
         else:
             result = b
-        display.content = str(result)
+        calc_display.content = str(result)
         calc_state["current"] = str(result)
         calc_state["operation"] = None
         calc_state["new_number"] = True
@@ -184,7 +184,7 @@ def handle_square(data):
     """Square the current number"""
     num = float(calc_state["current"])
     result = num ** 2
-    display.content = str(result)
+    calc_display.content = str(result)
     calc_state["current"] = str(result)
     calc_state["new_number"] = True
 
@@ -194,7 +194,7 @@ def handle_clear(data):
     calc_state["previous"] = ""
     calc_state["operation"] = None
     calc_state["new_number"] = True
-    display.content = "0"
+    calc_display.content = "0"
 
 # Create buttons - using shared handlers, buttons identified by their label
 # Row 1: 7, 8, 9, ^2, C
@@ -239,12 +239,12 @@ btn_minus.on_update(handle_operation)
 
 buttons_row3 = Group([btn_1, btn_2, btn_3, btn_div, btn_minus], layout="row")
 
-# Row 4: 0, ., = (with = having grow=3)
+# Row 4: 0, ., = (with = having grow=4)
 btn_0 = Button(label="0", grow=1)
 btn_0.on_update(handle_number)
 btn_decimal = Button(label=".", grow=1)
 btn_decimal.on_update(handle_decimal)
-btn_equals = Button(label="=", color="success", grow=3)
+btn_equals = Button(label="=", color="success", grow=4)
 btn_equals.on_update(handle_equals)
 
 buttons_row4 = Group([btn_0, btn_decimal, btn_equals], layout="row")
@@ -259,7 +259,7 @@ button_grid = Group([
 
 # Outer group arranges display and buttons vertically
 Group([
-    display,
+    calc_display,
     button_grid,
 ], label="Working Calculator", border=True, gap=2)`
     },
@@ -327,6 +327,43 @@ Group([
 ], height=200, overflow="scroll-y", label="Scrollable (200px)", border=True)`
     },
 
+    // --- Hide/Show Section ---
+    {
+        id: "tut-ui-hide-show-intro",
+        type: "markdown",
+        content: "## Hide and Show Components\n\nAll UI components support `.hide()` and `.show()` methods for reactive visibility control. This is perfect for:\n- Showing results only after form submission\n- Conditional UI based on user actions\n- Progressive disclosure patterns\n\nComponents can also start hidden with `hidden=True` parameter."
+    },
+    {
+        id: "tut-demo-hide-show",
+        type: "code",
+        content: `from pynote_ui import Button, Text, Group
+
+# Create components (result starts hidden)
+show_btn = Button(label="Show Secret", color="primary")
+hide_btn = Button(label="Hide Secret", color="secondary")
+secret = Text(content="🎉 You found the secret message!", hidden=True, color="success")
+
+# Button callbacks
+def show_secret(data):
+    secret.show()
+
+def hide_secret(data):
+    secret.hide()
+
+show_btn.on_update(show_secret)
+hide_btn.on_update(hide_secret)
+
+Group([
+    Group([show_btn, hide_btn], layout="row"),
+    secret
+], border=True, label="Toggle Visibility")`
+    },
+    {
+        id: "tut-ui-hide-show-note",
+        type: "markdown",
+        content: "**Try it:** Click \"Show Secret\" to reveal the hidden Text component, then \"Hide Secret\" to hide it again. The `hidden` property is reactive - changes take effect immediately.\n\n**Performance:** Hiding components uses CSS `display: none`, which is extremely efficient. Hidden components maintain their state and can be shown again instantly."
+    },
+
     // --- Form Introduction ---
     {
         id: "tut-ui-form-intro",
@@ -349,12 +386,13 @@ Group([
 name_input = Input(placeholder="Your name", grow=1)
 email_input = Input(placeholder="Email", input_type="email", grow=1)
 submit_btn = Button(label="Submit", button_type="submit", color="primary")
-result = Text(content="Fill form and click Submit")
+result = Text(content="", hidden=True)  # Start hidden
 
 # Button callback - called when submit is clicked AND after form processes
 def on_submit(data):
     # Access individual component values
     result.content = f"Submitted! Name: {name_input.value}, Email: {email_input.value}"
+    result.show()  # Show the result
 
 submit_btn.on_update(on_submit)
 
@@ -371,7 +409,7 @@ contact_form`
     {
         id: "tut-ui-form-basic-note",
         type: "markdown",
-        content: "**Try it:** Type in the inputs above. Notice that Python doesn't receive updates until you click Submit. After submitting, both `name_input.value` and `email_input.value` are populated!"
+        content: "**Try it:** Type in the inputs above. Notice that Python doesn't receive updates until you click Submit. After submitting, both `name_input.value` and `email_input.value` are populated!\n\n**Notice:** The result Text starts `hidden=True` and only appears when `result.show()` is called after submission. This creates a cleaner UI than showing empty text boxes. All components support `.hide()` and `.show()` methods for reactive visibility control."
     },
 
     // --- Form with Value Dict ---
@@ -390,7 +428,7 @@ username = Input(placeholder="Username", grow=1)
 role = Select(options=["User", "Admin", "Guest"], placeholder="Select role", grow=1)
 agree = Checkbox(label="I agree to terms", checked=False)
 submit = Button(label="Register", button_type="submit", color="success")
-output = Text(content="")
+output = Text(content="", hidden=True)  # Start hidden
 
 def handle_registration(data):
     # Access values two ways:
@@ -399,6 +437,7 @@ def handle_registration(data):
     
     # 2. Via individual components
     output.content = f"Registered {username.value} as {role.value}. Agreed: {agree.checked}"
+    output.show()  # Show the result
 
 submit.on_update(handle_registration)
 
@@ -449,9 +488,9 @@ country = Select(
     placeholder="Country",
     grow=1
 )
-bio = Textarea(placeholder="Tell us about yourself...", rows=3, grow=1)
-newsletter = Toggle(label="Subscribe to newsletter", color="primary")
-terms = Checkbox(label="I accept terms of service", color="success")
+bio = Textarea(placeholder="Tell us about yourself...", height="300px", rows=3, grow=1, width="100%")
+newsletter = Toggle(label="Subscribe to newsletter", color="primary", border=False)
+terms = Checkbox(label="I accept terms of service", color="success", border=False)
 
 # Submit button - initially disabled
 submit_btn = Button(
@@ -462,11 +501,11 @@ submit_btn = Button(
 )
 
 # Result display
-result_display = Text(content="")
+result_display = Text(content="", hidden=True)
 
 # Enable submit only when terms checked
 def check_terms(data):
-    submit_btn.disabled = not data['checked']
+    submit_btn.disabled = not data['checked'] or full_name.value == '' or email.value == '' or bio.value == ''
 
 terms.on_update(check_terms)
 
@@ -474,14 +513,14 @@ terms.on_update(check_terms)
 def handle_submit(data):
     # Can access via form.value or individual components
     result_display.content = f"✅ Registered {full_name.value} from {country.value}"
+    result_display.show()
     print(f"Full form data: {user_form.value}")
 
 submit_btn.on_update(handle_submit)
 
 # Build the form
 user_form = Form([
-    Group([full_name, email], layout="row"),
-    country,
+    Group([full_name, email, country], layout="row"),
     bio,
     newsletter,
     terms,

@@ -27,6 +27,7 @@ interface SliderProps {
     force_dimensions?: boolean;
     border?: boolean | string | null;
     color?: string | null;
+    hidden?: boolean;
   };
 }
 
@@ -34,6 +35,7 @@ const Slider: Component<SliderProps> = (p) => {
   const componentId = p.id;
   const [value, setValue] = createSignal(p.props.value);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
   let containerRef: HTMLDivElement | undefined;
   
   // Get size preset (default to md)
@@ -58,6 +60,7 @@ const Slider: Component<SliderProps> = (p) => {
         if (data.size !== undefined) {
             setSize(data.size ?? "md");
         }
+        if (data.hidden !== undefined) setHidden(data.hidden);
     });
   });
 
@@ -87,6 +90,12 @@ const Slider: Component<SliderProps> = (p) => {
     const grow = p.props.grow;
     const shrink = p.props.shrink;
     const force = p.props.force_dimensions;
+    
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
     
     // Only set flex properties when explicitly provided
     if (grow != null) {

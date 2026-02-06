@@ -24,6 +24,7 @@ interface TextProps {
     align_v?: "top" | "center" | "bottom";
     border?: boolean | string | null;
     color?: string | null;
+    hidden?: boolean;
   };
 }
 
@@ -31,6 +32,7 @@ const Text: Component<TextProps> = (p) => {
   const componentId = p.id;
   const [content, setContent] = createSignal(p.props.content);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
   
   // Get size preset (default to md)
   const sizeConfig = () => SIZE_PRESETS[size()];
@@ -46,6 +48,7 @@ const Text: Component<TextProps> = (p) => {
     kernel.registerComponentListener(componentId, (data: any) => {
       if (data.content !== undefined) setContent(data.content);
       if (data.size !== undefined) setSize(data.size ?? "md");
+      if (data.hidden !== undefined) setHidden(data.hidden);
     });
   });
 
@@ -59,6 +62,12 @@ const Text: Component<TextProps> = (p) => {
     const grow = p.props.grow;
     const shrink = p.props.shrink;
     const force = p.props.force_dimensions;
+    
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
     
     // Only set flex properties when explicitly provided
     if (grow != null) {

@@ -1,5 +1,6 @@
-import { type Component, For, Show } from "solid-js";
+import { type Component, For, Show, createSignal, onMount, onCleanup } from "solid-js";
 import UIOutputRenderer from "./UIOutputRenderer";
+import { kernel } from "../../lib/pyodide";
 
 interface GroupProps {
   id: string;
@@ -17,10 +18,24 @@ interface GroupProps {
     gap?: string | number;
     overflow?: "visible" | "hidden" | "scroll" | "auto" | "scroll-x" | "scroll-y";
     force_dimensions?: boolean;
+    hidden?: boolean;
   };
 }   
 
 const Group: Component<GroupProps> = (p) => {
+  const componentId = p.id;
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  
+  onMount(() => {
+    kernel.registerComponentListener(componentId, (data: any) => {
+      if (data.hidden !== undefined) setHidden(data.hidden);
+    });
+  });
+
+  onCleanup(() => {
+    kernel.unregisterComponentListener(componentId);
+  });
+  
   // Alignment class for horizontal positioning of children
   // For row: horizontal is main axis → justify-content (items-stretch handles vertical)
   // For col: horizontal is cross axis → align-items (default start to respect fit-content)
@@ -95,6 +110,12 @@ const Group: Component<GroupProps> = (p) => {
     const force = p.props.force_dimensions;
     const w = p.props.width;
     const h = p.props.height;
+    
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
     
     // Flex properties for when Group is nested inside another Group
     // Only set when explicitly provided

@@ -232,7 +232,7 @@ class Kernel {
       } catch (err) {
         // Worker might already be dead, ignore
       }
-      
+
       // Small delay to allow cleanup message to be processed
       setTimeout(() => {
         if (this.worker) {

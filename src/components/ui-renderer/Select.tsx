@@ -17,6 +17,7 @@ interface SelectProps {
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    hidden?: boolean;
   };
 }
 
@@ -27,6 +28,7 @@ const Select: Component<SelectProps> = (p) => {
   const [options, setOptions] = createSignal(p.props.options ?? []);
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
 
   onMount(() => {
     if (formContext) {
@@ -38,6 +40,7 @@ const Select: Component<SelectProps> = (p) => {
       if (data.options !== undefined) setOptions(data.options);
       if (data.disabled !== undefined) setDisabled(data.disabled);
       if (data.size !== undefined) setSize(data.size ?? "md");
+      if (data.hidden !== undefined) setHidden(data.hidden);
     });
   });
 
@@ -77,6 +80,12 @@ const Select: Component<SelectProps> = (p) => {
     const grow = p.props.grow;
     const shrink = p.props.shrink;
     const force = p.props.force_dimensions;
+
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
 
     if (grow != null) {
       styles["flex-grow"] = grow;

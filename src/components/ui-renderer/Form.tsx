@@ -19,11 +19,13 @@ interface FormProps {
     gap?: string | number;
     overflow?: "visible" | "hidden" | "scroll" | "auto" | "scroll-x" | "scroll-y";
     force_dimensions?: boolean;
+    hidden?: boolean;
   };
 }
 
 const Form: Component<FormProps> = (p) => {
   const formId = p.id;
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
   
   // Track child components and their current values
   const childIds = new Set<string>();
@@ -37,6 +39,7 @@ const Form: Component<FormProps> = (p) => {
         // Clear all child values
         setChildValues(new Map());
       }
+      if (data.hidden !== undefined) setHidden(data.hidden);
     });
   });
 
@@ -146,6 +149,12 @@ const Form: Component<FormProps> = (p) => {
     const force = p.props.force_dimensions;
     const w = p.props.width;
     const h = p.props.height;
+    
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
     
     if (grow != null) {
       styles["flex-grow"] = grow;

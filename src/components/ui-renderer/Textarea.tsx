@@ -17,6 +17,7 @@ interface TextareaProps {
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    hidden?: boolean;
   };
 }
 
@@ -26,6 +27,7 @@ const Textarea: Component<TextareaProps> = (p) => {
   const [value, setValue] = createSignal(p.props.value ?? "");
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
 
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
@@ -48,6 +50,7 @@ const Textarea: Component<TextareaProps> = (p) => {
       if (data.value !== undefined) setValue(data.value);
       if (data.disabled !== undefined) setDisabled(data.disabled);
       if (data.size !== undefined) setSize(data.size ?? "md");
+      if (data.hidden !== undefined) setHidden(data.hidden);
     });
   });
 
@@ -77,6 +80,12 @@ const Textarea: Component<TextareaProps> = (p) => {
     const grow = p.props.grow;
     const shrink = p.props.shrink;
     const force = p.props.force_dimensions;
+
+    // Handle hidden state
+    if (hidden()) {
+      styles.display = "none";
+      return styles;
+    }
 
     if (grow != null) {
       styles["flex-grow"] = grow;
