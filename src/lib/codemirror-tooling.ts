@@ -79,6 +79,15 @@ export const tooltipTheme = EditorView.theme({
     ".cm-tooltip-autocomplete .completion-function .cm-completionLabel": {
         color: "var(--syntax-function) !important"
     },
+    ".cm-tooltip-autocomplete .completion-callable .cm-completionLabel": {
+        color: "var(--syntax-function) !important"
+    },
+    ".cm-tooltip-autocomplete .completion-class .cm-completionLabel": {
+        color: "var(--syntax-property) !important"
+    },
+    ".cm-tooltip-autocomplete .completion-module .cm-completionLabel": {
+        color: "var(--accent) !important"
+    },
     ".cm-tooltip-autocomplete .completion-property .cm-completionLabel": {
         color: "var(--syntax-property) !important"
     },

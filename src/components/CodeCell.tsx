@@ -209,14 +209,13 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                           const o = props.cell.outputs;
                           // Active/Hover/Edit state
                           if (props.isActive || props.cell.isEditing || hovered()) {
-                              if (!o) return "bg-gray-500";
-                              if (o.executionKernelId && o.executionKernelId !== kernel.id) return "bg-gray-500";
-                              if (o.error) return "bg-red-500";
-                              return "bg-green-500";
+                              if (!o) return "bg-foreground";
+                              if (o.executionKernelId && o.executionKernelId !== kernel.id) return "bg-foreground";
+                              if (o.error) return "bg-error";
+                              return "bg-success";
                           }
                           // Dimmed state - solid color to match border but opaque
-                          // Using a solid gray that approximates the border color
-                          return "bg-zinc-700"; 
+                          return "bg-foreground"; 
                       })()
                   )}></div>
               </div>
@@ -238,7 +237,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                       </span>
                   </Show>
                   <Show when={props.cell.outputs?.error}>
-                      <span class="text-[10px] font-bold text-red-500/70 select-none flex items-center gap-1">
+                      <span class="text-[10px] font-bold text-error/70 select-none flex items-center gap-1">
                           ! Error
                       </span>
                   </Show>

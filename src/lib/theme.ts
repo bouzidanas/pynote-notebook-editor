@@ -9,6 +9,10 @@ export interface Theme {
     accent: string;
     background: string;
     foreground: string;
+    success: string;
+    error: string;
+    warning: string;
+    info: string;
   };
   syntax: {
     function: string;
@@ -55,6 +59,10 @@ export const defaultTheme: Theme = {
     accent: "#89b4fa",
     background: "#1e1e2e",
     foreground: "rgba(205, 214, 244, 0.2)",
+    success: "#22c55e",
+    error: "#dc2626",
+    warning: "#eab308",
+    info: "#89dceb",
   },
   syntax: {
     function: "#a6e3a1",
@@ -150,11 +158,21 @@ export const initTheme = () => {
     const root = document.documentElement;
     root.style.setProperty("--font-mono", theme.font);
 
+    // Set base theme variables (--primary, --secondary, etc.)
+    // The @theme inline block in index.css will map these to --color-* for Tailwind utilities
     root.style.setProperty("--primary", theme.colors.primary);
     root.style.setProperty("--secondary", theme.colors.secondary);
     root.style.setProperty("--accent", theme.colors.accent);
     root.style.setProperty("--background", theme.colors.background);
     root.style.setProperty("--foreground", theme.colors.foreground);
+    root.style.setProperty("--success", theme.colors.success);
+    root.style.setProperty("--error", theme.colors.error);
+    root.style.setProperty("--warning", theme.colors.warning);
+    root.style.setProperty("--info", theme.colors.info);
+
+    // DaisyUI variables (not using @theme inline, set directly)
+    root.style.setProperty("--color-base-100", theme.colors.background);
+    root.style.setProperty("--color-base-content", theme.colors.secondary);
 
     root.style.setProperty("--syntax-function", theme.syntax.function);
     root.style.setProperty("--syntax-property", theme.syntax.property);

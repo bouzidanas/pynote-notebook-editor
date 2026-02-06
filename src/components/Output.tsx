@@ -531,7 +531,7 @@ export const OutputStderr: Component<OutputProps> = (props) => {
     <Show when={props.outputs?.stderr && props.outputs.stderr.length > 0}>
       <div class="flex flex-col gap-0 font-mono text-sm px-2 pb-2 pt-0 pl-1 border-foreground max-h-60 overflow-y-auto">
         <For each={props.outputs?.stderr}>
-          {(line) => <div class="text-primary whitespace-pre-wrap bg-primary/10 p-1 rounded-sm">{line}</div>}
+          {(line) => <div class="text-warning whitespace-pre-wrap bg-warning/10 p-1 rounded-sm">{line}</div>}
         </For>
       </div>
     </Show>
@@ -542,7 +542,7 @@ export const OutputError: Component<OutputProps> = (props) => {
   return (
     <Show when={props.outputs?.error}>
       <div class="flex flex-col gap-1 font-mono text-sm p-2 pl-1 border-foreground max-h-100 overflow-y-auto">
-        <div class="text-primary whitespace-pre-wrap font-bold bg-primary/20 p-2 rounded-sm">
+        <div class="text-error whitespace-pre-wrap font-bold bg-error/20 p-2 rounded-sm">
           {props.outputs?.error}
         </div>
       </div>

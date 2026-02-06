@@ -6,6 +6,13 @@ export const ComponentRegistry: Record<string, Component<any>> = {
   "Slider": lazy(() => import("./Slider")),
   "Text": lazy(() => import("./Text")),
   "Group": lazy(() => import("./Group")),
+  "Form": lazy(() => import("./Form")),
+  "Button": lazy(() => import("./Button")),
+  "Select": lazy(() => import("./Select")),
+  "Input": lazy(() => import("./Input")),
+  "Textarea": lazy(() => import("./Textarea")),
+  "Toggle": lazy(() => import("./Toggle")),
+  "Checkbox": lazy(() => import("./Checkbox")),
   
   // Chart components
   "Plot": lazy(() => import("./Plot")),           // Observable Plot - general purpose
