@@ -1,6 +1,18 @@
 > [!NOTE]
 > Update 2026-02-6: Added a suite of new UI components for the `pynote_ui` module, including form, toggle, input, textarea, and more. These components work with PyNote's theming system and come with extra features like size presets, theme-based color options, border styles, and the ability to show and hide them. The new Form component has the same flexible layout options as the Group component, allowing for easy arrangement of child components in rows or columns with customizable spacing while also supporting form submission handling. Check out the updated sections in the tutorial: [Interactive UI Part 1](https://pynote-notebook.vercel.app/?open=tutorial_ui_part1) and [Interactive UI Part 2](https://pynote-notebook.vercel.app/?open=tutorial_ui_part2) to learn how to use these new components effectively in your notebooks!
 
+> [!NOTE]
+> Update 2026-02-05: Added a suite of editing bells and whistles to the code editor including:
+> - Autocomplete suggestions with type info
+> - Function signature help while typing
+> - Multi-cursor support and multi-selection editing
+>   - Bracket matching and auto-closing
+>   - Match selection highlighting
+>   - Multi-match selection
+> - Find and replace
+> - Duplicate line/selection
+> - Line operations (move up/down, delete line)
+> - Tooltips for hover info about modules, functions, classes, and variables
 
 # PyNote Notebook Editor
 
