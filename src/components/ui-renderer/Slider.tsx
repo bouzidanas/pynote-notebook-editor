@@ -210,7 +210,7 @@ const Slider: Component<SliderProps> = (p) => {
         style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px ${headerBottomPadding()} ${sizeConfig().padding * 4}px` }}
       >
         <span class={`${sizeConfig().labelSize} font-semibold uppercase tracking-wider text-secondary/70`}>{p.props.label}</span>
-        <span class={`font-mono ${sizeConfig().valueSize} font-bold text-[${getColorVar()}]`}>{value()}</span>
+        <span class={`font-mono ${sizeConfig().valueSize} font-bold`} style={{ color: getColorVar() }}>{value()}</span>
       </div>
       
       <div 

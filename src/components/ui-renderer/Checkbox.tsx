@@ -6,7 +6,7 @@ interface CheckboxProps {
   props: {
     checked: boolean;
     label?: string | null;
-    color?: "primary" | "secondary" | "accent" | "neutral" | "success" | "warning" | "info" | "error" | null;
+    color?: "primary" | "secondary" | "accent" | "success" | "warning" | "info" | "error" | null;
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
     width?: string | number | null;
@@ -27,12 +27,12 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 14 };
-      case "sm": return { padding: 8, textSize: "text-xs", checkboxSize: 16 };
-      case "md": return { padding: 12, textSize: "text-sm", checkboxSize: 20 };
-      case "lg": return { padding: 14, textSize: "text-base", checkboxSize: 24 };
-      case "xl": return { padding: 16, textSize: "text-lg", checkboxSize: 28 };
-      default: return { padding: 12, textSize: "text-sm", checkboxSize: 20 };
+      case "xs": return { padding: 4, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 16 };
+      case "sm": return { padding: 6, textSize: "text-xs", checkboxSize: 20 };
+      case "md": return { padding: 8, textSize: "text-sm", checkboxSize: 24 };
+      case "lg": return { padding: 12, textSize: "text-base", checkboxSize: 28 };
+      case "xl": return { padding: 14, textSize: "text-lg", checkboxSize: 32 };
+      default: return { padding: 8, textSize: "text-sm", checkboxSize: 24 };
     }
   };
 
@@ -99,20 +99,45 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   // Unique class for scoped styles
   const checkboxClass = `checkbox-${componentId}`;
   
-  // Build checkbox classes
+  // Build checkbox classes - no DaisyUI class, fully custom styled
   const checkboxClasses = () => {
-    return [checkboxClass, "checkbox", "border-2", "border-foreground"].join(" ");
+    return checkboxClass;
   };
   
   // Generate color styles for checked state
   const generateColorStyles = () => {
-    const color = p.props.color;
-    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
+    const color = p.props.color ?? "primary"; // Default to primary
+    const colorVar = `var(--${color})`;
     
     return `
+      .${checkboxClass} {
+        appearance: none;
+        background-color: transparent;
+        border: 2px solid var(--foreground);
+        border-radius: 4px;
+        cursor: pointer;
+        position: relative;
+        display: inline-block;
+        flex-shrink: 0;
+      }
       .${checkboxClass}:checked {
         background-color: ${colorVar};
-        border-color: ${colorVar};
+        border: 2px solid ${colorVar};
+      }
+      .${checkboxClass}:checked::after {
+        content: '';
+        position: absolute;
+        left: 35%;
+        top: 10%;
+        width: 30%;
+        height: 60%;
+        border: solid var(--background);
+        border-width: 0 2.5px 2.5px 0;
+        transform: rotate(45deg);
+      }
+      .${checkboxClass}:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
     `;
   };
@@ -135,7 +160,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
         {generateColorStyles()}
       </style>
       <label 
-      class={`flex items-center gap-2 cursor-pointer font-mono text-secondary bg-base-200/50 border-2 border-foreground rounded-sm ${sizeConfig().textSize}`}
+      class={`flex items-center gap-2 cursor-pointer font-mono text-secondary border-2 border-foreground rounded-sm ${sizeConfig().textSize}`}
       style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
     >
       <input

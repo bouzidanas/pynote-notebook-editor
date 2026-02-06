@@ -2,8 +2,6 @@
 @import "@fontsource-variable/jetbrains-mono";
 
 @theme {
-  --font-mono: var(--font-mono);
-  
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
@@ -13,9 +11,6 @@
   --color-error: var(--error);
   --color-warning: var(--warning);
   --color-info: var(--info);
-  
-  --radius-lg: var(--radius-lg);
-  --radius-sm: var(--radius-sm);
   
   --breakpoint-xs: 30rem;
   --breakpoint-menu: 35rem;
@@ -27,12 +22,6 @@
 
 :root {
   --bg-color: #ffffff; /* Fallback */
-  
-  /* Default status colors (overridden by theme.ts) */
-  --success: #a6e3a1;
-  --error: #f38ba8;
-  --warning: #f9e2af;
-  --info: #89dceb;
 }
 
 html {

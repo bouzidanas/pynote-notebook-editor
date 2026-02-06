@@ -428,7 +428,7 @@ class Toggle(UIElement):
 
 
 class Checkbox(UIElement):
-    def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
+    def __init__(self, checked=False, label=None, color="primary", size=None, disabled=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._checked = checked
         self._disabled = disabled
