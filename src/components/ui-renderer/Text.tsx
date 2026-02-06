@@ -3,11 +3,11 @@ import { kernel } from "../../lib/pyodide";
 
 // Size presets for Text component - uses Tailwind's CSS variables
 const SIZE_PRESETS = {
-  xs: { padding: "p-1.5", textSize: "text-[length:var(--text-2xs)]" },
-  sm: { padding: "p-2", textSize: "text-xs" },
+  xs: { padding: "p-1.5", textSize: "text-[length:var(--text-3xs)]" },
+  sm: { padding: "p-2", textSize: "text-[length:var(--text-2xs)]" },
   md: { padding: "p-3", textSize: "text-sm" },
-  lg: { padding: "p-4", textSize: "text-base" },
-  xl: { padding: "p-5", textSize: "text-lg" },
+  lg: { padding: "p-4", textSize: "text-xl" },
+  xl: { padding: "p-5", textSize: "text-3xl" },
 } as const;
 
 interface TextProps {

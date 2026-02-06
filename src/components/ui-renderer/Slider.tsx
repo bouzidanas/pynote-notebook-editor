@@ -4,11 +4,11 @@ import { usePyNoteThemeStyles } from "./utils";
 
 // Size presets for custom slider styling
 const SIZE_PRESETS = {
-  xs: { trackHeight: 4, thumbSize: 10, padding: 2, labelSize: "text-[9px]", valueSize: "text-xs", tickSize: "text-[8px]", thumbOffset: -3 },
-  sm: { trackHeight: 5, thumbSize: 12, padding: 2, labelSize: "text-[10px]", valueSize: "text-xs", tickSize: "text-[9px]", thumbOffset: -3.5 },
-  md: { trackHeight: 7, thumbSize: 16, padding: 3, labelSize: "text-xs", valueSize: "text-sm", tickSize: "text-[10px]", thumbOffset: -4.5 },
-  lg: { trackHeight: 9, thumbSize: 20, padding: 4, labelSize: "text-xs", valueSize: "text-base", tickSize: "text-[11px]", thumbOffset: -5.5 },
-  xl: { trackHeight: 12, thumbSize: 26, padding: 5, labelSize: "text-sm", valueSize: "text-lg", tickSize: "text-xs", thumbOffset: -7 },
+  xs: { trackHeight: 4, thumbSize: 10, padding: 2, labelSize: "text-[7px]", valueSize: "text-[length:var(--text-3xs)]", tickSize: "text-[6px]", thumbOffset: -3 },
+  sm: { trackHeight: 5, thumbSize: 12, padding: 2, labelSize: "text-[8px]", valueSize: "text-[length:var(--text-2xs)]", tickSize: "text-[7px]", thumbOffset: -3.5 },
+  md: { trackHeight: 7, thumbSize: 16, padding: 3, labelSize: "text-xs", valueSize: "text-sm", tickSize: "text-[9px]", thumbOffset: -4.5 },
+  lg: { trackHeight: 9, thumbSize: 20, padding: 4, labelSize: "text-sm", valueSize: "text-xl", tickSize: "text-xs", thumbOffset: -5.5 },
+  xl: { trackHeight: 12, thumbSize: 26, padding: 5, labelSize: "text-base", valueSize: "text-3xl", tickSize: "text-sm", thumbOffset: -7 },
 } as const;
 
 interface SliderProps {

@@ -821,15 +821,81 @@ class Group(UIElement):
         self.send_update(overflow=value)
 
 
+class Form(UIElement):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=True, padding=None, gap=None, overflow=None, force_dimensions=False):
+        self.children = children
+        self._value = {}  # Dictionary of child values
+        
+        super().__init__(
+            children=[c.to_json() for c in children], 
+            layout=layout, 
+            label=label, 
+            width=width,
+            height=height,
+            align=align,
+            grow=grow,
+            shrink=shrink,
+            border=border,
+            padding=padding,
+            gap=gap,
+            overflow=overflow,
+            force_dimensions=force_dimensions
+        )
+
+    @property
+    def value(self):
+        """Get the collected form values (populated after submit)."""
+        return self._value
+
+    @property
+    def width(self):
+        return self.props.get("width")
+    
+    @width.setter
+    def width(self, value):
+        self.send_update(width=value)
+
+    @property
+    def height(self):
+        return self.props.get("height")
+    
+    @height.setter
+    def height(self, value):
+        self.send_update(height=value)
+
+    @property
+    def layout(self):
+        return self.props.get("layout")
+    
+    @layout.setter
+    def layout(self, value):
+        self.send_update(layout=value)
+        
+    @property
+    def label(self):
+        return self.props.get("label")
+    
+    @label.setter
+    def label(self, value):
+        self.send_update(label=value)
+
+    def handle_interaction(self, data):
+        """Handle form submission."""
+        if data.get("submitted"):
+            # Update internal value dictionary
+            self._value = data.get("values", {})
+        super().handle_interaction(data)
+
+
 class Button(UIElement):
-    def __init__(self, label="Button", color=None, style=None, size=None, disabled=False, loading=False,
+    def __init__(self, label="Button", button_type=None, color=None, style=None, size=None, disabled=False, loading=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
         self._label = label
         self._disabled = disabled
         self._loading = loading
         self._size = size
         super().__init__(
-            label=label, color=color, style=style, size=size, disabled=disabled, loading=loading,
+            label=label, button_type=button_type, color=color, style=style, size=size, disabled=disabled, loading=loading,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
         )
 

@@ -14,7 +14,8 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown *(you are here)* |
-| **[Interactive UI](?open=tutorial_ui)** | Sliders, text, groups, layouts, and display functions |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, styling, sizing, and borders |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms, and interactive communication |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
@@ -122,7 +123,7 @@ export const tutorialQuickstartCells: CellData[] = [
     {
         id: "tut-s1-view",
         type: "markdown",
-        content: "## Keyboard Shortcuts & View Features\n\nWork faster by keeping your hands on the keyboard:\n\n- **Ctrl/Cmd + Enter**: Run cell and stay.\n- **Shift + Enter**: Run and select next cell.\n- **Alt + Enter**: Run and insert new cell below.\n- **Alt + Backspace**: Clear cell output.\n- **Esc**: Exit Edit Mode (focus cell border).\n- **Enter**: Enter Edit Mode (focus editor).\n\n### Presentation Mode\nNeed to share your work? Use `Alt + P` or find **Presentation** (eye icon) in the View menu. This hides the toolbar and cell controls, giving you a clean, focused view of your content. Press `Esc` to exit."
+        content: "## Keyboard Shortcuts & View Features\n\nWork faster by keeping your hands on the keyboard! Here are the essential shortcuts:\n\n**Running Cells:**\n- **Ctrl/Cmd + Enter**: Run cell and stay\n- **Shift + Enter**: Run and select next cell\n- **Alt + Enter**: Run and insert new cell below\n\n**Navigation & Editing:**\n- **Enter**: Enter Edit Mode (when cell selected)\n- **Esc**: Exit Edit Mode (or deselect cell)\n- **↑/↓**: Navigate between cells (command mode)\n- **A** / **B**: Insert Above / Below (command mode)\n\n**File Operations:**\n- **Ctrl/Cmd + S**: Save notebook\n- **Ctrl/Cmd + O**: Open file\n- **Alt + N**: New notebook (in new tab)\n\n**View & Tools:**\n- **Alt + P**: Toggle Presentation Mode\n- **Alt + T**: Theme configuration\n- **Alt + V**: Code visibility settings\n- **Ctrl/Cmd + \\**: Show all keyboard shortcuts\n\n### Presentation Mode\nUse `Alt + P` or find **Presentation** (eye icon) in the View menu. This hides the toolbar and cell controls, giving you a clean, focused view. Press `Esc` to exit.\n\n### More Shortcuts\nPress **Ctrl + \\** (or **Cmd + \\** on Mac) to see the complete list of keyboard shortcuts, including:\n- Cell type conversion (Code ↔ Markdown)\n- Moving cells up/down\n- Clearing outputs\n- Kernel management\n- And many editor shortcuts (find, multi-select, etc.)"
     },
 
     // --- Section 1.6: Pyodide Features ---
@@ -158,7 +159,8 @@ You now know the basics of PyNote. Continue your learning:
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
-| **[Interactive UI](?open=tutorial_ui)** | Build reactive widgets with sliders, text, and groups |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, styling, colors, sizes, and borders |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms, deferred submission, and communication |
 | **[Charts & Plotting](?open=tutorial_charts)** | Create beautiful visualizations with Observable Plot, uPlot, and Frappe |
 | **[Reactive Execution](?open=tutorial_reactive)** | Auto-run dependent cells with DAG-based propagation |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |

@@ -1,5 +1,6 @@
 import { type Component, createSignal, onMount, onCleanup, For } from "solid-js";
 import { kernel } from "../../lib/pyodide";
+import { useFormContext } from "./FormContext";
 
 interface SelectProps {
   id: string;
@@ -21,12 +22,17 @@ interface SelectProps {
 
 const Select: Component<SelectProps> = (p) => {
   const componentId = p.id;
+  const formContext = useFormContext();
   const [value, setValue] = createSignal(p.props.value ?? "");
   const [options, setOptions] = createSignal(p.props.options ?? []);
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
 
   onMount(() => {
+    if (formContext) {
+      formContext.registerChild(componentId);
+    }
+    
     kernel.registerComponentListener(componentId, (data: any) => {
       if (data.value !== undefined) setValue(data.value);
       if (data.options !== undefined) setOptions(data.options);
@@ -36,6 +42,10 @@ const Select: Component<SelectProps> = (p) => {
   });
 
   onCleanup(() => {
+    if (formContext) {
+      formContext.unregisterChild(componentId);
+    }
+    
     kernel.unregisterComponentListener(componentId);
   });
 
@@ -43,7 +53,12 @@ const Select: Component<SelectProps> = (p) => {
     const target = e.currentTarget as HTMLSelectElement;
     const newValue = target.value;
     setValue(newValue);
-    kernel.sendInteraction(componentId, { value: newValue });
+    
+    if (formContext) {
+      formContext.setChildValue(componentId, newValue);
+    } else {
+      kernel.sendInteraction(componentId, { value: newValue });
+    }
   };
 
   // Normalize options to { label, value } format
@@ -103,11 +118,11 @@ const Select: Component<SelectProps> = (p) => {
   // Size presets - fontSize uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, fontSize: "var(--text-2xs)", iconSize: 8 };
-      case "sm": return { padding: 8, fontSize: "var(--text-xs)", iconSize: 10 };
+      case "xs": return { padding: 6, fontSize: "var(--text-3xs)", iconSize: 8 };
+      case "sm": return { padding: 8, fontSize: "var(--text-2xs)", iconSize: 10 };
       case "md": return { padding: 12, fontSize: "var(--text-sm)", iconSize: 12 };
-      case "lg": return { padding: 14, fontSize: "var(--text-base)", iconSize: 14 };
-      case "xl": return { padding: 16, fontSize: "var(--text-lg)", iconSize: 16 };
+      case "lg": return { padding: 14, fontSize: "var(--text-xl)", iconSize: 14 };
+      case "xl": return { padding: 16, fontSize: "var(--text-3xl)", iconSize: 16 };
       default: return { padding: 12, fontSize: "var(--text-sm)", iconSize: 12 };
     }
   };

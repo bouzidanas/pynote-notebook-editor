@@ -16,8 +16,9 @@
   --breakpoint-menu: 35rem;
   --breakpoint-lg: 56.25rem;
   
-  /* Extra small text size for xs UI components (83% of --text-xs) */
+  /* Extra small text sizes for UI components */
   --text-2xs: calc(var(--text-xs) * 0.833);
+  --text-3xs: calc(var(--text-xs) * 0.7);
 }
 
 :root {

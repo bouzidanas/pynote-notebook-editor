@@ -5,6 +5,7 @@ interface ButtonProps {
   id: string;
   props: {
     label: string;
+    button_type?: "default" | "primary" | "submit" | null;
     color?: "neutral" | "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error" | null;
     style?: "outline" | "dash" | "soft" | "ghost" | "link" | null;
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
@@ -17,6 +18,7 @@ interface ButtonProps {
     force_dimensions?: boolean;
     border?: boolean | string | null;
   };
+  onSubmit?: () => void;
 }
 
 const Button: Component<ButtonProps> = (p) => {
@@ -25,16 +27,17 @@ const Button: Component<ButtonProps> = (p) => {
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [loading, setLoading] = createSignal(p.props.loading ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
+  const buttonType = p.props.button_type ?? "default";
 
-  // Size presets
+  // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, fontSize: 10 };
-      case "sm": return { padding: 8, fontSize: 11 };
-      case "md": return { padding: 12, fontSize: 13 };
-      case "lg": return { padding: 14, fontSize: 15 };
-      case "xl": return { padding: 16, fontSize: 17 };
-      default: return { padding: 12, fontSize: 13 };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]" };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]" };
+      case "md": return { padding: 12, textSize: "text-sm" };
+      case "lg": return { padding: 14, textSize: "text-xl" };
+      case "xl": return { padding: 16, textSize: "text-3xl" };
+      default: return { padding: 12, textSize: "text-sm" };
     }
   };
 
@@ -53,7 +56,13 @@ const Button: Component<ButtonProps> = (p) => {
 
   const handleClick = () => {
     if (!disabled() && !loading()) {
-      kernel.sendInteraction(componentId, { clicked: true });
+      // If this is a submit button and we're in a form, trigger form submission
+      if (buttonType === "submit" && p.onSubmit) {
+        p.onSubmit();
+      } else {
+        // Normal button behavior - send interaction to Python with label for identification
+        kernel.sendInteraction(componentId, { clicked: true, label: label() });
+      }
     }
   };
 
@@ -109,7 +118,7 @@ const Button: Component<ButtonProps> = (p) => {
     const borderValue = p.props.border;
     const noBorder = borderValue === "none";
     
-    const classes = ["btn", "font-mono", "rounded-sm", buttonClass];
+    const classes = ["btn", "font-mono", "rounded-sm", buttonClass, sizeConfig().textSize];
     
     // Add non-border classes unless border="none"
     if (!noBorder) {
@@ -140,10 +149,31 @@ const Button: Component<ButtonProps> = (p) => {
     // Only apply color styling if not border="none"
     if (noBorder) return "";
     
+    // Primary type: always has background, hover brightens
+    // Maintain consistent font-weight since text is always light-on-dark
+    if (buttonType === "primary") {
+      return `
+        .${buttonClass} {
+          background-color: ${colorVar} !important;
+          color: var(--background) !important;
+          font-weight: 600 !important;
+        }
+        .${buttonClass}:hover {
+          filter: brightness(1.15);
+        }
+        .${buttonClass}:active {
+          filter: brightness(1.3);
+        }
+      `;
+    }
+    
+    // Default/Submit type: active state fills with color
+    // Increase font-weight to compensate for optical thinning effect of light-on-dark text
     return `
       .${buttonClass}:active {
         background-color: ${colorVar} !important;
         color: var(--background) !important;
+        font-weight: 600 !important;
       }
     `;
   };
@@ -151,6 +181,8 @@ const Button: Component<ButtonProps> = (p) => {
   // Generate border styles including hover/active states
   const generateBorderStyles = () => {
     const borderValue = p.props.border;
+    const color = p.props.color;
+    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
     
     if (borderValue === false) {
       // false: Remove all borders including interactions
@@ -179,10 +211,10 @@ const Button: Component<ButtonProps> = (p) => {
           border: ${borderValue};
         }
         .${buttonClass}:hover {
-          border-color: var(--primary);
+          border-color: ${colorVar};
         }
         .${buttonClass}:active {
-          border-color: var(--primary);
+          border-color: ${colorVar};
         }
       `;
     } else {
@@ -192,10 +224,10 @@ const Button: Component<ButtonProps> = (p) => {
           border: 2px solid var(--foreground);
         }
         .${buttonClass}:hover {
-          border-color: var(--primary);
+          border-color: ${colorVar};
         }
         .${buttonClass}:active {
-          border-color: var(--primary);
+          border-color: ${colorVar};
         }
       `;
     }
@@ -209,7 +241,7 @@ const Button: Component<ButtonProps> = (p) => {
       </style>
       <button
         class={buttonClasses()}
-        style={{ ...componentStyles(), padding: `${sizeConfig().padding}px`, "font-size": `${sizeConfig().fontSize}px` }}
+        style={{ ...componentStyles(), padding: `${sizeConfig().padding}px` }}
         onClick={handleClick}
         disabled={disabled() || loading()}
       >

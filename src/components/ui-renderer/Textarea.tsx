@@ -1,5 +1,6 @@
 import { type Component, createSignal, onMount, onCleanup } from "solid-js";
 import { kernel } from "../../lib/pyodide";
+import { useFormContext } from "./FormContext";
 
 interface TextareaProps {
   id: string;
@@ -21,6 +22,7 @@ interface TextareaProps {
 
 const Textarea: Component<TextareaProps> = (p) => {
   const componentId = p.id;
+  const formContext = useFormContext();
   const [value, setValue] = createSignal(p.props.value ?? "");
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
@@ -28,16 +30,20 @@ const Textarea: Component<TextareaProps> = (p) => {
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, textSize: "text-[length:var(--text-2xs)]" };
-      case "sm": return { padding: 8, textSize: "text-xs" };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]" };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]" };
       case "md": return { padding: 12, textSize: "text-sm" };
-      case "lg": return { padding: 14, textSize: "text-base" };
-      case "xl": return { padding: 16, textSize: "text-lg" };
+      case "lg": return { padding: 14, textSize: "text-xl" };
+      case "xl": return { padding: 16, textSize: "text-3xl" };
       default: return { padding: 12, textSize: "text-sm" };
     }
   };
 
   onMount(() => {
+    if (formContext) {
+      formContext.registerChild(componentId);
+    }
+    
     kernel.registerComponentListener(componentId, (data: any) => {
       if (data.value !== undefined) setValue(data.value);
       if (data.disabled !== undefined) setDisabled(data.disabled);
@@ -46,6 +52,10 @@ const Textarea: Component<TextareaProps> = (p) => {
   });
 
   onCleanup(() => {
+    if (formContext) {
+      formContext.unregisterChild(componentId);
+    }
+    
     kernel.unregisterComponentListener(componentId);
   });
 
@@ -53,7 +63,12 @@ const Textarea: Component<TextareaProps> = (p) => {
     const target = e.currentTarget as HTMLTextAreaElement;
     const newValue = target.value;
     setValue(newValue);
-    kernel.sendInteraction(componentId, { value: newValue });
+    
+    if (formContext) {
+      formContext.setChildValue(componentId, newValue);
+    } else {
+      kernel.sendInteraction(componentId, { value: newValue });
+    }
   };
 
   // Build combined styles for flex and dimensions

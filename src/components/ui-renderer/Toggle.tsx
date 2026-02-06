@@ -1,5 +1,6 @@
 import { type Component, createSignal, onMount, onCleanup, Show } from "solid-js";
 import { kernel } from "../../lib/pyodide";
+import { useFormContext } from "./FormContext";
 
 interface ToggleProps {
   id: string;
@@ -20,6 +21,7 @@ interface ToggleProps {
 
 const Toggle: Component<ToggleProps> = (p) => {
   const componentId = p.id;
+  const formContext = useFormContext();
   const [checked, setChecked] = createSignal(p.props.checked ?? false);
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
@@ -27,11 +29,11 @@ const Toggle: Component<ToggleProps> = (p) => {
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, textSize: "text-[length:var(--text-2xs)]", trackWidth: 28, trackHeight: 16, thumbSize: 12 };
-      case "sm": return { padding: 8, textSize: "text-xs", trackWidth: 36, trackHeight: 20, thumbSize: 16 };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", trackWidth: 28, trackHeight: 16, thumbSize: 12 };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", trackWidth: 36, trackHeight: 20, thumbSize: 16 };
       case "md": return { padding: 12, textSize: "text-sm", trackWidth: 44, trackHeight: 24, thumbSize: 20 };
-      case "lg": return { padding: 14, textSize: "text-base", trackWidth: 52, trackHeight: 28, thumbSize: 24 };
-      case "xl": return { padding: 16, textSize: "text-lg", trackWidth: 60, trackHeight: 32, thumbSize: 28 };
+      case "lg": return { padding: 14, textSize: "text-xl", trackWidth: 52, trackHeight: 28, thumbSize: 24 };
+      case "xl": return { padding: 16, textSize: "text-3xl", trackWidth: 60, trackHeight: 32, thumbSize: 28 };
       default: return { padding: 12, textSize: "text-sm", trackWidth: 44, trackHeight: 24, thumbSize: 20 };
     }
   };
@@ -45,6 +47,10 @@ const Toggle: Component<ToggleProps> = (p) => {
   };
 
   onMount(() => {
+    if (formContext) {
+      formContext.registerChild(componentId);
+    }
+    
     kernel.registerComponentListener(componentId, (data: any) => {
       if (data.checked !== undefined) setChecked(data.checked);
       if (data.disabled !== undefined) setDisabled(data.disabled);
@@ -53,6 +59,10 @@ const Toggle: Component<ToggleProps> = (p) => {
   });
 
   onCleanup(() => {
+    if (formContext) {
+      formContext.unregisterChild(componentId);
+    }
+    
     kernel.unregisterComponentListener(componentId);
   });
 
@@ -60,7 +70,12 @@ const Toggle: Component<ToggleProps> = (p) => {
     const target = e.currentTarget as HTMLInputElement;
     const newChecked = target.checked;
     setChecked(newChecked);
-    kernel.sendInteraction(componentId, { checked: newChecked });
+    
+    if (formContext) {
+      formContext.setChildValue(componentId, newChecked);
+    } else {
+      kernel.sendInteraction(componentId, { checked: newChecked });
+    }
   };
 
   // Build combined styles for flex and dimensions

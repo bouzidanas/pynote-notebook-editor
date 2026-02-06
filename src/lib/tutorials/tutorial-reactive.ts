@@ -14,7 +14,8 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
-| **[Interactive UI](?open=tutorial_ui)** | Sliders, text, groups, layouts, and display functions |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, styling, sizing, and borders |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms, and interactive communication |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies *(you are here)* |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |

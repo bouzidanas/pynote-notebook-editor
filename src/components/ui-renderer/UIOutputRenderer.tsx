@@ -8,6 +8,7 @@ interface UIOutputRendererProps {
     type: string;
     props: any;
   };
+  onSubmit?: () => void;
 }
 
 const UIOutputRenderer: Component<UIOutputRendererProps> = (props) => {
@@ -19,10 +20,10 @@ const UIOutputRenderer: Component<UIOutputRendererProps> = (props) => {
     <Show when={ComponentRegistry[props.data.type]} fallback={<div class="text-error text-xs p-2 border border-error rounded">Unknown UI Component: {props.data.type}</div>}>
       {(Comp) => isTimeSeries ? (
         <Suspense fallback={<div class="p-2 text-secondary text-sm">Loading...</div>}>
-          <Dynamic component={Comp()} id={props.data.id} props={props.data.props} />
+          <Dynamic component={Comp()} id={props.data.id} props={props.data.props} onSubmit={props.onSubmit} />
         </Suspense>
       ) : (
-        <Dynamic component={Comp()} id={props.data.id} props={props.data.props} />
+        <Dynamic component={Comp()} id={props.data.id} props={props.data.props} onSubmit={props.onSubmit} />
       )}
     </Show>
   );

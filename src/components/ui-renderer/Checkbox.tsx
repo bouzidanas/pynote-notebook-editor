@@ -1,5 +1,6 @@
 import { type Component, createSignal, onMount, onCleanup, Show } from "solid-js";
 import { kernel } from "../../lib/pyodide";
+import { useFormContext } from "./FormContext";
 
 interface CheckboxProps {
   id: string;
@@ -20,6 +21,7 @@ interface CheckboxProps {
 
 const Checkbox: Component<CheckboxProps> = (p) => {
   const componentId = p.id;
+  const formContext = useFormContext();
   const [checked, setChecked] = createSignal(p.props.checked ?? false);
   const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
   const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
@@ -27,16 +29,20 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 4, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 16 };
-      case "sm": return { padding: 6, textSize: "text-xs", checkboxSize: 20 };
-      case "md": return { padding: 8, textSize: "text-sm", checkboxSize: 24 };
-      case "lg": return { padding: 12, textSize: "text-base", checkboxSize: 28 };
-      case "xl": return { padding: 14, textSize: "text-lg", checkboxSize: 32 };
-      default: return { padding: 8, textSize: "text-sm", checkboxSize: 24 };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", checkboxSize: 16 };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 20 };
+      case "md": return { padding: 12, textSize: "text-sm", checkboxSize: 24 };
+      case "lg": return { padding: 14, textSize: "text-xl", checkboxSize: 28 };
+      case "xl": return { padding: 16, textSize: "text-3xl", checkboxSize: 32 };
+      default: return { padding: 12, textSize: "text-sm", checkboxSize: 24 };
     }
   };
 
   onMount(() => {
+    if (formContext) {
+      formContext.registerChild(componentId);
+    }
+    
     kernel.registerComponentListener(componentId, (data: any) => {
       if (data.checked !== undefined) setChecked(data.checked);
       if (data.disabled !== undefined) setDisabled(data.disabled);
@@ -45,6 +51,10 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   });
 
   onCleanup(() => {
+    if (formContext) {
+      formContext.unregisterChild(componentId);
+    }
+    
     kernel.unregisterComponentListener(componentId);
   });
 
@@ -52,7 +62,12 @@ const Checkbox: Component<CheckboxProps> = (p) => {
     const target = e.currentTarget as HTMLInputElement;
     const newChecked = target.checked;
     setChecked(newChecked);
-    kernel.sendInteraction(componentId, { checked: newChecked });
+    
+    if (formContext) {
+      formContext.setChildValue(componentId, newChecked);
+    } else {
+      kernel.sendInteraction(componentId, { checked: newChecked });
+    }
   };
 
   // Build combined styles for flex and dimensions

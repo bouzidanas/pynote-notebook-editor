@@ -14,7 +14,9 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
-| **[Interactive UI](?open=tutorial_ui)** | Sliders, text, groups, layouts, and display functions *(you are here)* |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, styling, sizing, and borders |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms, and interactive communication |
+| **[Interactive UI (Legacy)](?open=tutorial_ui)** | Original combined UI tutorial *(you are here)* |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
@@ -357,6 +359,8 @@ You now know how to build reactive interfaces with \`pynote_ui\`. Continue your 
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Updated tutorial with all components, styling, and borders |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms with deferred submission, and communication |
 | **[Charts & Plotting](?open=tutorial_charts)** | Create beautiful visualizations with Observable Plot, uPlot, and Frappe |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
