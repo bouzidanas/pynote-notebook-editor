@@ -247,6 +247,14 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       call(insertTableCommand.key, { row: 3, col: 3 });
   };
 
+  const insertCodeBlock = (language?: string) => {
+    if (language) {
+      call(createCodeBlockCommand.key, language);
+    } else {
+      call(createCodeBlockCommand.key);
+    }
+  };
+
 // --- External Signal Handling ---
   createEffect(() => {
     const action = props.cell.editorAction;
@@ -339,9 +347,20 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 <DropdownItem onClick={() => call(toggleInlineCodeCommand.key)}>
                     <div class="flex items-center gap-2"><Code size={16} /> Inline Code</div>
                 </DropdownItem>
-                <DropdownItem onClick={() => call(createCodeBlockCommand.key)}>
-                    <div class="flex items-center gap-2"><SquareCode size={16} /> Code Block</div>
-                </DropdownItem>
+                <DropdownNested label={<div class="flex items-center gap-2"><SquareCode size={16} /> Code Block</div>}>
+                    <DropdownItem onClick={() => insertCodeBlock()}>
+                        <div class="flex items-center gap-2">Plain</div>
+                    </DropdownItem>
+                    <DropdownItem onClick={() => insertCodeBlock('py')}>
+                        <div class="flex items-center gap-2">Python</div>
+                    </DropdownItem>
+                    <DropdownItem onClick={() => insertCodeBlock('js')}>
+                        <div class="flex items-center gap-2">JavaScript</div>
+                    </DropdownItem>
+                    <DropdownItem onClick={() => insertCodeBlock('diff')}>
+                        <div class="flex items-center gap-2">Diff</div>
+                    </DropdownItem>
+                </DropdownNested>
                 <DropdownItem onClick={insertImage}>
                     <div class="flex items-center gap-2"><Image size={16} /> Image</div>
                 </DropdownItem>
@@ -397,10 +416,28 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             <button onClick={() => call(toggleInlineCodeCommand.key)} class="btn-icon" title="Inline Code">
             <Code size={16} />
             </button>
-            {/* Code Block */}
-            <button onClick={() => call(createCodeBlockCommand.key)} class="btn-icon" title="Code Block">
-            <SquareCode size={16} />
-            </button>
+            {/* Code Block Dropdown */}
+            <Dropdown
+              align="right"
+              trigger={
+                <button class="btn-icon" title="Code Block">
+                  <SquareCode size={16} />
+                </button>
+              }
+            >
+                <DropdownItem onClick={() => insertCodeBlock()}>
+                    <div class="flex items-center gap-2">Plain</div>
+                </DropdownItem>
+                <DropdownItem onClick={() => insertCodeBlock('py')}>
+                    <div class="flex items-center gap-2">Python</div>
+                </DropdownItem>
+                <DropdownItem onClick={() => insertCodeBlock('js')}>
+                    <div class="flex items-center gap-2">JavaScript</div>
+                </DropdownItem>
+                <DropdownItem onClick={() => insertCodeBlock('diff')}>
+                    <div class="flex items-center gap-2">Diff</div>
+                </DropdownItem>
+            </Dropdown>
             {/* Image */}
             <button onClick={insertImage} class="btn-icon" title="Image">
             <Image size={16} />
