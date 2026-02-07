@@ -398,8 +398,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
       const position = undoDepth(view.state);
       
       if (currentReadOnly) {
-        // Exiting edit mode (becoming read-only) - close search panel and commit history
+        // Exiting edit mode (becoming read-only) - close search panel, blur, and commit history
         closeSearchPanel(view);
+        view.contentDOM.blur();
         actions.commitCodeCellEditSession(props.cell.id, position);
       } else {
         // Entering edit mode (becoming editable)

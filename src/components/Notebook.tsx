@@ -1000,7 +1000,14 @@ const Notebook: Component = () => {
     return {
       cells: notebookStore.cells.map(c => ({
         cell_type: c.type,
-        source: c.content.split('\n').map(l => l + '\n'),
+        source: (() => {
+          // Preserve trailing newline state (don't add unwanted trailing newlines)
+          if (!c.content) return [''];
+          const hasTrailing = c.content.endsWith('\n');
+          const lines = c.content.split('\n');
+          if (hasTrailing) lines.pop(); // Remove empty artifact from split
+          return lines.map((l, i) => l + (i < lines.length - 1 || hasTrailing ? '\n' : ''));
+        })(),
         outputs: [], 
         // Include cell metadata ONLY if it has codeview settings AND we're NOT saving global settings
         metadata: (c.metadata?.pynote?.codeview && !savingGlobalCodeview) ? {

@@ -47,6 +47,7 @@ import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import f
 import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete } from "lucide-solid";
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
+import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
 
 
 interface MarkdownEditorProps {
@@ -97,6 +98,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .use(clipboard)
       .use(listener)
       .use(sectionScopePlugin)
+      .use(codeBlockNavigationPlugin)
       .create()
       .then((editor) => {
         editorInstance = editor;
