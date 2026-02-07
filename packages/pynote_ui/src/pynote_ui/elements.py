@@ -70,6 +70,13 @@ class Slider(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 class Text(UIElement):
     """Display dynamic text content that can be updated programmatically.
     
@@ -124,6 +131,13 @@ class Text(UIElement):
     def size(self, new_size):
         self._size = new_size
         self.send_update(size=new_size)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 class Group(UIElement):
     """Layout container for arranging multiple UI components.
@@ -267,6 +281,13 @@ class Group(UIElement):
     def overflow(self, value):
         self.send_update(overflow=value)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Button(UIElement):
     """Clickable button with customizable styling and loading states.
@@ -354,15 +375,22 @@ class Button(UIElement):
             pass
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Select(UIElement):
-    """Dropdown selection menu with multiple options.
+    """Dropdown selection menu with multiple choices.
     
-    A dropdown component for selecting from a list of options. Updates immediately
-    when user makes a selection. Options can be strings or dicts with label/value pairs.
+    A dropdown component for selecting from a list of choices. Updates immediately
+    when user makes a selection. Choices can be strings or dicts with label/value pairs.
     
     Args:
-        options: List of options (strings or dicts like [{'label': 'A', 'value': 1}])
+        choices: List of choices (strings or dicts like [{'label': 'A', 'value': 1}])
         value: Initially selected value
         placeholder: Placeholder text when nothing selected
         color: Color theme ('primary', 'secondary', 'accent', etc.)
@@ -374,25 +402,25 @@ class Select(UIElement):
     
     Properties:
         value: Get/set selected value
-        options: Get/set available options
+        choices: Get/set available choices
         disabled: Get/set disabled state
         size: Get/set size preset
     
     Example:
-        country = Select(options=["USA", "UK", "Canada"], placeholder="Country")
+        country = Select(choices=["USA", "UK", "Canada"], placeholder="Country")
         print(country.value)  # Selected value
         country.value = "UK"  # Set selection programmatically
     """
-    def __init__(self, options=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
+    def __init__(self, choices=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
-        if options is None:
-            options = []
+        if choices is None:
+            choices = []
         self._value = value
-        self._options = options
+        self._choices = choices
         self._disabled = disabled
         self._size = size
         super().__init__(
-            options=options, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
+            options=choices, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
@@ -406,13 +434,13 @@ class Select(UIElement):
         self.send_update(value=new_value)
 
     @property
-    def options(self):
-        return self._options
+    def choices(self):
+        return self._choices
 
-    @options.setter
-    def options(self, new_options):
-        self._options = new_options
-        self.send_update(options=new_options)
+    @choices.setter
+    def choices(self, new_choices):
+        self._choices = new_choices
+        self.send_update(options=new_choices)
 
     @property
     def disabled(self):
@@ -437,6 +465,13 @@ class Select(UIElement):
             self._value = data["value"]
             self.props["value"] = self._value
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Input(UIElement):
@@ -510,6 +545,13 @@ class Input(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Textarea(UIElement):
     """Multi-line text input for longer content.
@@ -581,6 +623,13 @@ class Textarea(UIElement):
             self._value = data["value"]
             self.props["value"] = self._value
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Toggle(UIElement):
@@ -656,6 +705,13 @@ class Toggle(UIElement):
             self._checked = data["checked"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Checkbox(UIElement):
@@ -733,6 +789,13 @@ class Checkbox(UIElement):
             self.props["checked"] = self._checked
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        \"\"\"Update component properties after initialization\"\"\"
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 class Form(UIElement):
     """Form container that defers input updates until submission.
     
@@ -802,3 +865,10 @@ class Form(UIElement):
                 key = getattr(child, 'placeholder', child.__class__.__name__.lower())
                 result[key] = child.value
         return result
+
+    def options(self, **kwargs):
+        \"\"\"Update component properties after initialization\"\"\"
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self

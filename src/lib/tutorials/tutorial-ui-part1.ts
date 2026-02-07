@@ -163,7 +163,7 @@ Group([notes, char_count])`
         content: `from pynote_ui import Select, Text, Group
 
 lang_select = Select(
-    options=["Python", "JavaScript", "TypeScript", "Rust", "Go"],
+    choices=["Python", "JavaScript", "TypeScript", "Rust", "Go"],
     placeholder="Choose a language",
     grow=1
 )
@@ -295,7 +295,7 @@ size_label = Text(content="Size:", size="md")
 
 # Size selector
 size_picker = Select(
-    options=["xs", "sm", "md", "lg", "xl"],
+    choices=["xs", "sm", "md", "lg", "xl"],
     placeholder="Choose size",
     color="primary"
 )
@@ -391,7 +391,7 @@ print("Borderless components:")
 Group([
     Button(label="No Border", border=False),
     Input(placeholder="No border input", border=False, grow=1),
-    Select(options=["A", "B", "C"], value="A", border=False, grow=1),
+    Select(choices=["A", "B", "C"], value="A", border=False, grow=1),
 ], layout="row", border=False, padding=16, gap=3)`
     },
     {
@@ -432,7 +432,7 @@ border_options = [
 # Controls
 border_label = Text(content="border = ", width="fit-content", border=False)
 border_select = Select(
-    options=border_options,
+    choices=border_options,
     value="True",
     width="fit-content"
 )
@@ -453,7 +453,7 @@ initial_border = True
 slider = Slider(min=0, max=100, value=50, label="Slider", border=initial_border, width="100%")
 text = Text(content="Text Component", border=initial_border, width="100%", align_h="center")
 input_box = Input(placeholder="Input field", border=initial_border, width="100%")
-select = Select(options=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
+select = Select(choices=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
 
 # Column 2 components
 textarea = Textarea(placeholder="Textarea field", rows=3, border=initial_border, width="100%")

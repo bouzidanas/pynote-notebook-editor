@@ -425,7 +425,7 @@ contact_form`
 
 # Create form components
 username = Input(placeholder="Username", grow=1)
-role = Select(options=["User", "Admin", "Guest"], placeholder="Select role", grow=1)
+role = Select(choices=["User", "Admin", "Guest"], placeholder="Select role", grow=1)
 agree = Checkbox(label="I agree to terms", checked=False)
 submit = Button(label="Register", button_type="submit", color="success")
 output = Text(content="", hidden=True)  # Start hidden
@@ -484,7 +484,7 @@ Group([
 full_name = Input(placeholder="Full name", grow=1)
 email = Input(placeholder="Email", input_type="email", grow=1)
 country = Select(
-    options=["USA", "UK", "Canada", "Australia", "Other"],
+    choices=["USA", "UK", "Canada", "Australia", "Other"],
     placeholder="Country",
     grow=1
 )
@@ -544,22 +544,22 @@ user_form`
 
 print("Setting up controls...")
 
-vol_slider = Slider(value=75, label="Volume", width="100%")
-status_text = Text(content="Volume: 75%")
-volume_reset_btn = Button(label="Reset")
+display_vol_slider = Slider(value=75, label="Volume", width="100%")
+display_status = Text(content="Volume: 75%")
+display_reset_btn = Button(label="Reset")
 
-def update_volume(data):
-    status_text.content = f"Volume: {int(data['value'])}%"
+def update_display_volume(data):
+    display_status.content = f"Volume: {int(data['value'])}%"
 
-def reset_volume(data):
-    vol_slider.value = 50
-    status_text.content = "Volume: 50%"
+def reset_display_volume(data):
+    display_vol_slider.value = 50
+    display_status.content = "Volume: 50%"
 
-vol_slider.on_update(update_volume)
-volume_reset_btn.on_update(reset_volume)
+display_vol_slider.on_update(update_display_volume)
+display_reset_btn.on_update(reset_display_volume)
 
 # Display components inline
-display(vol_slider, status_text, volume_reset_btn)
+display(display_vol_slider, display_status, display_reset_btn)
 
 print("☝️ Components displayed inline in the output")`
     },
@@ -652,29 +652,30 @@ print("☝️ Now move the slider in Cell 1 - this text updates!")`
         content: `from pynote_ui import Group, Slider, Select, Toggle, Button, Text
 
 # Create settings controls
-volume = Slider(value=70, label="Volume", grow=1)
+volume = Slider(value=70, label="Volume", grow=1, width="100%")
 quality = Select(
-    options=["Low", "Medium", "High", "Ultra"],
+    choices=["Low", "Medium", "High", "Ultra"],
     value="High",
-    grow=1
+    grow=1, width="100%"
 )
-auto_play = Toggle(label="Auto-play next video", checked=True)
-subtitles = Toggle(label="Show subtitles", checked=False)
+auto_play = Toggle(label="Auto-play next video", checked=True, width="100%", reverse=True, spaced=True)
+subtitles = Toggle(label="Show subtitles", checked=False, width="100%", reverse=True, spaced=True)
 
-save_btn = Button(label="Save Settings", color="primary")
+save_btn = Button(label="Save Settings", color="primary", background="primary")
 settings_reset_btn = Button(label="Reset to Defaults", style="outline")
 
-status_text = Text(content="")
+status_text = Text(content="", hidden=True)
 
 def save_settings(data):
     status_text.content = f"✅ Saved: Volume {int(volume.value)}%, Quality: {quality.value}"
+    status_text.show()
 
 def reset_settings(data):
     volume.value = 70
     quality.value = "High"
     auto_play.checked = True
     subtitles.checked = False
-    status_text.content = "↺ Reset to defaults"
+    status_text.hide()
 
 save_btn.on_update(save_settings)
 settings_reset_btn.on_update(reset_settings)
@@ -682,11 +683,11 @@ settings_reset_btn.on_update(reset_settings)
 # Build the interface
 Group([
     Group([
-        Text(content="Volume", size="sm"),
+        Text(content="VOLUME", size="sm", width="100%", border=False),
         volume
     ]),
     Group([
-        Text(content="Quality", size="sm"),
+        Text(content="QUALITY", size="sm", width="100%", border=False),
         quality
     ]),
     Group([auto_play, subtitles]),

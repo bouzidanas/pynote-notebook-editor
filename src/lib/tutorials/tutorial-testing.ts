@@ -43,7 +43,7 @@ border_options = [
 # Controls
 border_label = Text(content="border = ", width="fit-content", border=False)
 border_select = Select(
-    options=border_options,
+    choices=border_options,
     value="True",
     width="fit-content"
 )
@@ -64,7 +64,7 @@ initial_border = True
 slider = Slider(min=0, max=100, value=50, label="Slider", border=initial_border, width="100%")
 text = Text(content="Text Component", border=initial_border, width="100%", align_h="center")
 input_box = Input(placeholder="Input field", border=initial_border, width="100%")
-select = Select(options=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
+select = Select(choices=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
 
 # Column 2 components
 textarea = Textarea(placeholder="Textarea field", rows=3, border=initial_border, width="100%")
@@ -149,7 +149,7 @@ size_options = ["xs", "sm", "md", "lg", "xl"]
 # Controls
 size_label = Text(content="size = ", width="fit-content", size="md", border=False)
 size_select = Select(
-    options=size_options,
+    choices=size_options,
     value="md",
     width="fit-content",
     size="md"
@@ -162,7 +162,7 @@ initial_size = "md"
 size_slider = Slider(min=0, max=100, value=50, label="Slider", size=initial_size, width="100%")
 size_text = Text(content="Text Component", size=initial_size, width="100%", align_h="center")
 size_input = Input(placeholder="Input field", size=initial_size, width="100%")
-size_select_comp = Select(options=["Option A", "Option B", "Option C"], value="Option A", size=initial_size, width="100%")
+size_select_comp = Select(choices=["Option A", "Option B", "Option C"], value="Option A", size=initial_size, width="100%")
 
 # Column 2 components
 size_textarea = Textarea(placeholder="Textarea field", rows=3, size=initial_size, width="100%")
@@ -246,9 +246,9 @@ def to_bool(val):
     return val == "True"
 
 # Create control selects
-align_select = Select(options=align_options, value="left", width="fit-content")
-reverse_select = Select(options=bool_options, value="False", width="fit-content")
-spaced_select = Select(options=bool_options, value="False", width="fit-content")
+align_select = Select(choices=align_options, value="left", width="fit-content")
+reverse_select = Select(choices=bool_options, value="False", width="fit-content")
+spaced_select = Select(choices=bool_options, value="False", width="fit-content")
 
 # Controls layout
 controls_group = Group([
@@ -361,7 +361,7 @@ background_options = [
 # Controls
 bg_label = Text(content="background = ", width="fit-content", border=False, background=False)
 bg_select = Select(
-    options=background_options,
+    choices=background_options,
     value="True",
     width="fit-content"
 )
@@ -382,7 +382,7 @@ initial_bg = True
 bg_slider = Slider(min=0, max=100, value=50, label="Slider", background=initial_bg, width="100%")
 bg_text = Text(content="Text Component", background=initial_bg, width="100%", align_h="center")
 bg_input = Input(placeholder="Input field", background=initial_bg, width="100%")
-bg_select_comp = Select(options=["Option A", "Option B", "Option C"], value="Option A", background=initial_bg, width="100%")
+bg_select_comp = Select(choices=["Option A", "Option B", "Option C"], value="Option A", background=initial_bg, width="100%")
 
 # Column 2 components
 bg_textarea = Textarea(placeholder="Textarea field", rows=3, background=initial_bg, width="100%")
@@ -444,5 +444,80 @@ Group([
 - [ ] Custom colors (hex, rgba) work as expected
 - [ ] CSS gradients apply correctly
 - [ ] Group background updates independently`
+    },
+
+    // === .options() Method Test ===
+    {
+        id: "test-options-header",
+        type: "markdown",
+        content: `## Test 5: \`.options()\` Method
+
+Test the new \`.options()\` method for cleaner post-initialization property updates.`
+    },
+    {
+        id: "test-options-code",
+        type: "code",
+        content: `from pynote_ui import Slider, Button, Text, Group, Select
+
+# Create components with minimal initialization
+volume = Slider(value=50)
+theme = Select(choices=["Default", "Dark", "Light"], value="Default")
+status = Text(content="Ready")
+apply_btn = Button(label="Apply Settings")
+
+# Use .options() to configure styling after creation
+volume.options(label="Volume Control", width="100%", color="primary", size="lg")
+theme.options(width="100%", color="secondary", size="lg")
+status.options(width="100%", border="2px solid blue", size="lg")
+apply_btn.options(color="success", width="100%")
+
+def apply_settings(data):
+    status.content = f"Applied! Volume: {int(volume.value)}, Theme: {theme.value}"
+    # Can also chain .options() calls
+    status.options(color="success", border="2px solid green")
+
+apply_btn.on_update(apply_settings)
+
+Group([
+    volume,
+    theme,
+    status,
+    apply_btn
+], label=".options() Method Demo", border=True, gap=2)`
+    },
+    {
+        id: "test-options-notes",
+        type: "markdown",
+        content: `### Expected Behavior
+
+- All components should render with styling applied via \`.options()\`
+- Volume slider: labeled, full width, primary color, large
+- Theme select: full width, secondary color, large
+- Status text: full width, blue border, large
+- Apply button: full width, success color
+- Clicking Apply should update status text and change border to green
+
+### Benefits of \`.options()\`
+
+1. **Cleaner Code**: Separate data from styling
+2. **Method Chaining**: Returns self for chaining calls
+3. **Conditional Styling**: Easily apply styles based on logic
+4. **Programmatic Configuration**: Perfect for dynamic UIs
+
+**Example Comparison:**
+
+\`\`\`python
+# Old way
+slider = Slider(value=50, label="Volume", width="100%", color="primary", size="lg")
+
+# New way with .options()
+slider = Slider(value=50)
+slider.options(label="Volume", width="100%", color="primary", size="lg")
+
+# Or chained
+slider = Slider(value=50).options(label="Volume", width="100%", color="primary", size="lg")
+\`\`\`
+
+Both ways work! Use whichever is clearer for your use case.`
     }
 ];
