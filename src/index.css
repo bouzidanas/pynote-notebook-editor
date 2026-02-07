@@ -300,6 +300,15 @@ select:-webkit-autofill:active {
     margin-bottom: var(--block-margin) !important;
     overflow-x: auto;
 }
+/* Reduce margins when pre is at edges of container */
+.prose pre:first-child,
+.milkdown .editor pre:first-child {
+    margin-top: 0.5rem !important;
+}
+.prose pre:last-child,
+.milkdown .editor pre:last-child {
+    margin-bottom: 0.5rem !important;
+}
 .prose pre code,
 .milkdown .editor pre code {
     background-color: transparent !important;
