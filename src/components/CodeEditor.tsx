@@ -6,7 +6,7 @@ import { EditorView, keymap, placeholder, lineNumbers, drawSelection, Decoration
 import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo, toggleComment, deleteLine, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
 import { EditorState, StateField, Range, RangeSet, EditorSelection } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
-import { bracketMatching, matchBrackets } from "@codemirror/language";
+import { bracketMatching, matchBrackets, indentOnInput, indentUnit } from "@codemirror/language";
 import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
 import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
 import { currentTheme } from "../lib/theme";
@@ -516,6 +516,10 @@ const CodeEditor: Component<EditorProps> = (props) => {
     history(),
     // Auto-close brackets and quotes
     closeBrackets(),
+    // Set indent size to 4 spaces
+    indentUnit.of("    "),
+    // Enable automatic indentation on input (e.g., after def, if, for, etc.)
+    indentOnInput(),
     // Bracket matching highlight
     bracketMatching({
       afterCursor: true,
