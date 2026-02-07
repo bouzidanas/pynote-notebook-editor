@@ -78,12 +78,17 @@ class StateManager:
     @classmethod
     def send_update(cls, uid, data):
         """Send component state updates to the frontend."""
+        print(f"[StateManager] send_update called: uid={uid[:8]}, data={data}")
         if cls._comm_target:
             try:
                 cls._comm_target(uid, data)
+                print(f"[StateManager] Update sent successfully")
             except Exception as e:
-                # Fallback or error logging if needed
-                pass
+                print(f"[StateManager] ERROR sending update: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"[StateManager] WARNING: No comm target registered!")
 
 class UIElement:
     """Base class for all interactive UI components.

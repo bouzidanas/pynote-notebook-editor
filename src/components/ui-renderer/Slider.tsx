@@ -1,6 +1,7 @@
-import { type Component, createEffect, createSignal, onMount, onCleanup } from "solid-js";
+import { type Component, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import { kernel } from "../../lib/pyodide";
 import { usePyNoteThemeStyles } from "./utils";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 // Size presets for custom slider styling
 const SIZE_PRESETS = {
@@ -25,42 +26,41 @@ interface SliderProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
-    border?: boolean | string | null;
-    color?: string | null;
+    border?: boolean | string | null;  // true/false, preset name (primary/secondary/etc), or custom CSS border string
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
+    background?: boolean | string | null;
     hidden?: boolean;
   };
 }
 
 const Slider: Component<SliderProps> = (p) => {
   const componentId = p.id;
-  const [value, setValue] = createSignal(p.props.value);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  const [allProps, setAllProps] = createSignal(p.props);
   let containerRef: HTMLDivElement | undefined;
+  
+  // Reactive accessors
+  const value = () => allProps().value;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
   
   // Get size preset (default to md)
   const sizeConfig = () => SIZE_PRESETS[size()];
-  
-  createEffect(() => {
-    setValue(p.props.value);
-  });
 
   const percentage = () => {
-      const min = p.props.min;
-      const max = p.props.max;
+      const min = allProps().min;
+      const max = allProps().max;
       if (max === min) return 0;
       return ((value() - min) / (max - min)) * 100;
   };
 
+  // Keep allProps in sync with parent props
+  createEffect(() => {
+    setAllProps(p.props);
+  });
+
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
-        if (typeof data.value === "number") {
-            setValue(data.value);
-        }
-        if (data.size !== undefined) {
-            setSize(data.size ?? "md");
-        }
-        if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps(prev => ({ ...prev, ...data }));
     });
   });
 
@@ -71,25 +71,21 @@ const Slider: Component<SliderProps> = (p) => {
   const handleInput = (e: InputEvent) => {
     const target = e.currentTarget as HTMLInputElement;
     const val = parseFloat(target.value);
-    setValue(val);
+    setAllProps(prev => ({ ...prev, value: val }));
     kernel.sendInteraction(componentId, { value: val });
   };
   
   const sliderClass = `slider-${componentId}`;
   
-  // Get color variable for thumb, track fill, and value text
-  const getColorVar = () => {
-    const color = p.props.color;
-    if (color === "neutral") return "var(--foreground)";
-    return color ? `var(--${color})` : "var(--primary)";
-  };
+  // Get color for thumb, track fill, and value text
+  const colorValue = () => resolveColor(allProps().color, "primary");
   
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
     
     // Handle hidden state
     if (hidden()) {
@@ -111,8 +107,9 @@ const Slider: Component<SliderProps> = (p) => {
     }
     
     // Width dimension
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -123,8 +120,9 @@ const Slider: Component<SliderProps> = (p) => {
     }
     
     // Height dimension
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -136,25 +134,23 @@ const Slider: Component<SliderProps> = (p) => {
   };
   
   // Determine border styling
-  const borderValue = () => p.props.border;
+  const borderValue = () => allProps().border;
   const outerBorderClass = () => {
     const border = borderValue();
-    return (border === false || border === "none") ? "" : "border-2 border-foreground";
+    // Only use Tailwind classes when border is explicitly true (default styling)
+    return border === true ? "border-2 border-foreground" : "";
   };
-  const outerBorderStyle = () => {
-    const border = borderValue();
-    if (border === false || border === "none") {
-      return { border: "none" };
-    } else if (border && typeof border === 'string') {
-      return { border };
-    }
-    return {};
-  };
+  const outerBorderStyle = () => resolveBorder(allProps().border);
   
   // Header divider border class and padding
   const headerBorderClass = () => {
     const border = borderValue();
-    return border === false ? "" : "border-b-2 border-foreground";
+    // Only use Tailwind classes when border is explicitly true (default styling)
+    return border === true ? "border-b-2 border-foreground" : "";
+  };
+  const headerBorderStyle = () => {
+    const { border } = resolveBorder(allProps().border);
+    return border ? { "border-bottom": border } : {};
   };
   const headerBottomPadding = () => {
     const border = borderValue();
@@ -168,7 +164,7 @@ const Slider: Component<SliderProps> = (p) => {
     <div 
         ref={containerRef}
         class={`flex flex-col ${outerBorderClass()} rounded-sm bg-base-100/30 overflow-hidden`}
-        style={{ ...usePyNoteThemeStyles(() => containerRef), ...componentStyles(), ...outerBorderStyle() }}
+        style={{ ...usePyNoteThemeStyles(() => containerRef), ...componentStyles(), ...outerBorderStyle(), ...resolveBackground(allProps().background) }}
     >
       <style>
         {`
@@ -184,7 +180,7 @@ const Slider: Component<SliderProps> = (p) => {
             appearance: none;
             height: ${sizeConfig().thumbSize}px;
             width: ${sizeConfig().thumbSize}px;
-            background: ${getColorVar()} !important;
+            background: ${colorValue()} !important;
             border-radius: 50%;
             border: none !important;
             box-shadow: none !important;
@@ -201,13 +197,13 @@ const Slider: Component<SliderProps> = (p) => {
           }
           .${sliderClass}::-moz-range-progress {
             height: ${sizeConfig().trackHeight}px;
-            background: ${getColorVar()} !important;
+            background: ${colorValue()} !important;
             border-radius: var(--radius-sm);
           }
           .${sliderClass}::-moz-range-thumb {
             height: ${sizeConfig().thumbSize}px;
             width: ${sizeConfig().thumbSize}px;
-            background: ${getColorVar()} !important;
+            background: ${colorValue()} !important;
             border: none !important;
             border-radius: 50%;
             box-shadow: none !important;
@@ -216,10 +212,10 @@ const Slider: Component<SliderProps> = (p) => {
       </style>
       <div 
         class={`flex items-center justify-between gap-3 bg-base-200/50 ${headerBorderClass()}`}
-        style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px ${headerBottomPadding()} ${sizeConfig().padding * 4}px` }}
+        style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px ${headerBottomPadding()} ${sizeConfig().padding * 4}px`, ...headerBorderStyle() }}
       >
-        <span class={`${sizeConfig().labelSize} font-semibold uppercase tracking-wider text-secondary/70`}>{p.props.label}</span>
-        <span class={`font-mono ${sizeConfig().valueSize} font-bold`} style={{ color: getColorVar() }}>{value()}</span>
+        <span class={`${sizeConfig().labelSize} font-semibold uppercase tracking-wider text-secondary/70`}>{allProps().label}</span>
+        <span class={`font-mono ${sizeConfig().valueSize} font-bold`} style={{ color: colorValue() }}>{value()}</span>
       </div>
       
       <div 
@@ -228,22 +224,22 @@ const Slider: Component<SliderProps> = (p) => {
       >
           <input 
             type="range" 
-            min={p.props.min} 
-            max={p.props.max} 
+            min={allProps().min} 
+            max={allProps().max} 
             value={value()} 
-            step={p.props.step}
+            step={allProps().step}
             class={`w-full cursor-pointer focus:outline-none ${sliderClass}`} 
             onInput={handleInput}
             style={{
                 "appearance": "none",
                 "-webkit-appearance": "none",
                 "background": "transparent",
-                "--slider-gradient": `linear-gradient(to right, ${getColorVar()} 0%, ${getColorVar()} ${percentage()}%, var(--foreground) ${percentage()}%, var(--foreground) 100%)`
+                "--slider-gradient": `linear-gradient(to right, ${colorValue()} 0%, ${colorValue()} ${percentage()}%, var(--foreground) ${percentage()}%, var(--foreground) 100%)`
             }}
           />
           <div class="flex justify-between w-full px-0.5 mt-1">
-            <span class={`${sizeConfig().tickSize} font-mono text-secondary/40`}>{p.props.min}</span>
-            <span class={`${sizeConfig().tickSize} font-mono text-secondary/40`}>{p.props.max}</span>
+            <span class={`${sizeConfig().tickSize} font-mono text-secondary/40`}>{allProps().min}</span>
+            <span class={`${sizeConfig().tickSize} font-mono text-secondary/40`}>{allProps().max}</span>
           </div>
       </div>
     </div>

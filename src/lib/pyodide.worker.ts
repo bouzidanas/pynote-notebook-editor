@@ -572,8 +572,11 @@ class StateManager:
             try:
                 cls._comm_target(uid, data)
             except Exception as e:
-                # Fallback or error logging if needed
-                pass
+                print(f"[StateManager] ERROR sending update: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"[StateManager] WARNING: No comm target registered!")
 
 class UIElement:
     def __init__(self, **kwargs):
@@ -737,7 +740,7 @@ from .core import UIElement
 
 class Slider(UIElement):
     def __init__(self, value=0, min=0, max=100, step=1, label="Slider", size=None,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, color=None, hidden=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, color=None, hidden=False):
         self._value = value
         self._size = size
         self.min = min
@@ -746,7 +749,7 @@ class Slider(UIElement):
         self.label = label
         super().__init__(
             value=value, min=min, max=max, step=step, label=label, size=size,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, color=color, hidden=hidden
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, color=color, hidden=hidden
         )
 
     @property
@@ -778,14 +781,21 @@ class Slider(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 class Text(UIElement):
-    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, color=None, hidden=False):
+    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, background=True, color=None, hidden=False):
         self._content = content
         self._size = size
         super().__init__(
             content=content, size=size,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
-            align_h=align_h, align_v=align_v, border=border, color=color, hidden=hidden
+            align_h=align_h, align_v=align_v, border=border, background=background, color=color, hidden=hidden
         )
 
     @property
@@ -806,8 +816,15 @@ class Text(UIElement):
         self._size = new_size
         self.send_update(size=new_size)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 class Group(UIElement):
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, background=True, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
         self.children = children
 
         super().__init__(
@@ -820,6 +837,7 @@ class Group(UIElement):
             grow=grow,
             shrink=shrink,
             border=border,
+            background=background,
             padding=padding,
             gap=gap,
             overflow=overflow,
@@ -915,9 +933,16 @@ class Group(UIElement):
     def overflow(self, value):
         self.send_update(overflow=value)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Form(UIElement):
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=True, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=True, background=True, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
         self.children = children
         self._value = {}  # Dictionary of child values
         
@@ -931,6 +956,7 @@ class Form(UIElement):
             grow=grow,
             shrink=shrink,
             border=border,
+            background=background,
             padding=padding,
             gap=gap,
             overflow=overflow,
@@ -982,17 +1008,24 @@ class Form(UIElement):
             self._value = data.get("values", {})
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Button(UIElement):
     def __init__(self, label="Button", button_type=None, color=None, style=None, size=None, disabled=False, loading=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._label = label
         self._disabled = disabled
         self._loading = loading
         self._size = size
         super().__init__(
             label=label, button_type=button_type, color=color, style=style, size=size, disabled=disabled, loading=loading,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
 
     @property
@@ -1036,19 +1069,26 @@ class Button(UIElement):
             pass
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Select(UIElement):
-    def __init__(self, options=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
-        if options is None:
-            options = []
+    def __init__(self, choices=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
+        if choices is None:
+            choices = []
         self._value = value
-        self._options = options
+        self._choices = choices
         self._disabled = disabled
         self._size = size
         super().__init__(
-            options=options, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
+            options=choices, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
 
     @property
@@ -1061,13 +1101,13 @@ class Select(UIElement):
         self.send_update(value=new_value)
 
     @property
-    def options(self):
-        return self._options
+    def choices(self):
+        return self._choices
 
-    @options.setter
-    def options(self, new_options):
-        self._options = new_options
-        self.send_update(options=new_options)
+    @choices.setter
+    def choices(self, new_choices):
+        self._choices = new_choices
+        self.send_update(options=new_choices)
 
     @property
     def disabled(self):
@@ -1093,16 +1133,23 @@ class Select(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Input(UIElement):
     def __init__(self, value="", placeholder="", input_type="text", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, input_type=input_type, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
 
     @property
@@ -1138,16 +1185,23 @@ class Input(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Textarea(UIElement):
     def __init__(self, value="", placeholder="", rows=4, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, rows=rows, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
 
     @property
@@ -1183,16 +1237,25 @@ class Textarea(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Toggle(UIElement):
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
+                 align=None, spaced=False, reverse=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
+            align=align, spaced=spaced, reverse=reverse,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
 
     @property
@@ -1231,17 +1294,26 @@ class Toggle(UIElement):
             self._checked = data["value"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Checkbox(UIElement):
     def __init__(self, checked=False, label=None, color="primary", size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, hidden=False):
+                 align=None, spaced=False, reverse=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, hidden=hidden
+            align=align, spaced=spaced, reverse=reverse,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
 
     @property
@@ -1280,6 +1352,13 @@ class Checkbox(UIElement):
             self._checked = data["value"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 `);
         pyodide.FS.writeFile("pynote_ui/oplot.py", `
 """

@@ -56,7 +56,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-demo-sizes",
         type: "code",
-        content: "from pynote_ui import Slider, Text, Select, Group\n\n# Components with dynamic size - start at 'md'\nsize_slider = Slider(value=50, label=\"Sample Slider\", size=\"md\", grow=1)\nsize_text = Text(content=\"Sample Text Display\", size=\"md\", grow=1)\n\n# Size selector with placeholder\nsize_select = Select(\n    options=[\"xs\", \"sm\", \"md\", \"lg\", \"xl\"],\n    placeholder=\"Choose a size\",\n    color=\"primary\"\n)\n\n# Status text\ncurrent_size = Text(content=\"Select a size to update all components\", size=\"sm\")\n\ndef on_size_change(data):\n    new_size = data['value']\n    current_size.content = f\"Current size: {new_size}\"\n    # Update all components dynamically\n    size_slider.size = new_size\n    size_text.size = new_size\n    size_select.size = new_size\n\nsize_select.on_update(on_size_change)\n\nGroup([\n    Group([Text(content=\"Select size:\", size=\"sm\"), size_select], layout=\"row\", align=\"center\"),\n    size_slider,\n    size_text,\n    current_size\n], layout=\"col\", label=\"Size Presets Demo\", border=True, gap=2)"
+        content: "from pynote_ui import Slider, Text, Select, Group\n\n# Components with dynamic size - start at 'md'\nsize_slider = Slider(value=50, label=\"Sample Slider\", size=\"md\", grow=1)\nsize_text = Text(content=\"Sample Text Display\", size=\"md\", grow=1)\n\n# Size selector with placeholder\nsize_select = Select(\n    choices=[\"xs\", \"sm\", \"md\", \"lg\", \"xl\"],\n    placeholder=\"Choose a size\",\n    color=\"primary\"\n)\n\n# Status text\ncurrent_size = Text(content=\"Select a size to update all components\", size=\"sm\")\n\ndef on_size_change(data):\n    new_size = data['value']\n    current_size.content = f\"Current size: {new_size}\"\n    # Update all components dynamically\n    size_slider.size = new_size\n    size_text.size = new_size\n    size_select.size = new_size\n\nsize_select.on_update(on_size_change)\n\nGroup([\n    Group([Text(content=\"Select size:\", size=\"sm\"), size_select], layout=\"row\", align=\"center\"),\n    size_slider,\n    size_text,\n    current_size\n], layout=\"col\", label=\"Size Presets Demo\", border=True, gap=2)"
     },
     {
         id: "tut-ui-sizes-examples",
@@ -199,7 +199,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-demo-select",
         type: "code",
-        content: "from pynote_ui import Select, Text, Group\n\nlang_output = Text(content=\"Selected: None\")\n\nlang_select = Select(\n    options=[\"Python\", \"JavaScript\", \"TypeScript\", \"Rust\", \"Go\"],\n    placeholder=\"Choose a language\",\n    color=\"primary\",\n    grow=1\n)\n\ndef on_lang_change(data):\n    lang_output.content = f\"Selected: {data['value']}\"\nlang_select.on_update(on_lang_change)\n\nGroup([lang_select, lang_output], layout=\"col\", label=\"Favorite Language\", border=True)"
+        content: "from pynote_ui import Select, Text, Group\n\nlang_output = Text(content=\"Selected: None\")\n\nlang_select = Select(\n    choices=[\"Python\", \"JavaScript\", \"TypeScript\", \"Rust\", \"Go\"],\n    placeholder=\"Choose a language\",\n    color=\"primary\",\n    grow=1\n)\n\ndef on_lang_change(data):\n    lang_output.content = f\"Selected: {data['value']}\"\nlang_select.on_update(on_lang_change)\n\nGroup([lang_select, lang_output], layout=\"col\", label=\"Favorite Language\", border=True)"
     },
 
     // --- Input ---
@@ -259,7 +259,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-demo-form-combined",
         type: "code",
-        content: "from pynote_ui import Input, Select, Textarea, Toggle, Checkbox, Button, Text, Group, display\n\n# Form fields\nname_field = Input(placeholder=\"Your name\", grow=1)\nemail_field = Input(placeholder=\"Email\", input_type=\"email\", grow=1)\nrole_select = Select(\n    options=[\"Developer\", \"Designer\", \"Manager\", \"Other\"],\n    placeholder=\"Select role\",\n    grow=1\n)\nbio_area = Textarea(placeholder=\"Tell us about yourself...\", rows=3, grow=1)\nnewsletter_toggle = Toggle(label=\"Subscribe to newsletter\", color=\"primary\")\nterms_checkbox = Checkbox(label=\"I accept the terms of service\", color=\"success\")\nsubmit_btn = Button(label=\"Submit\", color=\"primary\", style=\"soft\", disabled=True)\nresult_text = Text(content=\"\")\n\n# Enable submit only when terms are checked\ndef on_terms_change(data):\n    submit_btn.disabled = not data['checked']\nterms_checkbox.on_update(on_terms_change)\n\n# Handle submit\ndef on_submit(data):\n    result_text.content = f\"Submitted: {name_field.value} ({email_field.value})\"\nsubmit_btn.on_update(on_submit)\n\n# Layout the form\nGroup([\n    Group([name_field, email_field], layout=\"row\"),\n    role_select,\n    bio_area,\n    newsletter_toggle,\n    terms_checkbox,\n    submit_btn,\n    result_text\n], layout=\"col\", label=\"Registration Form\", border=True, gap=2)"
+        content: "from pynote_ui import Input, Select, Textarea, Toggle, Checkbox, Button, Text, Group, display\n\n# Form fields\nname_field = Input(placeholder=\"Your name\", grow=1)\nemail_field = Input(placeholder=\"Email\", input_type=\"email\", grow=1)\nrole_select = Select(\n    choices=[\"Developer\", \"Designer\", \"Manager\", \"Other\"],\n    placeholder=\"Select role\",\n    grow=1\n)\nbio_area = Textarea(placeholder=\"Tell us about yourself...\", rows=3, grow=1)\nnewsletter_toggle = Toggle(label=\"Subscribe to newsletter\", color=\"primary\")\nterms_checkbox = Checkbox(label=\"I accept the terms of service\", color=\"success\")\nsubmit_btn = Button(label=\"Submit\", color=\"primary\", style=\"soft\", disabled=True)\nresult_text = Text(content=\"\")\n\n# Enable submit only when terms are checked\ndef on_terms_change(data):\n    submit_btn.disabled = not data['checked']\nterms_checkbox.on_update(on_terms_change)\n\n# Handle submit\ndef on_submit(data):\n    result_text.content = f\"Submitted: {name_field.value} ({email_field.value})\"\nsubmit_btn.on_update(on_submit)\n\n# Layout the form\nGroup([\n    Group([name_field, email_field], layout=\"row\"),\n    role_select,\n    bio_area,\n    newsletter_toggle,\n    terms_checkbox,\n    submit_btn,\n    result_text\n], layout=\"col\", label=\"Registration Form\", border=True, gap=2)"
     },
 
     // --- Border Styling ---
@@ -284,7 +284,7 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 borderless_slider = Slider(value=50, label="Volume", border=False, grow=1)
 borderless_input = Input(value="No borders", placeholder="Type here...", border=False, grow=1)
 borderless_select = Select(
-    options=["Option 1", "Option 2", "Option 3"],
+    choices=["Option 1", "Option 2", "Option 3"],
     value="Option 1",
     border=False,
     grow=1
@@ -321,7 +321,7 @@ Group([
 red_slider = Slider(value=75, label="Red Slider", border="3px solid #ef4444", grow=1)
 blue_input = Input(value="Blue input", placeholder="Type here...", border="2px solid #3b82f6", grow=1)
 green_select = Select(
-    options=["Green", "Forest", "Lime"],
+    choices=["Green", "Forest", "Lime"],
     value="Green",
     border="2px solid #22c55e",
     grow=1

@@ -2,6 +2,7 @@ import { type Component, For, Show, createSignal, onMount, onCleanup } from "sol
 import { FormContext } from "./FormContext";
 import UIOutputRenderer from "./UIOutputRenderer";
 import { kernel } from "../../lib/pyodide";
+import { resolveBorder, resolveBackground } from "./colorUtils";
 
 interface FormProps {
   id: string;
@@ -15,6 +16,7 @@ interface FormProps {
     grow?: number | null;
     shrink?: number | null;
     border?: boolean | string;
+    background?: boolean | string | null;
     padding?: string | number;
     gap?: string | number;
     overflow?: "visible" | "hidden" | "scroll" | "auto" | "scroll-x" | "scroll-y";
@@ -118,15 +120,19 @@ const Form: Component<FormProps> = (p) => {
     }
     const hasLabel = !!p.props.label;
     const borderValue = p.props.border ?? true; // Forms default to having borders
-    const hasBorder = borderValue === true || (typeof borderValue === 'string' && borderValue !== "none");
+    // Has border when: border=true, border="none", or border="custom string"
+    // Does NOT have border when: border=false
+    const hasBorder = borderValue === true || (typeof borderValue === 'string' && borderValue !== '');
     const defaultPad = "0.75rem";
+    const labelExtraPad = "1.1rem"; // p-5 for extra top padding with label
     
     if (hasBorder) {
-      return defaultPad;
+      // all sides when border is present, extra top padding when label exists
+      return hasLabel ? `${labelExtraPad} ${defaultPad} ${defaultPad} ${defaultPad}` : defaultPad;
     } else if (hasLabel) {
-      return `${defaultPad} 0`;
+      return `${labelExtraPad} 0 ${defaultPad} 0`; // top/bottom only when label but no border
     }
-    return "0";
+    return "0"; // no padding when neither border nor label
   };
 
   // Compute gap
@@ -233,21 +239,33 @@ const Form: Component<FormProps> = (p) => {
 
   // Fieldset border styling
   const fieldsetBorderClass = () => {
-    const borderValue = p.props.border ?? true;
+    const borderValue = p.props.border ?? true; // Forms default to border=true
+    
+    // border=false → no classes (even with label)
+    if (borderValue === false) return '';
+    
+    // border=true → use default border class
     if (borderValue === true) {
       return 'border-2 border-foreground bg-base-200/20';
-    } else if (typeof borderValue === 'string' && borderValue !== "none") {
-      return 'bg-base-200/20';
     }
-    return '';
+    
+    // border="none" or any string value → background only
+    return 'bg-base-200/20';
   };
   
   const fieldsetBorderStyle = () => {
-    const borderValue = p.props.border ?? true;
-    if (typeof borderValue === 'string' && borderValue !== "none") {
-      return { border: borderValue };
-    } else if (borderValue === "none") {
-      return { border: "none" };
+    const borderValue = p.props.border ?? true; // Forms default to border=true
+    
+    // border=false → no inline styles
+    if (borderValue === false) return {};
+    
+    // border=true → no inline styles (uses class)
+    if (borderValue === true) return {};
+    
+    // border="none" or other string value → resolve and apply
+    const { border } = resolveBorder(borderValue);
+    if (border) {
+      return { border };
     }
     return {};
   };
@@ -257,7 +275,7 @@ const Form: Component<FormProps> = (p) => {
       <div style={componentStyles()}>
         <fieldset 
           class={`rounded-sm w-full ${fieldsetBorderClass()}`}
-          style={{ padding: computePadding(), ...fieldsetBorderStyle() }}
+          style={{ padding: computePadding(), ...fieldsetBorderStyle(), ...resolveBackground(p.props.background) }}
         >
           <Show when={p.props.label}>
             <legend class="px-2 text-xs font-bold uppercase tracking-wider text-secondary/70">
