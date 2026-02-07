@@ -1,21 +1,26 @@
-import { type Component, createSignal, onMount, onCleanup, Show } from "solid-js";
+import { type Component, createSignal, createEffect, onMount, onCleanup, Show } from "solid-js";
 import { kernel } from "../../lib/pyodide";
 import { useFormContext } from "./FormContext";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 interface ToggleProps {
   id: string;
   props: {
     checked: boolean;
     label?: string | null;
-    color?: "primary" | "secondary" | "accent" | "neutral" | "success" | "warning" | "info" | "error" | null;
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
+    align?: "left" | "center" | "right" | null;
+    spaced?: boolean;
+    reverse?: boolean;
     width?: string | number | null;
     height?: string | number | null;
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    background?: boolean | string | null;
     hidden?: boolean;
   };
 }
@@ -23,30 +28,36 @@ interface ToggleProps {
 const Toggle: Component<ToggleProps> = (p) => {
   const componentId = p.id;
   const formContext = useFormContext();
-  const [checked, setChecked] = createSignal(p.props.checked ?? false);
-  const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  const [allProps, setAllProps] = createSignal(p.props);
+  
+  // Reactive accessors
+  const checked = () => allProps().checked ?? false;
+  const disabled = () => allProps().disabled ?? false;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
+  const align = () => allProps().align ?? "left";
+  const spaced = () => allProps().spaced ?? false;
+  const reverse = () => allProps().reverse ?? false;
 
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", trackWidth: 28, trackHeight: 16, thumbSize: 12 };
-      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", trackWidth: 36, trackHeight: 20, thumbSize: 16 };
-      case "md": return { padding: 12, textSize: "text-sm", trackWidth: 44, trackHeight: 24, thumbSize: 20 };
-      case "lg": return { padding: 14, textSize: "text-xl", trackWidth: 52, trackHeight: 28, thumbSize: 24 };
-      case "xl": return { padding: 16, textSize: "text-3xl", trackWidth: 60, trackHeight: 32, thumbSize: 28 };
-      default: return { padding: 12, textSize: "text-sm", trackWidth: 44, trackHeight: 24, thumbSize: 20 };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", trackWidth: 19, trackHeight: 11, thumbSize: 8.5 };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", trackWidth: 26, trackHeight: 14, thumbSize: 11 };
+      case "md": return { padding: 12, textSize: "text-sm", trackWidth: 34, trackHeight: 19, thumbSize: 16 };
+      case "lg": return { padding: 14, textSize: "text-xl", trackWidth: 50, trackHeight: 27, thumbSize: 22 };
+      case "xl": return { padding: 16, textSize: "text-3xl", trackWidth: 60, trackHeight: 30, thumbSize: 25 };
+      default: return { padding: 12, textSize: "text-sm", trackWidth: 34, trackHeight: 19, thumbSize: 16 };
     }
   };
 
   // Get the color for checked state
-  const getCheckedColor = () => {
-    const color = p.props.color;
-    if (color === "neutral") return "var(--foreground)";
-    if (color) return `var(--${color})`;
-    return "var(--primary)";
-  };
+  const checkedColor = () => resolveColor(allProps().color, "primary");
+
+  // Keep allProps in sync with parent props
+  createEffect(() => {
+    setAllProps(p.props);
+  });
 
   onMount(() => {
     if (formContext) {
@@ -54,10 +65,7 @@ const Toggle: Component<ToggleProps> = (p) => {
     }
     
     kernel.registerComponentListener(componentId, (data: any) => {
-      if (data.checked !== undefined) setChecked(data.checked);
-      if (data.disabled !== undefined) setDisabled(data.disabled);
-      if (data.size !== undefined) setSize(data.size ?? "md");
-      if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps(prev => ({ ...prev, ...(data as Partial<typeof p.props>) }));
     });
   });
 
@@ -72,7 +80,7 @@ const Toggle: Component<ToggleProps> = (p) => {
   const handleChange = (e: Event) => {
     const target = e.currentTarget as HTMLInputElement;
     const newChecked = target.checked;
-    setChecked(newChecked);
+    setAllProps(prev => ({ ...prev, checked: newChecked }));
     
     if (formContext) {
       formContext.setChildValue(componentId, newChecked);
@@ -84,9 +92,9 @@ const Toggle: Component<ToggleProps> = (p) => {
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
 
     // Handle hidden state
     if (hidden()) {
@@ -105,8 +113,9 @@ const Toggle: Component<ToggleProps> = (p) => {
       styles["flex-shrink"] = shrink;
     }
 
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -116,8 +125,9 @@ const Toggle: Component<ToggleProps> = (p) => {
       }
     }
 
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -131,22 +141,43 @@ const Toggle: Component<ToggleProps> = (p) => {
   // Calculate thumb position (2px gap from edge)
   const thumbOffset = () => checked() ? sizeConfig().trackWidth - sizeConfig().thumbSize - 2 : 2;
   
-  // Apply custom border
-  const borderStyles = () => {
-    const borderValue = p.props.border;
-    if (borderValue === false || borderValue === "none") {
-      return { border: "none" };
-    } else if (borderValue && typeof borderValue === 'string') {
-      return { border: borderValue };
+  // Apply border
+  const borderStyles = () => resolveBorder(allProps().border);
+
+  // Layout classes based on align, spaced, and reverse
+  const layoutClasses = () => {
+    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "border-2", "border-foreground", "rounded-sm", sizeConfig().textSize];
+    
+    // Handle reverse (order)
+    if (reverse()) {
+      classes.push("flex-row-reverse");
     }
-    // true or null/undefined: Default border (from classes)
-    return {};
+    
+    // Handle spaced vs aligned
+    if (spaced()) {
+      classes.push("justify-between");
+      classes.push("gap-3"); // slightly larger gap when spaced
+    } else {
+      classes.push("gap-3"); // increased from gap-2
+      // Apply alignment - invert when reversed so alignment stays consistent
+      const alignValue = align();
+      const isReversed = reverse();
+      if (alignValue === "center") {
+        classes.push("justify-center");
+      } else if (alignValue === "right") {
+        classes.push(isReversed ? "justify-start" : "justify-end");
+      } else {
+        classes.push(isReversed ? "justify-end" : "justify-start");
+      }
+    }
+    
+    return classes.join(" ");
   };
 
   return (
     <label 
-      class={`flex items-center gap-2 cursor-pointer font-mono text-secondary bg-base-200/50 border-2 border-foreground rounded-sm ${sizeConfig().textSize}`}
-      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
+      class={layoutClasses()}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
     >
       <input
         type="checkbox"
@@ -161,7 +192,7 @@ const Toggle: Component<ToggleProps> = (p) => {
         style={{
           width: `${sizeConfig().trackWidth}px`,
           height: `${sizeConfig().trackHeight}px`,
-          "background-color": checked() ? getCheckedColor() : "var(--foreground)",
+          "background-color": checked() ? checkedColor() : "var(--foreground)",
           opacity: disabled() ? 0.5 : 1,
         }}
       >
@@ -171,12 +202,12 @@ const Toggle: Component<ToggleProps> = (p) => {
           style={{
             width: `${sizeConfig().thumbSize}px`,
             height: `${sizeConfig().thumbSize}px`,
-            left: `${thumbOffset()}px`,
+            left: `${thumbOffset()}px`, 
           }}
         />
       </div>
-      <Show when={p.props.label}>
-        <span class="select-none">{p.props.label}</span>
+      <Show when={allProps().label}>
+        <span class="select-none">{allProps().label}</span>
       </Show>
     </label>
   );

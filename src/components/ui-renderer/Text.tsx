@@ -1,13 +1,14 @@
-import { type Component, createSignal, onMount, onCleanup } from "solid-js";
+import { type Component, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import { kernel } from "../../lib/pyodide";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 // Size presets for Text component - uses Tailwind's CSS variables
 const SIZE_PRESETS = {
   xs: { padding: "p-1.5", textSize: "text-[length:var(--text-3xs)]" },
   sm: { padding: "p-2", textSize: "text-[length:var(--text-2xs)]" },
   md: { padding: "p-3", textSize: "text-sm" },
-  lg: { padding: "p-4", textSize: "text-xl" },
-  xl: { padding: "p-5", textSize: "text-3xl" },
+  lg: { padding: "p-3.5", textSize: "text-xl" },
+  xl: { padding: "p-4", textSize: "text-3xl" },
 } as const;
 
 interface TextProps {
@@ -22,33 +23,36 @@ interface TextProps {
     force_dimensions?: boolean;
     align_h?: "left" | "center" | "right";
     align_v?: "top" | "center" | "bottom";
-    border?: boolean | string | null;
-    color?: string | null;
+    border?: boolean | string | null;  // true/false, preset name (primary/secondary/etc), or custom CSS border string
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
+    background?: boolean | string | null;
     hidden?: boolean;
   };
 }
 
 const Text: Component<TextProps> = (p) => {
   const componentId = p.id;
-  const [content, setContent] = createSignal(p.props.content);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  const [allProps, setAllProps] = createSignal(p.props);
+  
+  // Reactive accessors
+  const content = () => allProps().content;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
   
   // Get size preset (default to md)
   const sizeConfig = () => SIZE_PRESETS[size()];
   
-  // Get color variable for text color
-  const getColorVar = () => {
-    const color = p.props.color;
-    if (color === "neutral") return "var(--foreground)";
-    return color ? `var(--${color})` : "var(--secondary)";
-  };
+  // Get color for text color
+  const colorValue = () => resolveColor(allProps().color, "secondary");
+
+  // Keep allProps in sync with parent props
+  createEffect(() => {
+    setAllProps(p.props);
+  });
 
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
-      if (data.content !== undefined) setContent(data.content);
-      if (data.size !== undefined) setSize(data.size ?? "md");
-      if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps((prev) => ({ ...prev, ...(data as Partial<TextProps["props"]>) }));
     });
   });
 
@@ -59,9 +63,9 @@ const Text: Component<TextProps> = (p) => {
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
     
     // Handle hidden state
     if (hidden()) {
@@ -83,8 +87,9 @@ const Text: Component<TextProps> = (p) => {
     }
     
     // Width dimension
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -95,8 +100,9 @@ const Text: Component<TextProps> = (p) => {
     }
     
     // Height dimension
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -109,32 +115,23 @@ const Text: Component<TextProps> = (p) => {
     styles.display = "flex";
     
     // Horizontal alignment
-    const alignH = p.props.align_h ?? "left";
+    const alignH = allProps().align_h ?? "left";
     styles["justify-content"] = alignH === "center" ? "center" : alignH === "right" ? "flex-end" : "flex-start";
     
     // Vertical alignment
-    const alignV = p.props.align_v ?? "top";
+    const alignV = allProps().align_v ?? "top";
     styles["align-items"] = alignV === "center" ? "center" : alignV === "bottom" ? "flex-end" : "flex-start";
     
     return styles;
   };
   
-  // Apply custom border
-  const borderStyles = () => {
-    const borderValue = p.props.border;
-    if (borderValue === false || borderValue === "none") {
-      return { border: "none" };
-    } else if (borderValue && typeof borderValue === 'string') {
-      return { border: borderValue };
-    }
-    // true or null/undefined: Default border (from classes)
-    return {};
-  };
+  // Apply border
+  const borderStyles = () => resolveBorder(allProps().border);
 
   return (
     <div 
       class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono ${sizeConfig().textSize}`}
-      style={{ ...componentStyles(), ...borderStyles(), color: getColorVar() }}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), color: colorValue() }}
     >
       {content()}
     </div>

@@ -1,21 +1,26 @@
-import { type Component, createSignal, onMount, onCleanup, Show } from "solid-js";
+import { type Component, createSignal, createEffect, onMount, onCleanup, Show } from "solid-js";
 import { kernel } from "../../lib/pyodide";
 import { useFormContext } from "./FormContext";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 interface CheckboxProps {
   id: string;
   props: {
     checked: boolean;
     label?: string | null;
-    color?: "primary" | "secondary" | "accent" | "success" | "warning" | "info" | "error" | null;
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
+    align?: "left" | "center" | "right" | null;
+    spaced?: boolean;
+    reverse?: boolean;
     width?: string | number | null;
     height?: string | number | null;
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    background?: boolean | string | null;
     hidden?: boolean;
   };
 }
@@ -23,22 +28,33 @@ interface CheckboxProps {
 const Checkbox: Component<CheckboxProps> = (p) => {
   const componentId = p.id;
   const formContext = useFormContext();
-  const [checked, setChecked] = createSignal(p.props.checked ?? false);
-  const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  const [allProps, setAllProps] = createSignal(p.props);
+  
+  // Reactive accessors
+  const checked = () => allProps().checked ?? false;
+  const disabled = () => allProps().disabled ?? false;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
+  const align = () => allProps().align ?? "left";
+  const spaced = () => allProps().spaced ?? false;
+  const reverse = () => allProps().reverse ?? false;
 
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
       case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", checkboxSize: 16 };
       case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 20 };
-      case "md": return { padding: 12, textSize: "text-sm", checkboxSize: 24 };
+      case "md": return { padding: 12, textSize: "text-sm", checkboxSize: 19.5 };
       case "lg": return { padding: 14, textSize: "text-xl", checkboxSize: 28 };
       case "xl": return { padding: 16, textSize: "text-3xl", checkboxSize: 32 };
-      default: return { padding: 12, textSize: "text-sm", checkboxSize: 24 };
+      default: return { padding: 12, textSize: "text-sm", checkboxSize: 19.5 };
     }
   };
+
+  // Keep allProps in sync with parent props
+  createEffect(() => {
+    setAllProps(p.props);
+  });
 
   onMount(() => {
     if (formContext) {
@@ -46,10 +62,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
     }
     
     kernel.registerComponentListener(componentId, (data: any) => {
-      if (data.checked !== undefined) setChecked(data.checked);
-      if (data.disabled !== undefined) setDisabled(data.disabled);
-      if (data.size !== undefined) setSize(data.size ?? "md");
-      if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps((prev) => ({ ...prev, ...data as Partial<CheckboxProps['props']> }));
     });
   });
 
@@ -64,7 +77,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   const handleChange = (e: Event) => {
     const target = e.currentTarget as HTMLInputElement;
     const newChecked = target.checked;
-    setChecked(newChecked);
+    setAllProps(prev => ({ ...prev, checked: newChecked }));
     
     if (formContext) {
       formContext.setChildValue(componentId, newChecked);
@@ -76,9 +89,9 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
 
     // Handle hidden state
     if (hidden()) {
@@ -97,8 +110,9 @@ const Checkbox: Component<CheckboxProps> = (p) => {
       styles["flex-shrink"] = shrink;
     }
 
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -108,8 +122,9 @@ const Checkbox: Component<CheckboxProps> = (p) => {
       }
     }
 
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -130,8 +145,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   
   // Generate color styles for checked state
   const generateColorStyles = () => {
-    const color = p.props.color ?? "primary"; // Default to primary
-    const colorVar = `var(--${color})`;
+    const colorVar = resolveColor(allProps().color, "primary");
     
     return `
       .${checkboxClass} {
@@ -166,16 +180,37 @@ const Checkbox: Component<CheckboxProps> = (p) => {
     `;
   };
   
-  // Apply custom border
-  const borderStyles = () => {
-    const borderValue = p.props.border;
-    if (borderValue === false || borderValue === "none") {
-      return { border: "none" };
-    } else if (borderValue && typeof borderValue === 'string') {
-      return { border: borderValue };
+  // Apply border
+  const borderStyles = () => resolveBorder(allProps().border);
+
+  // Layout classes based on align, spaced, and reverse
+  const layoutClasses = () => {
+    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "border-2", "border-foreground", "rounded-sm", sizeConfig().textSize];
+    
+    // Handle reverse (order)
+    if (reverse()) {
+      classes.push("flex-row-reverse");
     }
-    // true or null/undefined: Default border (from classes)
-    return {};
+    
+    // Handle spaced vs aligned
+    if (spaced()) {
+      classes.push("justify-between");
+      classes.push("gap-3"); // slightly larger gap when spaced
+    } else {
+      classes.push("gap-3"); // increased from gap-2
+      // Apply alignment - invert when reversed so alignment stays consistent
+      const alignValue = align();
+      const isReversed = reverse();
+      if (alignValue === "center") {
+        classes.push("justify-center");
+      } else if (alignValue === "right") {
+        classes.push(isReversed ? "justify-start" : "justify-end");
+      } else {
+        classes.push(isReversed ? "justify-end" : "justify-start");
+      }
+    }
+    
+    return classes.join(" ");
   };
 
   return (
@@ -184,8 +219,8 @@ const Checkbox: Component<CheckboxProps> = (p) => {
         {generateColorStyles()}
       </style>
       <label 
-      class={`flex items-center gap-2 cursor-pointer font-mono text-secondary border-2 border-foreground rounded-sm ${sizeConfig().textSize}`}
-      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
+      class={layoutClasses()}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
     >
       <input
         type="checkbox"
@@ -195,8 +230,8 @@ const Checkbox: Component<CheckboxProps> = (p) => {
         onChange={handleChange}
         disabled={disabled()}
       />
-      <Show when={p.props.label}>
-        <span class="select-none">{p.props.label}</span>
+      <Show when={allProps().label}>
+        <span class="select-none">{allProps().label}</span>
       </Show>
     </label>
     </>

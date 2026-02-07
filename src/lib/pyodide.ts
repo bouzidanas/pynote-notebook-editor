@@ -18,6 +18,8 @@ class Kernel {
   private worker: Worker | null = null;
   private listeners: Map<string, (msg: any) => void> = new Map();
   private componentListeners: Map<string, (data: any) => void> = new Map();
+  private componentToCellMap: Map<string, string> = new Map(); // Track which cell each component belongs to
+  private currentCellContext: string | null = null;
 
   private _status;
   private _setStatus;
@@ -75,19 +77,48 @@ class Kernel {
 
   registerComponentListener(uid: string, callback: (data: any) => void) {
     this.componentListeners.set(uid, callback);
+    // Track which cell this component belongs to
+    if (this.currentCellContext) {
+      this.componentToCellMap.set(uid, this.currentCellContext);
+    }
   }
 
   unregisterComponentListener(uid: string) {
-    this.componentListeners.delete(uid);
+    // Only unregister if this component isn't part of an active cell re-registration
+    // Race condition: When a cell re-executes, clearCellState removes old listeners,
+    // then new components register with same IDs. If old components cleanup after 
+    // new ones register, they'd remove the new listeners. Prevent this by checking
+    // if the component belongs to the current cell context (meaning it was just re-registered)
+    const cellId = this.componentToCellMap.get(uid);
+    if (!cellId || cellId !== this.currentCellContext) {
+      // Safe to unregister: either already cleared, or belongs to a different cell
+      this.componentListeners.delete(uid);
+      this.componentToCellMap.delete(uid);
+    }
+    // If cellId === currentCellContext, this is a new registration, don't remove it
   }
 
   setCellContext(cellId: string) {
+    this.currentCellContext = cellId;
     if (this.worker && this.status === "ready") {
       this.worker.postMessage({ type: "set_cell_context", id: cellId });
     }
   }
 
   clearCellState(cellId: string) {
+    // Clear all JavaScript component listeners for this cell
+    const componentsToRemove: string[] = [];
+    for (const [componentId, cellId_] of this.componentToCellMap.entries()) {
+      if (cellId_ === cellId) {
+        componentsToRemove.push(componentId);
+      }
+    }
+    for (const componentId of componentsToRemove) {
+      this.componentListeners.delete(componentId);
+      this.componentToCellMap.delete(componentId);
+    }
+
+    // Clear Python-side state
     if (this.worker && this.status === "ready") {
       this.worker.postMessage({ type: "clear_cell_context", id: cellId });
     }
@@ -246,6 +277,9 @@ class Kernel {
       listener({ type: "error", error: "Kernel interrupted" });
     }
     this.listeners.clear();
+    this.componentListeners.clear();
+    this.componentToCellMap.clear();
+    this.currentCellContext = null;
     this._setStatus("stopped");
   }
 

@@ -1,12 +1,13 @@
 import { type Component, createSignal, onMount, onCleanup } from "solid-js";
 import { kernel } from "../../lib/pyodide";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 interface ButtonProps {
   id: string;
   props: {
     label: string;
     button_type?: "default" | "primary" | "submit" | null;
-    color?: "neutral" | "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error" | null;
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
     style?: "outline" | "dash" | "soft" | "ghost" | "link" | null;
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
@@ -17,6 +18,7 @@ interface ButtonProps {
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    background?: boolean | string | null;
     hidden?: boolean;
   };
   onSubmit?: () => void;
@@ -24,12 +26,15 @@ interface ButtonProps {
 
 const Button: Component<ButtonProps> = (p) => {
   const componentId = p.id;
-  const [label, setLabel] = createSignal(p.props.label);
-  const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
-  const [loading, setLoading] = createSignal(p.props.loading ?? false);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
-  const buttonType = p.props.button_type ?? "default";
+  const [allProps, setAllProps] = createSignal(p.props);
+  
+  // Reactive accessors
+  const label = () => allProps().label;
+  const disabled = () => allProps().disabled ?? false;
+  const loading = () => allProps().loading ?? false;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
+  const buttonType = () => allProps().button_type ?? "default";
 
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
@@ -45,11 +50,7 @@ const Button: Component<ButtonProps> = (p) => {
 
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
-      if (data.label !== undefined) setLabel(data.label);
-      if (data.disabled !== undefined) setDisabled(data.disabled);
-      if (data.loading !== undefined) setLoading(data.loading);
-      if (data.size !== undefined) setSize(data.size ?? "md");
-      if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps(prev => ({ ...prev, ...data }));
     });
   });
 
@@ -60,7 +61,7 @@ const Button: Component<ButtonProps> = (p) => {
   const handleClick = () => {
     if (!disabled() && !loading()) {
       // If this is a submit button and we're in a form, trigger form submission
-      if (buttonType === "submit" && p.onSubmit) {
+      if (buttonType() === "submit" && p.onSubmit) {
         p.onSubmit();
         // Also send interaction to Python so button's callback is triggered
         kernel.sendInteraction(componentId, { clicked: true, label: label() });
@@ -74,9 +75,9 @@ const Button: Component<ButtonProps> = (p) => {
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
 
     // Handle hidden state
     if (hidden()) {
@@ -97,8 +98,9 @@ const Button: Component<ButtonProps> = (p) => {
     }
 
     // Width dimension
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -109,8 +111,9 @@ const Button: Component<ButtonProps> = (p) => {
     }
 
     // Height dimension
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -126,8 +129,9 @@ const Button: Component<ButtonProps> = (p) => {
   
   // Build button classes
   const buttonClasses = () => {
-    const borderValue = p.props.border;
-    const noBorder = borderValue === "none";
+    const borderValue = allProps().border;
+    const { border } = resolveBorder(borderValue);
+    const noBorder = border === "none";
     
     const classes = ["btn", "font-mono", "rounded-sm", buttonClass, sizeConfig().textSize];
     
@@ -137,7 +141,7 @@ const Button: Component<ButtonProps> = (p) => {
     }
     
     // Style
-    const style = p.props.style;
+    const style = allProps().style;
     if (style) {
       classes.push(`btn-${style}`);
     }
@@ -152,17 +156,17 @@ const Button: Component<ButtonProps> = (p) => {
   
   // Generate color styles for background and active states
   const generateColorStyles = () => {
-    const color = p.props.color;
-    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
-    const borderValue = p.props.border;
-    const noBorder = borderValue === "none";
+    const colorVar = resolveColor(allProps().color, "primary");
+    const borderValue = allProps().border;
+    const { border } = resolveBorder(borderValue);
+    const noBorder = border === "none";
     
     // Only apply color styling if not border="none"
     if (noBorder) return "";
     
     // Primary type: always has background, hover brightens
     // Maintain consistent font-weight since text is always light-on-dark
-    if (buttonType === "primary") {
+    if (buttonType() === "primary") {
       return `
         .${buttonClass} {
           background-color: ${colorVar} !important;
@@ -191,12 +195,12 @@ const Button: Component<ButtonProps> = (p) => {
   
   // Generate border styles including hover/active states
   const generateBorderStyles = () => {
-    const borderValue = p.props.border;
-    const color = p.props.color;
-    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
+    const borderValue = allProps().border;
+    const colorVar = resolveColor(allProps().color, "primary");
+    const { border } = resolveBorder(borderValue);
     
-    if (borderValue === false) {
-      // false: Remove all borders including interactions
+    // Handle border=false or "none" - no border at all
+    if (border === "none") {
       return `
         .${buttonClass} {
           border: none !important;
@@ -208,28 +212,10 @@ const Button: Component<ButtonProps> = (p) => {
           border: none !important;
         }
       `;
-    } else if (borderValue === "none") {
-      // "none": Just remove CSS border, no other changes
-      return `
-        .${buttonClass} {
-          border: none;
-        }
-      `;
-    } else if (borderValue && typeof borderValue === 'string') {
-      // Custom border - apply to default state, but allow hover/active to change color
-      return `
-        .${buttonClass} {
-          border: ${borderValue};
-        }
-        .${buttonClass}:hover {
-          border-color: ${colorVar};
-        }
-        .${buttonClass}:active {
-          border-color: ${colorVar};
-        }
-      `;
-    } else {
-      // true or null/undefined: Default border
+    }
+    
+    // border=true or null/undefined: Use default from classes, add hover/active color
+    if (!border) {
       return `
         .${buttonClass} {
           border: 2px solid var(--foreground);
@@ -242,6 +228,19 @@ const Button: Component<ButtonProps> = (p) => {
         }
       `;
     }
+    
+    // Custom border string: Apply border, allow hover/active to change color
+    return `
+      .${buttonClass} {
+        border: ${border};
+      }
+      .${buttonClass}:hover {
+        border-color: ${colorVar};
+      }
+      .${buttonClass}:active {
+        border-color: ${colorVar};
+      }
+    `;
   };
 
   return (
@@ -252,7 +251,7 @@ const Button: Component<ButtonProps> = (p) => {
       </style>
       <button
         class={buttonClasses()}
-        style={{ ...componentStyles(), padding: `${sizeConfig().padding}px` }}
+        style={{ ...componentStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
         onClick={handleClick}
         disabled={disabled() || loading()}
       >

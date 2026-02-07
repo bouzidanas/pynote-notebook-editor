@@ -1,6 +1,7 @@
-import { type Component, createSignal, onMount, onCleanup, For } from "solid-js";
+import { type Component, createSignal, createEffect, onMount, onCleanup, For } from "solid-js";
 import { kernel } from "../../lib/pyodide";
 import { useFormContext } from "./FormContext";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 interface SelectProps {
   id: string;
@@ -8,7 +9,7 @@ interface SelectProps {
     options: Array<string | { label: string; value: string }>;
     value?: string | null;
     placeholder?: string;
-    color?: "neutral" | "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error" | null;
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
     width?: string | number | null;
@@ -17,6 +18,7 @@ interface SelectProps {
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    background?: boolean | string | null;
     hidden?: boolean;
   };
 }
@@ -24,11 +26,19 @@ interface SelectProps {
 const Select: Component<SelectProps> = (p) => {
   const componentId = p.id;
   const formContext = useFormContext();
-  const [value, setValue] = createSignal(p.props.value ?? "");
-  const [options, setOptions] = createSignal(p.props.options ?? []);
-  const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  const [allProps, setAllProps] = createSignal(p.props);
+  
+  // Reactive accessors
+  const value = () => allProps().value ?? "";
+  const options = () => allProps().options ?? [];
+  const disabled = () => allProps().disabled ?? false;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
+
+  // Keep allProps in sync with parent props
+  createEffect(() => {
+    setAllProps(p.props);
+  });
 
   onMount(() => {
     if (formContext) {
@@ -36,11 +46,7 @@ const Select: Component<SelectProps> = (p) => {
     }
     
     kernel.registerComponentListener(componentId, (data: any) => {
-      if (data.value !== undefined) setValue(data.value);
-      if (data.options !== undefined) setOptions(data.options);
-      if (data.disabled !== undefined) setDisabled(data.disabled);
-      if (data.size !== undefined) setSize(data.size ?? "md");
-      if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps(prev => ({ ...prev, ...data }));
     });
   });
 
@@ -55,7 +61,7 @@ const Select: Component<SelectProps> = (p) => {
   const handleChange = (e: Event) => {
     const target = e.currentTarget as HTMLSelectElement;
     const newValue = target.value;
-    setValue(newValue);
+    setAllProps(prev => ({ ...prev, value: newValue }));
     
     if (formContext) {
       formContext.setChildValue(componentId, newValue);
@@ -77,9 +83,9 @@ const Select: Component<SelectProps> = (p) => {
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
 
     // Handle hidden state
     if (hidden()) {
@@ -98,8 +104,9 @@ const Select: Component<SelectProps> = (p) => {
       styles["flex-shrink"] = shrink;
     }
 
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -109,8 +116,9 @@ const Select: Component<SelectProps> = (p) => {
       }
     }
 
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -138,22 +146,18 @@ const Select: Component<SelectProps> = (p) => {
 
   // Apply custom border
   const applyBorder = () => {
-    const borderValue = p.props.border;
-    if (borderValue === false || borderValue === "none") {
+    const borderStyle = resolveBorder(allProps().border);
+    if (borderStyle.border === "none") {
       return "border: none !important;";
-    } else if (borderValue && typeof borderValue === 'string') {
-      return `border: ${borderValue} !important;`;
+    } else if (borderStyle.border) {
+      return `border: ${borderStyle.border} !important;`;
     }
-    // true or null/undefined: Default border
+    // Default border
     return "border: 2px solid var(--foreground) !important;";
   };
   
-  // Get color variable
-  const getColorVar = () => {
-    const color = p.props.color;
-    if (color === "neutral") return "var(--foreground)";
-    return color ? `var(--${color})` : "var(--primary)";
-  };
+  // Get color
+  const colorValue = () => resolveColor(allProps().color, "primary");
   
   return (
     <>
@@ -195,7 +199,7 @@ const Select: Component<SelectProps> = (p) => {
           
           /* Highlight border only when dropdown is open (not on focus) */
           .${selectClass}:open {
-            border-color: ${getColorVar()} !important;
+            border-color: ${colorValue()} !important;
           }
 
           .${selectClass}:focus {
@@ -225,7 +229,7 @@ const Select: Component<SelectProps> = (p) => {
           }
 
           .${selectClass} option:checked {
-            background-color: ${getColorVar()};
+            background-color: ${colorValue()};
             color: var(--background);
           }
           
@@ -233,14 +237,14 @@ const Select: Component<SelectProps> = (p) => {
           .${selectClass}::picker(select) {
             appearance: base-select;
             background-color: var(--background);
-            border: 2px solid ${getColorVar()};
+            border: 2px solid ${colorValue()};
             border-radius: var(--radius-sm);
           }
           
           /* Style selected option in picker */
           .${selectClass}::picker(select) option:checked,
           .${selectClass} option:checked::checkmark {
-            background-color: ${getColorVar()};
+            background-color: ${colorValue()};
             color: var(--background);
           }
           
@@ -252,14 +256,14 @@ const Select: Component<SelectProps> = (p) => {
       </style>
       <select
         class={`${selectClass} font-mono rounded-sm cursor-pointer`}
-        style={componentStyles()}
+        style={{ ...componentStyles(), ...resolveBackground(allProps().background) }}
         value={value()}
         onChange={handleChange}
         disabled={disabled()}
       >
-        {p.props.placeholder && (
+        {allProps().placeholder && (
           <option value="" disabled>
-            {p.props.placeholder}
+            {allProps().placeholder}
           </option>
         )}
         <For each={normalizedOptions()}>

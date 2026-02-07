@@ -493,7 +493,7 @@ newsletter = Toggle(label="Subscribe to newsletter", color="primary", border=Fal
 terms = Checkbox(label="I accept terms of service", color="success", border=False)
 
 # Submit button - initially disabled
-submit_btn = Button(
+registration_submit_btn = Button(
     label="Submit Registration",
     button_type="submit",
     color="primary",
@@ -505,7 +505,7 @@ result_display = Text(content="", hidden=True)
 
 # Enable submit only when terms checked
 def check_terms(data):
-    submit_btn.disabled = not data['checked'] or full_name.value == '' or email.value == '' or bio.value == ''
+    registration_submit_btn.disabled = not data['checked'] or full_name.value == '' or email.value == '' or bio.value == ''
 
 terms.on_update(check_terms)
 
@@ -516,7 +516,7 @@ def handle_submit(data):
     result_display.show()
     print(f"Full form data: {user_form.value}")
 
-submit_btn.on_update(handle_submit)
+registration_submit_btn.on_update(handle_submit)
 
 # Build the form
 user_form = Form([
@@ -524,7 +524,7 @@ user_form = Form([
     bio,
     newsletter,
     terms,
-    submit_btn,
+    registration_submit_btn,
     result_display
 ], label="User Registration", border=True, gap=2)
 
@@ -544,22 +544,22 @@ user_form`
 
 print("Setting up controls...")
 
-volume = Slider(value=75, label="Volume", width="100%")
-status = Text(content="Volume: 75%")
-reset = Button(label="Reset")
+vol_slider = Slider(value=75, label="Volume", width="100%")
+status_text = Text(content="Volume: 75%")
+volume_reset_btn = Button(label="Reset")
 
 def update_volume(data):
-    status.content = f"Volume: {int(data['value'])}%"
+    status_text.content = f"Volume: {int(data['value'])}%"
 
 def reset_volume(data):
-    volume.value = 50
-    status.content = "Volume: 50%"
+    vol_slider.value = 50
+    status_text.content = "Volume: 50%"
 
-volume.on_update(update_volume)
-reset.on_update(reset_volume)
+vol_slider.on_update(update_volume)
+volume_reset_btn.on_update(reset_volume)
 
 # Display components inline
-display(volume, status, reset)
+display(vol_slider, status_text, volume_reset_btn)
 
 print("☝️ Components displayed inline in the output")`
     },
@@ -662,22 +662,22 @@ auto_play = Toggle(label="Auto-play next video", checked=True)
 subtitles = Toggle(label="Show subtitles", checked=False)
 
 save_btn = Button(label="Save Settings", color="primary")
-reset_btn = Button(label="Reset to Defaults", style="outline")
+settings_reset_btn = Button(label="Reset to Defaults", style="outline")
 
-status = Text(content="")
+status_text = Text(content="")
 
 def save_settings(data):
-    status.content = f"✅ Saved: Volume {int(volume.value)}%, Quality: {quality.value}"
+    status_text.content = f"✅ Saved: Volume {int(volume.value)}%, Quality: {quality.value}"
 
 def reset_settings(data):
     volume.value = 70
     quality.value = "High"
     auto_play.checked = True
     subtitles.checked = False
-    status.content = "↺ Reset to defaults"
+    status_text.content = "↺ Reset to defaults"
 
 save_btn.on_update(save_settings)
-reset_btn.on_update(reset_settings)
+settings_reset_btn.on_update(reset_settings)
 
 # Build the interface
 Group([
@@ -690,8 +690,8 @@ Group([
         quality
     ]),
     Group([auto_play, subtitles]),
-    Group([save_btn, reset_btn], layout="row"),
-    status
+    Group([save_btn, settings_reset_btn], layout="row"),
+    status_text
 ], label="Video Settings", border=True, gap=3)`
     },
 

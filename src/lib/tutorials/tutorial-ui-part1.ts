@@ -289,7 +289,7 @@ Group([
 
 # Components that will change size
 demo_button = Button(label="Sample Button", size="md")
-demo_slider = Slider(value=50, label="Sample Slider", size="md", grow=1)
+dynamic_size_slider = Slider(value=50, label="Sample Slider", size="md", grow=1)
 demo_text = Text(content="Sample Text", size="md")
 size_label = Text(content="Size:", size="md")
 
@@ -303,7 +303,7 @@ size_picker = Select(
 def change_size(data):
     new_size = data['value']
     demo_button.size = new_size
-    demo_slider.size = new_size
+    dynamic_size_slider.size = new_size
     demo_text.size = new_size
     size_picker.size = new_size
     size_label.size = new_size
@@ -313,7 +313,7 @@ size_picker.on_update(change_size)
 Group([
     Group([size_label, size_picker], layout="row", align="center"),
     demo_button,
-    demo_slider,
+    dynamic_size_slider,
     demo_text
 ], label="Dynamic Sizing Demo", border=True)`
     },
@@ -406,6 +406,90 @@ Group([
     Input(placeholder="Green input", border="2px solid #22c55e", grow=1),
     Text(content="Dashed purple", border="2px dashed #a855f7", width="100%", align_h="center"),
 ])`
+    },
+
+    // --- Border Presets Section ---
+    {
+        id: "tut-ui-border-presets",
+        type: "markdown",
+        content: "### Border Presets & Custom Colors\n\nThe `border` parameter supports:\n- **Boolean**: `True` (default), `False` (no border)\n- **Preset names**: `\"primary\"`, `\"secondary\"`, `\"accent\"`, etc. → Creates `2px solid <theme-color>` border\n- **Custom colors**: `\"#00ff00\"`, `\"rgb(255,0,0)\"` → Creates `2px solid <color>` border\n- **Full CSS**: `\"3px dashed red\"`, `\"1px dotted rgba(0,0,0,0.3)\"` → Complete control\n\nTry this interactive demo to see all border options in action!"
+    },
+    {
+        id: "tut-demo-border-interactive",
+        type: "code",
+        content: `from pynote_ui import *
+
+# Border options to demonstrate
+border_options = [
+    "True",
+    "False", 
+    "primary",
+    "#00ff00",
+    "3px dashed red",
+    "1px dotted rgba(0,0,0,0.3)"
+]
+
+# Controls
+border_label = Text(content="border = ", width="fit-content", border=False)
+border_select = Select(
+    options=border_options,
+    value="True",
+    width="fit-content"
+)
+
+# Convert string values to actual border values
+def get_border_value(option):
+    if option == "True":
+        return True
+    elif option == "False":
+        return False
+    else:
+        return option
+
+# Create all components with initial border
+initial_border = True
+
+# Column 1 components
+slider = Slider(min=0, max=100, value=50, label="Slider", border=initial_border, width="100%")
+text = Text(content="Text Component", border=initial_border, width="100%", align_h="center")
+input_box = Input(placeholder="Input field", border=initial_border, width="100%")
+select = Select(options=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
+
+# Column 2 components
+textarea = Textarea(placeholder="Textarea field", rows=3, border=initial_border, width="100%")
+toggle = Toggle(checked=True, label="Toggle", border=initial_border, width="100%")
+checkbox = Checkbox(checked=True, label="Checkbox", border=initial_border, width="100%")
+button = Button(label="Button", color="primary", border=initial_border, width="100%")
+
+# Layout: Two columns in a row
+col1 = Group([slider, text, input_box, select], border=False, grow=1)
+col2 = Group([textarea, toggle, checkbox, button], border=False, grow=1)
+components_row = Group([col1, col2], layout="row", border=initial_border, gap=4)
+
+# Update all borders when selection changes
+def update_borders(data):
+    border_value = get_border_value(data['value'])
+    
+    # Update all components
+    slider.send_update(border=border_value)
+    text.send_update(border=border_value)
+    input_box.send_update(border=border_value)
+    select.send_update(border=border_value)
+    textarea.send_update(border=border_value)
+    toggle.send_update(border=border_value)
+    checkbox.send_update(border=border_value)
+    button.send_update(border=border_value)
+    
+    # Update outer container
+    components_row.send_update(border=border_value)
+
+border_select.on_update(update_borders)
+
+# Display everything
+Group([
+    Group([border_label, border_select], layout="row", border=False, gap=2),
+    components_row
+], gap=4, border=False)`
     },
 
     // --- Component States ---

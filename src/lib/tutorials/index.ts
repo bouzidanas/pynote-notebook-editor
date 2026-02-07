@@ -6,6 +6,7 @@ export { tutorialUICells } from "./tutorial-ui";
 export { tutorialChartsCells } from "./tutorial-charts";
 export { tutorialReactiveCells } from "./tutorial-reactive";
 export { tutorialAPICells } from "./tutorial-api";
+export { tutorialTestingCells } from "./tutorial-testing";
 
 import { tutorialQuickstartCells } from "./tutorial-quickstart";
 import { tutorialUIPart1Cells } from "./tutorial-ui-part1";
@@ -14,11 +15,12 @@ import { tutorialUICells } from "./tutorial-ui";
 import { tutorialChartsCells } from "./tutorial-charts";
 import { tutorialReactiveCells } from "./tutorial-reactive";
 import { tutorialAPICells } from "./tutorial-api";
+import { tutorialTestingCells } from "./tutorial-testing";
 import type { CellData } from "../store";
 import type { CodeVisibilitySettings } from "../codeVisibility";
 
 // Tutorial type mapping
-export type TutorialType = "tutorial" | "tutorial_ui_part1" | "tutorial_ui_part2" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api";
+export type TutorialType = "tutorial" | "tutorial_ui_part1" | "tutorial_ui_part2" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api" | "testing";
 
 // Document-level code visibility settings for tutorials
 // These hide result output by default so users run the cells themselves
@@ -78,6 +80,13 @@ export const TUTORIAL_CONFIG: Record<TutorialType, TutorialConfig> = {
         cells: tutorialAPICells,
         filename: "Tutorial - API Reference.ipynb"
         // API reference doesn't need hidden results - it's documentation
+    },
+    "testing": {
+        cells: tutorialTestingCells,
+        filename: "Testing Ground.ipynb",
+        codeview: {
+            showResult: false
+        }
     }
 };
 

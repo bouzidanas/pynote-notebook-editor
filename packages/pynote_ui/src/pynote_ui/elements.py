@@ -29,7 +29,7 @@ class Slider(UIElement):
         volume.value = 50    # Updates UI immediately
     """
     def __init__(self, value=0, min=0, max=100, step=1, label="Slider", size=None,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, color=None):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, color=None):
         self._value = value
         self._size = size
         self.min = min
@@ -38,7 +38,7 @@ class Slider(UIElement):
         self.label = label
         super().__init__(
             value=value, min=min, max=max, step=step, label=label, size=size,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, color=color
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, color=color
         )
 
     @property
@@ -98,13 +98,13 @@ class Text(UIElement):
         status.hide()  # Hide component
         status.show()  # Show component
     """
-    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, color=None):
+    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, background=True, color=None):
         self._content = content
         self._size = size
         super().__init__(
             content=content, size=size,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
-            align_h=align_h, align_v=align_v, border=border, color=color
+            align_h=align_h, align_v=align_v, border=border, background=background, color=color
         )
 
     @property
@@ -159,7 +159,7 @@ class Group(UIElement):
         controls = Group([slider1, slider2, button], 
                         layout="col", border=True, label="Controls")
     """
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, background=True, padding=None, gap=None, overflow=None, force_dimensions=False):
         self.children = children
 
         super().__init__(
@@ -172,6 +172,7 @@ class Group(UIElement):
             grow=grow,
             shrink=shrink,
             border=border,
+            background=background,
             padding=padding,
             gap=gap,
             overflow=overflow,
@@ -301,14 +302,14 @@ class Button(UIElement):
         btn.on_update(handle_click)
     """
     def __init__(self, label="Button", color=None, style=None, size=None, disabled=False, loading=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._label = label
         self._disabled = disabled
         self._loading = loading
         self._size = size
         super().__init__(
             label=label, color=color, style=style, size=size, disabled=disabled, loading=loading,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -383,7 +384,7 @@ class Select(UIElement):
         country.value = "UK"  # Set selection programmatically
     """
     def __init__(self, options=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         if options is None:
             options = []
         self._value = value
@@ -392,7 +393,7 @@ class Select(UIElement):
         self._size = size
         super().__init__(
             options=options, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -467,13 +468,13 @@ class Input(UIElement):
         email.value = "test@example.com"  # Set value programmatically
     """
     def __init__(self, value="", placeholder="", input_type="text", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, input_type=input_type, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -539,13 +540,13 @@ class Textarea(UIElement):
         bio.value = "New content"  # Set value programmatically
     """
     def __init__(self, value="", placeholder="", rows=4, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, rows=rows, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -594,6 +595,9 @@ class Toggle(UIElement):
         color: Color theme ('primary', 'secondary', 'accent', 'success', 'warning', 'error')
         size: Size preset ('xs', 'sm', 'md', 'lg')
         disabled: Disabled state (default: False)
+        align: Horizontal alignment ('left', 'center', 'right') - only affects layout when spaced=False
+        spaced: Space-between layout (toggle and label at opposite ends) (default: False)
+        reverse: Reverse element order (label to right of toggle) (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
         border: Show border (default: True)
@@ -609,13 +613,15 @@ class Toggle(UIElement):
         notifications.checked = False  # Programmatically update
     """
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 align=None, spaced=False, reverse=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            align=align, spaced=spaced, reverse=reverse,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -665,6 +671,9 @@ class Checkbox(UIElement):
         color: Color theme ('primary', 'secondary', 'accent', 'success', 'warning', 'error')
         size: Size preset ('xs', 'sm', 'md', 'lg')
         disabled: Disabled state (default: False)
+        align: Horizontal alignment ('left', 'center', 'right') - only affects layout when spaced=False
+        spaced: Space-between layout (checkbox and label at opposite ends) (default: False)
+        reverse: Reverse element order (label to right of checkbox) (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
         border: Show border (default: True)
@@ -680,13 +689,15 @@ class Checkbox(UIElement):
         terms.checked = True  # Programmatically check
     """
     def __init__(self, checked=False, label=None, color="primary", size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 align=None, spaced=False, reverse=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            align=align, spaced=spaced, reverse=reverse,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -766,7 +777,7 @@ class Form(UIElement):
         contact_form = Form([name, email, submit], 
                            label="Contact Form", border=True)
     """
-    def __init__(self, children, label=None, width="full", height=None, border=True, padding=None, gap=2):
+    def __init__(self, children, label=None, width="full", height=None, border=True, background=True, padding=None, gap=2):
         self.children = children
 
         super().__init__(
@@ -775,6 +786,7 @@ class Form(UIElement):
             width=width,
             height=height,
             border=border,
+            background=background,
             padding=padding,
             gap=gap
         )

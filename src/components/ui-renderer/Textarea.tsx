@@ -1,6 +1,7 @@
-import { type Component, createSignal, onMount, onCleanup } from "solid-js";
+import { type Component, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import { kernel } from "../../lib/pyodide";
 import { useFormContext } from "./FormContext";
+import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 interface TextareaProps {
   id: string;
@@ -8,7 +9,7 @@ interface TextareaProps {
     value: string;
     placeholder?: string;
     rows?: number;
-    color?: "neutral" | "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error" | null;
+    color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
     width?: string | number | null;
@@ -17,6 +18,7 @@ interface TextareaProps {
     shrink?: number | null;
     force_dimensions?: boolean;
     border?: boolean | string | null;
+    background?: boolean | string | null;
     hidden?: boolean;
   };
 }
@@ -24,10 +26,13 @@ interface TextareaProps {
 const Textarea: Component<TextareaProps> = (p) => {
   const componentId = p.id;
   const formContext = useFormContext();
-  const [value, setValue] = createSignal(p.props.value ?? "");
-  const [disabled, setDisabled] = createSignal(p.props.disabled ?? false);
-  const [size, setSize] = createSignal<"xs" | "sm" | "md" | "lg" | "xl">(p.props.size ?? "md");
-  const [hidden, setHidden] = createSignal(p.props.hidden ?? false);
+  const [allProps, setAllProps] = createSignal(p.props);
+  
+  // Reactive accessors
+  const value = () => allProps().value ?? "";
+  const disabled = () => allProps().disabled ?? false;
+  const size = () => allProps().size ?? "md";
+  const hidden = () => allProps().hidden ?? false;
 
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
@@ -41,16 +46,18 @@ const Textarea: Component<TextareaProps> = (p) => {
     }
   };
 
+  // Keep allProps in sync with parent props
+  createEffect(() => {
+    setAllProps(p.props);
+  });
+
   onMount(() => {
     if (formContext) {
       formContext.registerChild(componentId);
     }
     
     kernel.registerComponentListener(componentId, (data: any) => {
-      if (data.value !== undefined) setValue(data.value);
-      if (data.disabled !== undefined) setDisabled(data.disabled);
-      if (data.size !== undefined) setSize(data.size ?? "md");
-      if (data.hidden !== undefined) setHidden(data.hidden);
+      setAllProps(prev => ({ ...prev, ...data }));
     });
   });
 
@@ -65,7 +72,7 @@ const Textarea: Component<TextareaProps> = (p) => {
   const handleInput = (e: InputEvent) => {
     const target = e.currentTarget as HTMLTextAreaElement;
     const newValue = target.value;
-    setValue(newValue);
+    setAllProps(prev => ({ ...prev, value: newValue }));
     
     if (formContext) {
       formContext.setChildValue(componentId, newValue);
@@ -77,9 +84,9 @@ const Textarea: Component<TextareaProps> = (p) => {
   // Build combined styles for flex and dimensions
   const componentStyles = () => {
     const styles: Record<string, string | number | undefined> = {};
-    const grow = p.props.grow;
-    const shrink = p.props.shrink;
-    const force = p.props.force_dimensions;
+    const grow = allProps().grow;
+    const shrink = allProps().shrink;
+    const force = allProps().force_dimensions;
 
     // Handle hidden state
     if (hidden()) {
@@ -98,8 +105,9 @@ const Textarea: Component<TextareaProps> = (p) => {
       styles["flex-shrink"] = shrink;
     }
 
-    if (p.props.width != null) {
-      const w = typeof p.props.width === 'number' ? `${p.props.width}px` : p.props.width;
+    const width = allProps().width;
+    if (width != null) {
+      const w = typeof width === 'number' ? `${width}px` : width;
       if (force) {
         styles.width = w;
         styles["flex-grow"] = 0;
@@ -109,8 +117,9 @@ const Textarea: Component<TextareaProps> = (p) => {
       }
     }
 
-    if (p.props.height != null) {
-      const h = typeof p.props.height === 'number' ? `${p.props.height}px` : p.props.height;
+    const height = allProps().height;
+    if (height != null) {
+      const h = typeof height === 'number' ? `${height}px` : height;
       if (force) {
         styles.height = h;
       } else {
@@ -142,8 +151,7 @@ const Textarea: Component<TextareaProps> = (p) => {
   
   // Generate color styles for focus state
   const generateColorStyles = () => {
-    const color = p.props.color;
-    const colorVar = color === "neutral" ? "var(--foreground)" : (color ? `var(--${color})` : "var(--primary)");
+    const colorVar = resolveColor(allProps().color, "primary");
     
     return `
       .${textareaClass}:focus-visible {
@@ -152,17 +160,8 @@ const Textarea: Component<TextareaProps> = (p) => {
     `;
   };
   
-  // Apply custom border
-  const borderStyles = () => {
-    const borderValue = p.props.border;
-    if (borderValue === false || borderValue === "none") {
-      return { border: "none" };
-    } else if (borderValue && typeof borderValue === 'string') {
-      return { border: borderValue };
-    }
-    // true or null/undefined: Default border (from classes)
-    return {};
-  };
+  // Apply border
+  const borderStyles = () => resolveBorder(allProps().border);
 
   return (
     <>
@@ -171,10 +170,10 @@ const Textarea: Component<TextareaProps> = (p) => {
       </style>
       <textarea
       class={textareaClasses()}
-      style={{ ...componentStyles(), ...borderStyles(), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
       value={value()}
-      placeholder={p.props.placeholder ?? ""}
-      rows={p.props.rows ?? 4}
+      placeholder={allProps().placeholder ?? ""}
+      rows={allProps().rows ?? 4}
       onInput={handleInput}
       onKeyDown={(e) => e.stopPropagation()}
       disabled={disabled()}
