@@ -7,7 +7,7 @@
 > - **Full reactivity** for all component properties - automatic updates when prop values change
 > - **Select component** - parameter renamed from `options=` to `choices=` for better API clarity
 > 
-> All changes are backward compatible. Check out Test 5 at [?open=testing](https://pynote-notebook.vercel.app/?open=testing) to see the new `.options()` method in action!
+> All changes are backward compatible.
 
 > [!NOTE]
 > **Update 2026-02-6:** 
