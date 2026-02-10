@@ -6,14 +6,16 @@
 
 ## 1. Performance (Critical Priority)
 
-### 1a. Markdown Rendering Triple-Parse
+### 1a. ~~Markdown Rendering Triple-Parse~~ ✅ COMPLETED
 
-`src/components/MarkdownCell.tsx` runs **3 separate DOM parse/serialize roundtrips** per content change:
-1. `marked.parse()` → HTML string
-2. `applyAsyncHighlighting()` → `DOMParser` → modify → `serializer.serializeToString()` → HTML string
-3. `wrapTablesInContainer()` → another `DOMParser` → modify → serialize → HTML string
+> **Resolved:** Consolidated 3 separate DOM parse/serialize roundtrips into a single `postProcessAndSanitize()` function that parses once, applies highlighting + table wrapping on the same DOM tree, then passes the node directly to DOMPurify (via `RETURN_DOM: true`) to avoid re-parsing. Final pipeline: 1 DOMParser parse → modify → 1 DOMPurify importNode clone → 1 serialize. Eliminates ~1.5–5ms per render depending on content size.
 
-The final string is then assigned to `innerHTML`, parsed a 4th time by the browser. These should be consolidated into a single pass operating on one parsed DOM tree.
+~~`src/components/MarkdownCell.tsx` runs **3 separate DOM parse/serialize roundtrips** per content change:~~
+1. ~~`marked.parse()` → HTML string~~
+2. ~~`applyAsyncHighlighting()` → `DOMParser` → modify → `serializer.serializeToString()` → HTML string~~
+3. ~~`wrapTablesInContainer()` → another `DOMParser` → modify → serialize → HTML string~~
+
+~~The final string is then assigned to `innerHTML`, parsed a 4th time by the browser. These should be consolidated into a single pass operating on one parsed DOM tree.~~
 
 ### 1b. Autocomplete & Lint Race Conditions
 
@@ -219,7 +221,7 @@ No test files (`*.test.ts`, `*.spec.ts`) were found in the source tree. The hist
 
 | # | Priority | Finding | Impact |
 |---|----------|---------|--------|
-| 1 | **Perf** | Markdown triple DOM parse-serialize roundtrip | Visible lag on content with code blocks |
+| ~~1~~ | ~~**Perf**~~ | ~~Markdown triple DOM parse-serialize roundtrip~~ ✅ | ~~Visible lag on content with code blocks~~ |
 | 2 | **Perf** | No cancellation for autocomplete/lint worker requests | Stale results, wasted work |
 | 3 | **Perf** | Theme effect re-sets all 35 CSS vars on any change | Unnecessary style recalculation |
 | 4 | **Perf** | PerformanceObserver never disconnected | Memory leak |
