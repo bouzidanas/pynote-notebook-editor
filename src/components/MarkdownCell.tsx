@@ -60,12 +60,14 @@ renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
 };
 marked.use({ renderer });
 
-// Post-process HTML to apply highlight.js to marked code blocks
-const applyAsyncHighlighting = async (html: string): Promise<string> => {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
+// Post-process HTML: apply async syntax highlighting and wrap tables in a single DOM pass
+// Post-process and sanitize HTML in a single DOM pass:
+// Parse once → highlight code + wrap tables → sanitize in-place → serialize once
+const postProcessAndSanitize = async (html: string): Promise<string> => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  // Apply highlight.js to marked code blocks
   const codeBlocks = doc.querySelectorAll('code[data-hljs-lang]');
-  
   for (const block of codeBlocks) {
     const lang = block.getAttribute('data-hljs-lang');
     const base64Code = block.getAttribute('data-hljs-code');
@@ -79,28 +81,23 @@ const applyAsyncHighlighting = async (html: string): Promise<string> => {
       } catch (e) {
         console.warn('Failed to decode/highlight code block', e);
       }
-      // Clean up data attributes
       block.removeAttribute('data-hljs-lang');
       block.removeAttribute('data-hljs-code');
     }
   }
-  
-  return doc.body.innerHTML;
-};
 
-// Wrap tables in a container div for overflow scrolling
-const wrapTablesInContainer = (html: string): string => {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+  // Wrap tables in container divs for overflow scrolling
   const tables = doc.querySelectorAll('table');
-  
   tables.forEach(table => {
     const wrapper = doc.createElement('div');
     wrapper.className = 'table-wrapper';
     table.parentNode?.insertBefore(wrapper, table);
     wrapper.appendChild(table);
   });
-  
-  return doc.body.innerHTML;
+
+  // Sanitize the already-parsed DOM tree directly (avoids re-parsing from string)
+  const cleanBody = DOMPurify.sanitize(doc.body, { ...purifyOptions, RETURN_DOM: true }) as HTMLElement;
+  return cleanBody.innerHTML;
 };
 
 const purifyOptions = {
@@ -170,13 +167,8 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
           html = (result as any) instanceof Promise ? await result : result as string;
       }
 
-      // Apply async syntax highlighting for non-Python languages
-      html = await applyAsyncHighlighting(html);
-      
-      // Wrap tables in container divs for overflow scrolling
-      html = wrapTablesInContainer(html);
-      
-      setParsedContent(DOMPurify.sanitize(html, purifyOptions));
+      // Apply highlighting, table wrapping, and sanitization in a single DOM pass
+      setParsedContent(await postProcessAndSanitize(html));
     } catch (e) {
       console.error("Markdown rendering error:", e);
       setRenderError(true);
