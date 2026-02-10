@@ -14,9 +14,128 @@ Use this to test new features and verify component behavior without exposing inc
     },
 
     {
+        id: "test-color-title",
+        type: "markdown",
+        content: `## Color Reactivity Test
+
+This demo tests \`send_update()\` for color changes across all component types. It verifies:
+- Initial color rendering
+- Dynamic color updates from Python
+- Various color value formats (theme colors and custom CSS colors)
+- Color application to different component types`
+    },
+
+    {
+        id: "test-color-demo",
+        type: "code",
+        content: `from pynote_ui import *
+
+# Color options to demonstrate
+color_options = [
+    "primary",
+    "secondary",
+    "accent",
+    "info",
+    "success",
+    "warning",
+    "error",
+    "neutral",
+    "#ff6b6b",
+    "#4ecdc4",
+    "rgb(255, 159, 64)"
+]
+
+# Controls
+color_label = Text(content="color = ", width="fit-content", border=False)
+color_select = Select(
+    choices=color_options,
+    value="primary",
+    width="fit-content"
+)
+
+# Create all components with initial color
+initial_color = "primary"
+
+# Column 1 components
+color_slider = Slider(min=0, max=100, value=50, label="Slider", color=initial_color, width="100%")
+color_text = Text(content="Text Component", color=initial_color, width="100%", align_h="center")
+color_input = Input(placeholder="Input field", color=initial_color, width="100%")
+color_select_comp = Select(choices=["Option A", "Option B", "Option C"], value="Option A", color=initial_color, width="100%")
+
+# Column 2 components
+color_textarea = Textarea(placeholder="Textarea field", rows=3, color=initial_color, width="100%")
+color_toggle = Toggle(checked=True, label="Toggle", color=initial_color, width="100%")
+color_checkbox = Checkbox(checked=True, label="Checkbox", color=initial_color, width="100%")
+color_button = Button(label="Button", color=initial_color, width="100%")
+
+# Layout: Two columns in a row
+color_col1 = Group([color_slider, color_text, color_input, color_select_comp], border=True, grow=1, label="Column 1")
+color_col2 = Group([color_textarea, color_toggle, color_checkbox, color_button], border=True, grow=1, label="Column 2")
+color_components_row = Group([color_col1, color_col2], layout="row", border=False, gap=4)
+
+# Update all colors when selection changes
+def update_colors(data):
+    color_value = data['value']
+    
+    # Update all components
+    color_slider.send_update(color=color_value)
+    color_text.send_update(color=color_value)
+    color_input.send_update(color=color_value)
+    color_select_comp.send_update(color=color_value)
+    color_textarea.send_update(color=color_value)
+    color_toggle.send_update(color=color_value)
+    color_checkbox.send_update(color=color_value)
+    color_button.send_update(color=color_value)
+
+color_select.on_update(update_colors)
+
+# Display everything
+Group([
+    Group([color_label, color_select], layout="row", border=False, gap=2),
+    color_components_row
+], gap=4, border=False)`
+    },
+
+    {
+        id: "test-color-notes",
+        type: "markdown",
+        content: `### Expected Behavior
+
+1. **primary**: Default primary theme color
+2. **secondary**: Secondary theme color
+3. **accent**: Accent theme color
+4. **info**: Info blue color
+5. **success**: Success green color
+6. **warning**: Warning yellow/orange color
+7. **error**: Error red color
+8. **neutral**: Neutral foreground color
+9. **#ff6b6b**: Custom coral red
+10. **#4ecdc4**: Custom turquoise
+11. **rgb(255, 159, 64)**: Custom orange
+
+### Testing Checklist
+
+- [ ] Initial render works with primary color
+- [ ] Changing color value updates all components
+- [ ] Re-running cell maintains reactivity 
+- [ ] All theme color presets render correctly
+- [ ] Custom colors (hex, rgb) work as expected
+- [ ] Color applies appropriately to each component type:
+  - Slider: Track and thumb color
+  - Text: Text color
+  - Input/Textarea: Border and focus color
+  - Select: Border and focus color
+  - Toggle: Checked state color
+  - Checkbox: Checked state color
+  - Button: Active/hover color`
+    },
+
+    {
         id: "test-border-title",
         type: "markdown",
-        content: `## Border Reactivity Test
+        content: `---
+
+## Border Reactivity Test
 
 This demo tests \`send_update()\` for border changes across all component types. It verifies:
 - Initial border rendering
