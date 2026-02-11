@@ -29,9 +29,11 @@ In `src/lib/theme.ts` (lines 119-218), the `createEffect` that writes CSS custom
 
 In `src/lib/store.ts`, several actions repeat the pattern `setStore("cells", (c) => c.id === id, "prop", value)` multiple times in sequence (e.g., `undoSingleEntry` for type `'u'` on lines ~300-318 does 3 separate `setStore` calls for the same cell). Each call triggers the reactive system independently. Using `produce` or `batch()` to group these would reduce reactive update cascades.
 
-### 1e. PerformanceMonitor Memory Leak
+### 1e. ~~PerformanceMonitor Memory Leak~~ ✅ COMPLETED
 
-`src/components/PerformanceMonitor.tsx` creates two `PerformanceObserver` instances in `onMount` but **never calls `.disconnect()`** in `onCleanup`. Repeatedly opening/closing the dialog stacks observers. Additionally, the metrics signal creates a new array on every performance entry — high GC pressure with frequent layout shift events.
+> **Resolved:** Stored both `PerformanceObserver` instances as local variables inside `onMount` and added an `onCleanup` callback that calls `.disconnect()` on each. Observers are now properly torn down when the dialog unmounts. Also wrapped the resource observer creation in a try/catch for consistency.
+
+~~`src/components/PerformanceMonitor.tsx` creates two `PerformanceObserver` instances in `onMount` but **never calls `.disconnect()`** in `onCleanup`. Repeatedly opening/closing the dialog stacks observers. Additionally, the metrics signal creates a new array on every performance entry — high GC pressure with frequent layout shift events.~~
 
 ### 1f. Autosave Serialization Cost
 
@@ -50,9 +52,11 @@ In `src/lib/store.ts`, several actions repeat the pattern `setStore("cells", (c)
 
 The Python element classes also have ~300 lines of duplicated boilerplate (identical property getter/setter patterns across 10 element types).
 
-### 2b. Global Scope Completions Never Cached
+### 2b. ~~Global Scope Completions Never Cached~~ ✅ COMPLETED
 
-In the worker's `get_completions` Python function (`src/lib/pyodide.worker.ts` lines 183-188), attribute completions on objects use `_dir_cache`, but **global scope completions** (`list(globals().keys()) + dir(builtins)`) rebuild from scratch on every invocation — no caching at all.
+> **Resolved:** Added `_builtins_cache` that pre-computes `dir(builtins)` + `dir(pynote_ui)` with type info (via `inspect`) on first invocation. Global scope completions now only run fresh `inspect` calls on user-defined globals — builtins/embedded modules are served from cache. Cache clears on kernel restart alongside `_dir_cache`. **Known limitation:** if a user shadows a builtin name (e.g. `list = [1,2,3]`), the cached type icon may be stale — see `future-feature-specs/builtins-shadow-detection.md`.
+
+~~In the worker's `get_completions` Python function (`src/lib/pyodide.worker.ts` lines 183-188), attribute completions on objects use `_dir_cache`, but **global scope completions** (`list(globals().keys()) + dir(builtins)`) rebuild from scratch on every invocation — no caching at all.~~
 
 ### 2c. Dual `analyze_cell_dependencies` Tree Walks
 
@@ -66,9 +70,11 @@ The `analyze_cell_dependencies` function in the worker walks the AST twice: once
 
 ## 3. UI Performance / Smoothness / Handling
 
-### 3a. Drag-and-Drop Mouse Tracking
+### 3a. ~~Drag-and-Drop Mouse Tracking~~ ✅ COMPLETED
 
-`src/components/Notebook.tsx` (lines 142-150) registers a **permanent global `mousemove` listener** (`window.addEventListener('mousemove', ...)`) at module load time to track `lastMouseX`. This fires on every pixel of mouse movement regardless of whether a drag is active. The `CustomDragOverlay` component registers another `mousemove` listener during drag.
+> **Resolved:** Removed the permanent global `mousemove` listener that fired on every pixel of movement. Replaced with a `DragOffsetTracker` component inside `<DragDropProvider>` that reactively reads the sensor's pointer coordinates from the drag-drop context only when a drag starts. The grab offset is now computed from `sensor.coordinates.current.x` — no global listener needed at all.
+
+~~`src/components/Notebook.tsx` (lines 142-150) registers a **permanent global `mousemove` listener** (`window.addEventListener('mousemove', ...)`) at module load time to track `lastMouseX`. This fires on every pixel of mouse movement regardless of whether a drag is active. The `CustomDragOverlay` component registers another `mousemove` listener during drag.~~
 
 ### 3b. Cell Scroll-Into-View on Activation
 

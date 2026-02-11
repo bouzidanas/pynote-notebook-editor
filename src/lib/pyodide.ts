@@ -255,22 +255,13 @@ class Kernel {
 
   terminate() {
     if (this.worker) {
-      // Request cache cleanup before terminating
-      // Note: We don't await this since terminate needs to be synchronous
-      // The worker will be killed regardless, but this gives it a chance to cleanup
-      try {
-        this.worker.postMessage({ type: "cleanup", id: Date.now() });
-      } catch (err) {
-        // Worker might already be dead, ignore
-      }
+      const oldWorker = this.worker;
+      this.worker = null;
 
-      // Small delay to allow cleanup message to be processed
-      setTimeout(() => {
-        if (this.worker) {
-          this.worker.terminate();
-          this.worker = null;
-        }
-      }, 10);
+      // Terminate immediately — no need for cleanup since restart() creates
+      // a fresh Pyodide instance with empty caches anyway, and terminate()
+      // on its own doesn't need cache clearing since everything is discarded.
+      oldWorker.terminate();
     }
     // Reject all pending promises
     for (const [, listener] of this.listeners) {

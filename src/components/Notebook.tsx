@@ -124,14 +124,23 @@ const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; on
   );
 };
 
-// Track mouse position globally to calculate grab offset
-if (typeof window !== 'undefined') {
-  (window as any).lastMouseX = 0;
-  
-  window.addEventListener('mousemove', (e: MouseEvent) => {
-    (window as any).lastMouseX = e.clientX;
+// Captures the sensor's pointer origin on drag start to compute grab offset
+// Lives inside <DragDropProvider> so it has access to the drag-drop context
+const DragOffsetTracker: Component<{ setGrabOffsetX: (x: number) => void }> = (props) => {
+  const [state] = useDragDropContext()!;
+
+  createEffect(() => {
+    const draggable = state.active.draggable;
+    const sensor = state.active.sensor;
+    if (draggable && sensor) {
+      const rect = draggable.node.getBoundingClientRect();
+      // Use the sensor's current coordinates (most accurate at activation time)
+      props.setGrabOffsetX(sensor.coordinates.current.x - rect.left);
+    }
   });
-}
+
+  return null;
+};
 
 // Custom overlay that follows mouse cursor
 const CustomDragOverlay: Component<{ height: number | null; grabOffsetX: number; cellWidth: number }> = (props) => {
@@ -757,14 +766,14 @@ const Notebook: Component = () => {
     }
     
     // Only save essential notebook state (cells, filename, history, historyIndex)
-    // Always set isEditing to false for all cells before saving
+    // Spread proxy to plain object first (SolidJS store proxies may not
+    // enumerate dynamically-added properties through direct rest destructuring),
+    // then exclude transient UI-only keys that are meaningless after reload.
     const data = {
-      cells: notebookStore.cells.map(cell => ({ 
-        ...cell, 
-        isEditing: false,
-        isRunning: false,
-        isQueued: false
-      })),
+      cells: notebookStore.cells.map(cell => {
+        const { isEditing, isRunning, isQueued, editorAction, canUndo, canRedo, ...rest } = { ...cell };
+        return rest;
+      }),
       filename: notebookStore.filename,
       history: notebookStore.history,
       historyIndex: notebookStore.historyIndex,
@@ -972,10 +981,6 @@ const Notebook: Component = () => {
       const rect = draggable.node.getBoundingClientRect();
       setDraggedHeight(rect.height);
       setCellWidth(rect.width);
-      
-      // Calculate the horizontal offset from the left edge of the cell to the mouse
-      const mouseX = (window as any).lastMouseX || 0;
-      setGrabOffsetX(mouseX - rect.left);
     }
   };
 
@@ -1938,6 +1943,7 @@ const Notebook: Component = () => {
        <div style={{ "max-width": "var(--page-max-width-content)", "margin-left": "var(--page-margin-x-content)", "margin-right": "var(--page-margin-x-content)" }}>
          {/* Cells List */}
          <DragDropProvider onDragStart={onDragStart} onDragEnd={onDragEnd} collisionDetector={closestCorners}>
+           <DragOffsetTracker setGrabOffsetX={setGrabOffsetX} />
            <AutoScroller />
            <DragDropSensors />
            <div class="px-4 max-xs:px-3">

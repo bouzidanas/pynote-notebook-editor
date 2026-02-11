@@ -102,6 +102,8 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
   }
 
   createEffect(() => {
+    // Track cellIndex so this effect re-runs when the cell moves position (e.g. via keyboard shortcut)
+    void props.cellIndex;
     if (props.isActive && elementRef) {
       const rect = elementRef.getBoundingClientRect();
       const HEADER_HEIGHT = 100; // Safe area for sticky header + toolbar + padding

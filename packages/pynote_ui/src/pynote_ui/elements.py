@@ -1,4 +1,5 @@
 from .core import UIElement
+import base64
 
 class Slider(UIElement):
     """Interactive slider for numeric input within a range.
@@ -790,7 +791,148 @@ class Checkbox(UIElement):
         super().handle_interaction(data)
 
     def options(self, **kwargs):
-        \"\"\"Update component properties after initialization\"\"\"
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
+class Upload(UIElement):
+    """Drag-and-drop file upload area with click-to-browse fallback.
+    
+    Provides a styled drop zone where users can drag files onto or click to open
+    a file picker. Supports multiple files, shows upload status per file (success/error),
+    and allows removing files after upload. Works standalone or inside a Form
+    (deferred upload until form submission).
+    
+    Args:
+        accept: Comma-separated MIME types or extensions (e.g. "image/*,.csv,.json")
+        max_size: Maximum file size in bytes (None = no limit)
+        label: Label text displayed in the drop zone (default: "Upload")
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        size: Size preset ('xs', 'sm', 'md', 'lg', 'xl')
+        disabled: Disable file dropping/selection
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        border: Border style (default: True → 2px dashed)
+        background: Background style
+        hidden: Start hidden
+    
+    Properties:
+        files: Dict of {filename: bytes} for all successfully uploaded files (read-only)
+    
+    Example:
+        # Basic usage
+        uploader = Upload(label="Drop CSV files", accept=".csv")
+        
+        def on_file(data):
+            for name, content in uploader.files.items():
+                print(f"Got {name}: {len(content)} bytes")
+        
+        uploader.on_update(on_file)
+        
+        # Inside a form (deferred)
+        upload = Upload(label="Attachments")
+        submit = Button(label="Send", button_type="submit")
+        form = Form([upload, submit], label="Upload Form")
+    """
+    def __init__(self, accept=None, max_size=None, label="Upload", color=None, size=None,
+                 disabled=False, width=None, height=None, grow=None, shrink=None,
+                 force_dimensions=False, border=True, background=True, hidden=False):
+        self._files = {}  # {key: bytes}
+        self._disabled = disabled
+        self._size = size
+        super().__init__(
+            accept=accept, max_size=max_size, label=label, color=color, size=size,
+            disabled=disabled, width=width, height=height, grow=grow, shrink=shrink,
+            force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
+        )
+
+    @property
+    def files(self):
+        """Dict of {filename: bytes} for all successfully uploaded files."""
+        return dict(self._files)
+
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @disabled.setter
+    def disabled(self, value):
+        self._disabled = value
+        self.send_update(disabled=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
+
+    def handle_interaction(self, data):
+        action = data.get("action") if hasattr(data, "get") else None
+
+        if action == "upload":
+            status = {}
+            files_list = data.get("files", [])
+            # Handle Pyodide proxy objects
+            if hasattr(files_list, "to_py"):
+                files_list = files_list.to_py()
+            for f in files_list:
+                # Handle both dict and proxy
+                if hasattr(f, "to_py"):
+                    f = f.to_py()
+                key = f.get("key", f.get("name", "unknown"))
+                try:
+                    raw = base64.b64decode(f.get("data_base64", ""))
+                    max_size = self.props.get("max_size")
+                    if max_size and len(raw) > max_size:
+                        status[key] = f"error:File exceeds max size ({max_size} bytes)"
+                    else:
+                        self._files[key] = raw
+                        status[key] = "success"
+                except Exception as e:
+                    status[key] = f"error:{e}"
+            self.send_update(upload_status=status)
+            super().handle_interaction(data)
+
+        elif action == "remove":
+            key = data.get("key", "")
+            self._files.pop(key, None)
+            self.send_update(upload_status={key: "removed"})
+            super().handle_interaction(data)
+
+        elif data.get("value") is not None:
+            # Form submission path: receives file list from form context
+            value = data.get("value")
+            if hasattr(value, "to_py"):
+                value = value.to_py()
+            status = {}
+            if isinstance(value, list):
+                for f in value:
+                    if hasattr(f, "to_py"):
+                        f = f.to_py()
+                    key = f.get("key", f.get("name", "unknown"))
+                    try:
+                        raw = base64.b64decode(f.get("data_base64", ""))
+                        max_size = self.props.get("max_size")
+                        if max_size and len(raw) > max_size:
+                            status[key] = f"error:File exceeds max size ({max_size} bytes)"
+                        else:
+                            self._files[key] = raw
+                            status[key] = "success"
+                    except Exception as e:
+                        status[key] = f"error:{e}"
+            self.send_update(form_upload_status=status)
+            super().handle_interaction(data)
+
+        else:
+            super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
         for key, value in kwargs.items():
             setattr(self, key, value)
         self.send_update(**kwargs)
@@ -867,7 +1009,7 @@ class Form(UIElement):
         return result
 
     def options(self, **kwargs):
-        \"\"\"Update component properties after initialization\"\"\"
+        """Update component properties after initialization"""
         for key, value in kwargs.items():
             setattr(self, key, value)
         self.send_update(**kwargs)
