@@ -637,6 +637,147 @@ slider.options(label="Volume", width="100%", color="primary", size="lg")
 slider = Slider(value=50).options(label="Volume", width="100%", color="primary", size="lg")
 \`\`\`
 
-Both ways work! Use whichever is clearer for your use case.`
-    }
+Both ways work! Use whichever is clearer for your use case.`    },
+
+    // === Upload Component Test ===
+    {
+        id: "test-upload-header",
+        type: "markdown",
+        content: `---
+
+## Upload Component Test
+
+This demo tests the \`Upload\` drag-and-drop file component. It verifies:
+- Drag & drop file reception
+- Click-to-browse fallback
+- Multi-file support (drop multiple, drop one-by-one, multi-select in picker)
+- Success/error status indicators from Python ack
+- File removal (before and after upload)
+- Form-deferred upload mode
+- Shared styling props (color, size, border, background)
+- No infinite communication loop`
+    },
+
+    {
+        id: "test-upload-standalone",
+        type: "code",
+        content: `from pynote_ui import *
+
+# --- Standalone Upload (immediate mode) ---
+uploader = Upload(label="Drop files here", width="100%")
+
+status_text = Text(content="No files uploaded yet.", border=False)
+
+def on_upload(data):
+    if not uploader.files:
+        status_text.content = "No files uploaded yet."
+        return
+    nl = chr(10)
+    lines = []
+    for name, raw in uploader.files.items():
+        try:
+            text = raw.decode("utf-8")
+        except Exception:
+            text = repr(raw[:100])
+        preview = text[:300] + ("..." if len(text) > 300 else "")
+        lines.append(f"**{name}** ({len(raw)} bytes)")
+        lines.append(preview)
+    status_text.content = (nl * 2).join(lines)
+
+uploader.on_update(on_upload)
+
+Group([
+    Text(content="Standalone Upload (immediate)", border=False, size="lg"),
+    uploader,
+    status_text
+], gap=3, border=True, label="Immediate Mode")`
+    },
+
+    {
+        id: "test-upload-form",
+        type: "code",
+        content: `from pynote_ui import *
+
+# --- Upload inside a Form (deferred mode) ---
+form_upload = Upload(label="Attach files", width="100%")
+submit_btn = Button(label="Submit Form", button_type="submit", color="primary", width="100%")
+form_status = Text(content="Add files and click Submit.", border=False)
+
+def on_submit(data):
+    if not form_upload.files:
+        form_status.content = "Form submitted with no files."
+        return
+    nl = chr(10)
+    lines = []
+    for name, raw in form_upload.files.items():
+        try:
+            text = raw.decode("utf-8")
+        except Exception:
+            text = repr(raw[:100])
+        preview = text[:300] + ("..." if len(text) > 300 else "")
+        lines.append(f"**{name}** ({len(raw)} bytes)")
+        lines.append(preview)
+    form_status.content = (nl * 2).join(lines)
+
+submit_btn.on_update(on_submit)
+
+Form([
+    form_upload,
+    submit_btn,
+    form_status
+], label="Deferred Upload (Form)", border=True, gap=3)`
+    },
+
+    {
+        id: "test-upload-styling",
+        type: "code",
+        content: `from pynote_ui import *
+
+# --- Styling variations ---
+small_upload = Upload(label="Small", size="sm", width="100%", color="info")
+large_upload = Upload(label="Large", size="lg", width="100%", color="accent")
+custom_border = Upload(label="Custom border", width="100%", border="3px dotted #ff6b6b")
+no_border = Upload(label="No border", width="100%", border=False, background="rgba(100,200,255,0.1)")
+
+Group([
+    Group([small_upload, large_upload], layout="row", border=False, gap=4),
+    Group([custom_border, no_border], layout="row", border=False, gap=4)
+], gap=4, border=True, label="Styling Variations")`
+    },
+
+    {
+        id: "test-upload-notes",
+        type: "markdown",
+        content: `### Testing Checklist
+
+**Standalone (immediate) mode:**
+- [ ] Drop zone renders with dashed border, centered icon + text
+- [ ] Clicking "browse" opens native file picker
+- [ ] Clicking anywhere in the zone opens file picker
+- [ ] Dropping a single file shows it listed with uploading → green check
+- [ ] Dropping multiple files lists all with success indicators
+- [ ] Dropping files one by one appends to the list
+- [ ] Multi-select in file picker adds all selected files
+- [ ] Hovering a file row highlights its background
+- [ ] Hovering shows the X delete button
+- [ ] Clicking X before upload removes file from list (no Python call)
+- [ ] Clicking X after successful upload removes file and deletes from Python
+- [ ] Status text updates with file names and sizes after upload
+- [ ] No infinite loop (upload_status ack doesn't trigger re-send)
+
+**Form (deferred) mode:**
+- [ ] Files added to drop zone but NOT sent to Python
+- [ ] File list shows pending status (neutral icon)
+- [ ] Clicking Submit sends all files to Python
+- [ ] After submit, files show green check or red X
+- [ ] form_upload.files dict is populated after submit
+- [ ] Removing a file before submit just removes from local list
+
+**Styling:**
+- [ ] size="sm" renders compact, size="lg" renders larger
+- [ ] color="info" / "accent" changes hover/drag-over border color
+- [ ] Custom border string applies correctly (dotted red)
+- [ ] border=False removes border entirely
+- [ ] background with rgba works
+- [ ] Drag-over state highlights with the configured color`    }
 ];

@@ -63,10 +63,11 @@ const Select: Component<SelectProps> = (p) => {
     const newValue = target.value;
     setAllProps(prev => ({ ...prev, value: newValue }));
     
+    // Always send to Python for live on_update callbacks
+    kernel.sendInteraction(componentId, { value: newValue });
+    // Also store in form context for batch submission
     if (formContext) {
       formContext.setChildValue(componentId, newValue);
-    } else {
-      kernel.sendInteraction(componentId, { value: newValue });
     }
   };
 

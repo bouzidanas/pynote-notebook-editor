@@ -82,10 +82,11 @@ const Toggle: Component<ToggleProps> = (p) => {
     const newChecked = target.checked;
     setAllProps(prev => ({ ...prev, checked: newChecked }));
     
+    // Always send to Python for live on_update callbacks
+    kernel.sendInteraction(componentId, { checked: newChecked });
+    // Also store in form context for batch submission
     if (formContext) {
       formContext.setChildValue(componentId, newChecked);
-    } else {
-      kernel.sendInteraction(componentId, { checked: newChecked });
     }
   };
 

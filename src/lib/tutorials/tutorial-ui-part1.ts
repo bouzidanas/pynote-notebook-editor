@@ -14,8 +14,9 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
-| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, styling, sizing, and borders *(you are here)* |
-| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms, and interactive communication |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, colors, sizes, and states *(you are here)* |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layout, sizing, borders, and display functions |
+| **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
@@ -31,16 +32,58 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     {
         id: "tut-ui-intro",
         type: "markdown",
-        content: "# Interactive UI Part 1: Components & Styling\n\nThe built-in `pynote_ui` package provides a rich set of interactive widgets for building reactive interfaces. This tutorial introduces all available components and teaches you how to configure, style, and size them.\n\n**In this part**, you'll learn about:\n- All available UI components\n- Colors and visual styles\n- Size presets\n- Width, height, and flex sizing\n- Border customization\n\n**In Part 2**, you'll learn about layouts, forms, and interactive communication."
+        content: `# Interactive UI Part 1: Components & Styling
+
+The built-in \`pynote_ui\` package provides a rich set of interactive widgets for building reactive interfaces directly in your notebook.
+
+**This tutorial is split into three parts:**
+
+<br />
+
+| Part | Topics |
+|------|--------|
+| **Part 1** *(you are here)* | All available components, colors, sizes, and states |
+| **[Part 2](?open=tutorial_ui_part2)** | Layout with Group, sizing, borders, and display functions |
+| **[Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, cross-cell communication, and advanced patterns |`
     },
 
-    // --- Section: Components (Part 1) ---
+    // --- Component Overview ---
     {
-        id: "tut-ui-core",
+        id: "tut-ui-component-list",
         type: "markdown",
-        content: "## Available Components\n\nLet's explore all available components. All of these can be used anywhere - inside forms, in groups, or standalone.\n\n### Slider\n\nNumeric input with draggable control."
+        content: `## Available Components
+
+Here's every component in \`pynote_ui\`:
+
+<br />
+
+| Component | Description | Key Props |
+|-----------|-------------|-----------|
+| \`Slider\` | Numeric input with draggable control | \`value\`, \`min\`, \`max\`, \`step\`, \`label\` |
+| \`Text\` | Dynamic text display | \`content\`, \`align_h\`, \`align_v\` |
+| \`Button\` | Clickable action trigger | \`label\`, \`color\`, \`style\`, \`button_type\` |
+| \`Input\` | Single-line text input | \`value\`, \`placeholder\`, \`input_type\` |
+| \`Textarea\` | Multi-line text input | \`value\`, \`placeholder\`, \`rows\` |
+| \`Select\` | Dropdown picker | \`choices\`, \`value\`, \`placeholder\` |
+| \`Toggle\` | Switch-style on/off control | \`checked\`, \`label\` |
+| \`Checkbox\` | Traditional checkbox | \`checked\`, \`label\` |
+| \`Upload\` | Drag & drop file upload | \`label\`, \`files\` |
+| \`Group\` | Layout container (row/column) | \`layout\`, \`align\`, \`gap\`, \`border\` |
+| \`Form\` | Deferred submission container | Same as Group + submit behavior |
+
+<br />
+
+**Shared props:** All components support \`size\`, \`color\`, \`width\`, \`height\`, \`grow\`, \`shrink\`, \`border\`, \`background\`, \`hidden\`, \`disabled\`.
+
+Let's explore each one!`
     },
 
+    // --- Slider ---
+    {
+        id: "tut-ui-slider",
+        type: "markdown",
+        content: "## Slider\n\nNumeric input with a draggable control. Use `on_update()` to react to value changes."
+    },
     {
         id: "tut-demo-slider",
         type: "code",
@@ -56,10 +99,11 @@ demo_slider.on_update(on_change)
 Group([demo_slider, output_text])`
     },
 
+    // --- Text ---
     {
         id: "tut-ui-text",
         type: "markdown",
-        content: "### Text\n\nDisplay dynamic text content that can be updated programmatically."
+        content: "## Text\n\nDisplay dynamic text content. Supports horizontal alignment via `align_h`."
     },
     {
         id: "tut-demo-text",
@@ -84,10 +128,11 @@ Text(content="Center aligned", width="100%", align_h="center")`
 Text(content="Right aligned", width="100%", align_h="right")`
     },
 
+    // --- Button ---
     {
         id: "tut-ui-button",
         type: "markdown",
-        content: "### Button\n\nClickable buttons that trigger actions."
+        content: "## Button\n\nButtons trigger actions when clicked. They support colors (`primary`, `secondary`, `accent`, `info`, `success`, `warning`, `error`), styles (`outline`, `dash`, `soft`, `ghost`, `link`), and sizes."
     },
     {
         id: "tut-demo-button",
@@ -108,11 +153,11 @@ click_btn.on_update(handle_click)
 Group([click_btn, count_display])`
     },
 
-    // --- Input Example ---
+    // --- Input ---
     {
         id: "tut-ui-input",
         type: "markdown",
-        content: "### Input\n\nInput fields capture single-line text. They support various types: `text`, `password`, `email`, `number`, `search`, `tel`, `url`."
+        content: "## Input\n\nSingle-line text input. Supports types: `text`, `password`, `email`, `number`, `search`, `tel`, `url`."
     },
     {
         id: "tut-demo-input",
@@ -130,11 +175,11 @@ name_input.on_update(update_greeting)
 Group([name_input, greeting])`
     },
 
-    // --- Textarea Example ---
+    // --- Textarea ---
     {
         id: "tut-ui-textarea",
         type: "markdown",
-        content: "### Textarea\n\nTextarea provides multi-line text input. Use the `rows` parameter to control height."
+        content: "## Textarea\n\nMulti-line text input. Use the `rows` parameter to control visible height."
     },
     {
         id: "tut-demo-textarea",
@@ -151,11 +196,11 @@ notes.on_update(count_chars)
 Group([notes, char_count])`
     },
 
-    // --- Select Example ---
+    // --- Select ---
     {
         id: "tut-ui-select",
         type: "markdown",
-        content: "### Select\n\nSelect dropdowns let users pick from predefined options."
+        content: "## Select\n\nDropdown picker. Options can be simple strings or `{label, value}` dicts for different display/stored values."
     },
     {
         id: "tut-demo-select",
@@ -176,11 +221,11 @@ lang_select.on_update(on_select)
 Group([lang_select, selection_text])`
     },
 
-    // --- Toggle Example ---
+    // --- Toggle ---
     {
         id: "tut-ui-toggle",
         type: "markdown",
-        content: "### Toggle\n\nToggles are switch-style controls for on/off states."
+        content: "## Toggle\n\nSwitch-style on/off control. Access the state via `.checked`."
     },
     {
         id: "tut-demo-toggle",
@@ -197,11 +242,11 @@ dark_mode.on_update(toggle_mode)
 Group([dark_mode, status])`
     },
 
-    // --- Checkbox Example ---
+    // --- Checkbox ---
     {
         id: "tut-ui-checkbox",
         type: "markdown",
-        content: "### Checkbox\n\nCheckboxes provide traditional checkbox controls for boolean selections."
+        content: "## Checkbox\n\nTraditional checkbox for boolean selections. Works like Toggle but with checkbox appearance."
     },
     {
         id: "tut-demo-checkbox",
@@ -218,11 +263,27 @@ agree.on_update(check_agreement)
 Group([agree, message])`
     },
 
-    // --- Colors Section ---
+    // ============================================================================
+    // COLORS
+    // ============================================================================
     {
         id: "tut-ui-colors",
         type: "markdown",
-        content: "## Color Themes\n\nMost components accept a `color` parameter using **theme-configurable colors**:\n- `\"primary\"` — Primary color\n- `\"secondary\"` — Secondary color\n- `\"accent\"` — Accent color\n- `\"neutral\"` — Neutral foreground color\n- `\"info\"` — Informational blue\n- `\"success\"` — Success green\n- `\"warning\"` — Warning yellow/orange\n- `\"error\"` — Error red\n\nAll colors adapt to your active theme (change theme in toolbar to see).\n\n**Supported components:** Slider, Text, Button, Input, Textarea, Select, Toggle, Checkbox."
+        content: `## Color Themes
+
+Most components accept a \`color\` parameter using **theme-configurable colors**:
+- \`"primary"\` — Primary color
+- \`"secondary"\` — Secondary color
+- \`"accent"\` — Accent color
+- \`"neutral"\` — Neutral foreground color
+- \`"info"\` — Informational blue
+- \`"success"\` — Success green
+- \`"warning"\` — Warning yellow/orange
+- \`"error"\` — Error red
+
+All colors adapt to your active theme (change theme in toolbar to see).
+
+**Supported components:** Slider, Text, Button, Input, Textarea, Select, Toggle, Checkbox.`
     },
     {
         id: "tut-demo-colors",
@@ -242,11 +303,22 @@ Group([
 ], layout="row")`
     },
 
-    // --- Size Presets ---
+    // ============================================================================
+    // SIZE PRESETS
+    // ============================================================================
     {
         id: "tut-ui-sizes",
         type: "markdown",
-        content: "## Size Presets\n\nAll components support a `size` parameter with these presets:\n- `\"xs\"` — Extra small\n- `\"sm\"` — Small\n- `\"md\"` — Medium (default)\n- `\"lg\"` — Large\n- `\"xl\"` — Extra large\n\nSizes affect padding, font size, and component-specific dimensions."
+        content: `## Size Presets
+
+All components support a \`size\` parameter with these presets:
+- \`"xs"\` — Extra small
+- \`"sm"\` — Small
+- \`"md"\` — Medium (default)
+- \`"lg"\` — Large
+- \`"xl"\` — Extra large
+
+Sizes affect padding, font size, and component-specific dimensions.`
     },
     {
         id: "tut-demo-sizes",
@@ -276,7 +348,7 @@ Group([
 ])`
     },
 
-    // --- Dynamic Sizing Demo ---
+    // --- Dynamic Size Changes ---
     {
         id: "tut-ui-dynamic-size",
         type: "markdown",
@@ -318,181 +390,9 @@ Group([
 ], label="Dynamic Sizing Demo", border=True)`
     },
 
-    // --- Dimensions Section ---
-    {
-        id: "tut-ui-dimensions",
-        type: "markdown",
-        content: "## Width & Height\n\nAll components accept `width` and `height` parameters:\n- **Numbers** are treated as pixels: `width=200` → 200px\n- **Strings** are used as-is: `width=\"50%\"`, `width=\"10rem\"`\n- By default, these set **minimum** dimensions (component can grow)\n- Use `force_dimensions=True` for **exact** dimensions (component is fixed)"
-    },
-    {
-        id: "tut-demo-dimensions",
-        type: "code",
-        content: `from pynote_ui import Button, Group
-
-Group([
-    Button(label="100px wide", width=100),
-    Button(label="200px wide", width=200),
-    Button(label="300px wide", width=300),
-], layout="row")`
-    },
-    {
-        id: "tut-demo-dimensions2",
-        type: "code",
-        content: `from pynote_ui import Slider, Group
-
-# Fixed vs flexible dimensions
-Group([
-    Slider(value=50, label="Flexible (grows)", width=200, grow=1),
-    Slider(value=50, label="Fixed 200px", width=200, force_dimensions=True),
-], layout="col", border=True)`
-    },
-
-    // --- Flex Sizing Section ---
-    {
-        id: "tut-ui-flex",
-        type: "markdown",
-        content: "## Flex Sizing: `grow` and `shrink`\n\nComponents support flexbox properties for responsive sizing:\n\n### `grow`\n- **`grow=None`** (default): Component takes only the space it needs\n- **`grow=1`**: Component expands to fill available space\n- **`grow=2`, `grow=3`, etc.**: Takes proportionally more space\n\n### `shrink`\n- **`shrink=None`** (default): Component can shrink if needed\n- **`shrink=0`**: Component never shrinks below its natural size\n\nGrow is most useful inside Group containers (covered in Part 2)."
-    },
-    {
-        id: "tut-demo-flex",
-        type: "code",
-        content: `from pynote_ui import Slider, Group
-
-print("Equal space sharing (grow=1):")
-Group([
-    Slider(value=30, label="A", grow=1),
-    Slider(value=70, label="B", grow=1)
-], layout="row", border=True)`
-    },
-    {
-        id: "tut-demo-flex2",
-        type: "code",
-        content: `from pynote_ui import Slider, Group
-
-print("Weighted distribution (1:2 ratio):")
-Group([
-    Slider(value=30, label="1x space", grow=1),
-    Slider(value=70, label="2x space", grow=2)
-], layout="row", border=True)`
-    },
-
-    // --- Borders Section ---
-    {
-        id: "tut-ui-borders",
-        type: "markdown",
-        content: "## Border Customization\n\nAll components support a `border` parameter:\n- **`border=True`** — Default border (2px foreground color)\n- **`border=False` or `border=\"none\"`** — No border\n- **`border=\"<CSS>\"`** — Custom CSS border string\n\nExamples: `border=\"3px solid red\"`, `border=\"2px dashed #00ff00\"`"
-    },
-    {
-        id: "tut-demo-borderless",
-        type: "code",
-        content: `from pynote_ui import Button, Input, Select, Group
-
-print("Borderless components:")
-Group([
-    Button(label="No Border", border=False),
-    Input(placeholder="No border input", border=False, grow=1),
-    Select(choices=["A", "B", "C"], value="A", border=False, grow=1),
-], layout="row", border=False, padding=16, gap=3)`
-    },
-    {
-        id: "tut-demo-colored-borders",
-        type: "code",
-        content: `from pynote_ui import Button, Slider, Input, Text, Group
-
-print("Custom colored borders:")
-Group([
-    Button(label="Red Button", border="3px solid #ef4444"),
-    Slider(value=50, label="Blue Slider", border="2px solid #3b82f6", grow=1),
-    Input(placeholder="Green input", border="2px solid #22c55e", grow=1),
-    Text(content="Dashed purple", border="2px dashed #a855f7", width="100%", align_h="center"),
-])`
-    },
-
-    // --- Border Presets Section ---
-    {
-        id: "tut-ui-border-presets",
-        type: "markdown",
-        content: "### Border Presets & Custom Colors\n\nThe `border` parameter supports:\n- **Boolean**: `True` (default), `False` (no border)\n- **Preset names**: `\"primary\"`, `\"secondary\"`, `\"accent\"`, etc. → Creates `2px solid <theme-color>` border\n- **Custom colors**: `\"#00ff00\"`, `\"rgb(255,0,0)\"` → Creates `2px solid <color>` border\n- **Full CSS**: `\"3px dashed red\"`, `\"1px dotted rgba(0,0,0,0.3)\"` → Complete control\n\nTry this interactive demo to see all border options in action!"
-    },
-    {
-        id: "tut-demo-border-interactive",
-        type: "code",
-        content: `from pynote_ui import *
-
-# Border options to demonstrate
-border_options = [
-    "True",
-    "False", 
-    "primary",
-    "#00ff00",
-    "3px dashed red",
-    "1px dotted rgba(0,0,0,0.3)"
-]
-
-# Controls
-border_label = Text(content="border = ", width="fit-content", border=False)
-border_select = Select(
-    choices=border_options,
-    value="True",
-    width="fit-content"
-)
-
-# Convert string values to actual border values
-def get_border_value(option):
-    if option == "True":
-        return True
-    elif option == "False":
-        return False
-    else:
-        return option
-
-# Create all components with initial border
-initial_border = True
-
-# Column 1 components
-slider = Slider(min=0, max=100, value=50, label="Slider", border=initial_border, width="100%")
-text = Text(content="Text Component", border=initial_border, width="100%", align_h="center")
-input_box = Input(placeholder="Input field", border=initial_border, width="100%")
-select = Select(choices=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
-
-# Column 2 components
-textarea = Textarea(placeholder="Textarea field", rows=3, border=initial_border, width="100%")
-toggle = Toggle(checked=True, label="Toggle", border=initial_border, width="100%")
-checkbox = Checkbox(checked=True, label="Checkbox", border=initial_border, width="100%")
-button = Button(label="Button", color="primary", border=initial_border, width="100%")
-
-# Layout: Two columns in a row
-col1 = Group([slider, text, input_box, select], border=False, grow=1)
-col2 = Group([textarea, toggle, checkbox, button], border=False, grow=1)
-components_row = Group([col1, col2], layout="row", border=initial_border, gap=4)
-
-# Update all borders when selection changes
-def update_borders(data):
-    border_value = get_border_value(data['value'])
-    
-    # Update all components
-    slider.send_update(border=border_value)
-    text.send_update(border=border_value)
-    input_box.send_update(border=border_value)
-    select.send_update(border=border_value)
-    textarea.send_update(border=border_value)
-    toggle.send_update(border=border_value)
-    checkbox.send_update(border=border_value)
-    button.send_update(border=border_value)
-    
-    # Update outer container
-    components_row.send_update(border=border_value)
-
-border_select.on_update(update_borders)
-
-# Display everything
-Group([
-    Group([border_label, border_select], layout="row", border=False, gap=2),
-    components_row
-], gap=4, border=False)`
-    },
-
-    // --- Component States ---
+    // ============================================================================
+    // COMPONENT STATES
+    // ============================================================================
     {
         id: "tut-ui-states",
         type: "markdown",
@@ -530,20 +430,23 @@ Group([
 
 ## 🎉 Part 1 Complete!
 
-You've learned about all available components and how to configure, style, and size them.
+You've learned about all available components and how to style them with colors and sizes.
 
 **Continue to Part 2** to learn about:
-- Building layouts with Group
-- Creating forms with deferred submission
-- Interactive communication patterns
+- Building layouts with Group (rows, columns, nesting)
+- Flex sizing and dimensions
+- Border and background customization
 - Displaying UI elements anywhere in your code
 
 <br />
 
-| Next Steps |
-|------------|
-| **[Interactive UI Part 2](?open=tutorial_ui_part2)** → Layouts, forms, and communication |
-| **[API Reference](?open=tutorial_api)** → Complete component reference |
+| Next Steps | |
+|------------|---|
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layout, sizing, borders, and display functions |
+| **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
+| **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
+| **[API Reference](?open=tutorial_api)** | Complete component reference |
 
 <br />`
     }

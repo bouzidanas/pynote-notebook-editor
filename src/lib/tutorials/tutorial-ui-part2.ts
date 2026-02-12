@@ -14,8 +14,9 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
-| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, styling, sizing, and borders |
-| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layouts, forms, and interactive communication *(you are here)* |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, colors, sizes, and states |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layout, sizing, borders, and display functions *(you are here)* |
+| **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
@@ -26,15 +27,29 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
     },
 
     // ============================================================================
-    // INTERACTIVE UI - PART 2: Layouts & Interaction
+    // INTERACTIVE UI - PART 2: Layout & Appearance
     // ============================================================================
     {
         id: "tut-ui-part2-intro",
         type: "markdown",
-        content: "# Interactive UI Part 2: Layouts & Interaction\n\nNow that you understand individual components, let's learn how to build complete interfaces.\n\n**In this part**, you'll learn about:\n- Building layouts with Group\n- Creating forms with deferred submission\n- Interactive communication patterns\n- Displaying UI elements anywhere in code\n- Cross-cell communication"
+        content: `# Interactive UI Part 2: Layout, Sizing & Appearance
+
+Now that you know the individual components, let's learn how to arrange them into structured interfaces and customize their appearance.
+
+**In this part**, you'll learn about:
+- Building layouts with Group (rows, columns, nesting)
+- Flex sizing with \`grow\` and \`shrink\`
+- Width, height, and dimension control
+- Gap and padding
+- Overflow handling
+- Border customization
+- Hide/Show visibility control
+- Displaying UI elements anywhere with \`display()\` and \`print_md()\``
     },
 
-    // --- Group Basics ---
+    // ============================================================================
+    // GROUP BASICS
+    // ============================================================================
     {
         id: "tut-ui-group-basics",
         type: "markdown",
@@ -65,7 +80,9 @@ Group([
 ], layout="row", label="Row Layout", border=True)`
     },
 
-    // --- Alignment ---
+    // ============================================================================
+    // ALIGNMENT
+    // ============================================================================
     {
         id: "tut-ui-alignment",
         type: "markdown",
@@ -104,7 +121,7 @@ Group([
     Button(label="Start"),
     Button(label="Center"),
     Button(label="End"),
-], align="start", label="Align: Start", border=True)`
+], align="start", label="Align: Start (column)", border=True)`
     },
     {
         id: "tut-demo-alignment4",
@@ -115,10 +132,12 @@ Group([
     Button(label="Start"),
     Button(label="Center"),
     Button(label="End"),
-], align="center", label="Align: Center", border=True)`
+], align="center", label="Align: Center (column)", border=True)`
     },
 
-    // --- Nested Groups ---
+    // ============================================================================
+    // NESTED GROUPS
+    // ============================================================================
     {
         id: "tut-ui-nested",
         type: "markdown",
@@ -264,11 +283,101 @@ Group([
 ], label="Working Calculator", border=True, gap=2)`
     },
 
-    // --- Gap and Padding ---
+    // ============================================================================
+    // FLEX SIZING
+    // ============================================================================
+    {
+        id: "tut-ui-flex",
+        type: "markdown",
+        content: `## Space Sharing with \`grow\`
+
+By default, components take their **natural size** (just enough for their content). Use \`grow\` to make them expand and share available space:
+
+- **No \`grow\`** (default): Component takes only the space it needs
+- **\`grow=1\`**: Component expands to fill available space
+- **\`grow=2\`, \`grow=3\`**, etc.: Takes proportionally more space
+
+The \`shrink\` parameter controls whether a component can shrink below its natural size (\`shrink=0\` prevents shrinking).`
+    },
+    {
+        id: "tut-demo-flex",
+        type: "code",
+        content: `from pynote_ui import Slider, Group
+
+print("Equal space sharing (grow=1):")
+Group([
+    Slider(value=30, label="A", grow=1),
+    Slider(value=70, label="B", grow=1)
+], layout="row", border=True)`
+    },
+    {
+        id: "tut-demo-flex2",
+        type: "code",
+        content: `from pynote_ui import Slider, Group
+
+print("Weighted distribution (1:2 ratio):")
+Group([
+    Slider(value=30, label="1x space", grow=1),
+    Slider(value=70, label="2x space", grow=2)
+], layout="row", border=True)`
+    },
+
+    // ============================================================================
+    // DIMENSIONS
+    // ============================================================================
+    {
+        id: "tut-ui-dimensions",
+        type: "markdown",
+        content: `## Width & Height
+
+All components accept \`width\` and \`height\` parameters:
+- **Numbers** are treated as pixels: \`width=200\` → 200px
+- **Strings** are used as-is: \`width="50%"\`, \`width="10rem"\`
+- By default, these set **minimum** dimensions (component can grow)
+- Use \`force_dimensions=True\` for **exact** dimensions (component is fixed)`
+    },
+    {
+        id: "tut-demo-dimensions",
+        type: "code",
+        content: `from pynote_ui import Button, Group
+
+Group([
+    Button(label="100px wide", width=100),
+    Button(label="200px wide", width=200),
+    Button(label="300px wide", width=300),
+], layout="row")`
+    },
+    {
+        id: "tut-demo-dimensions2",
+        type: "code",
+        content: `from pynote_ui import Slider, Group
+
+# Fixed vs flexible dimensions
+Group([
+    Slider(value=50, label="Flexible (grows)", width=200, grow=1),
+    Slider(value=50, label="Fixed 200px", width=200, force_dimensions=True),
+], layout="col", border=True)`
+    },
+
+    // ============================================================================
+    // GAP AND PADDING
+    // ============================================================================
     {
         id: "tut-ui-gap-padding",
         type: "markdown",
-        content: "## Gap and Padding\n\n### `gap`\nControls spacing **between** children:\n- Numbers use Tailwind spacing scale: `gap=1` → 0.25rem, `gap=3` → 0.75rem\n- Strings are used as-is: `gap=\"1rem\"`, `gap=\"20px\"`\n- Default: `gap=3`\n\n### `padding`\nControls spacing **inside** the container:\n- Numbers → pixels: `padding=16` → 16px\n- Strings → CSS values: `padding=\"1rem\"`\n- Default: Automatic based on label/border"
+        content: `## Gap and Padding
+
+### \`gap\`
+Controls spacing **between** children:
+- Numbers use Tailwind spacing scale: \`gap=1\` → 0.25rem, \`gap=3\` → 0.75rem
+- Strings are used as-is: \`gap="1rem"\`, \`gap="20px"\`
+- Default: \`gap=3\`
+
+### \`padding\`
+Controls spacing **inside** the container:
+- Numbers → pixels: \`padding=16\` → 16px
+- Strings → CSS values: \`padding="1rem"\`
+- Default: Automatic based on label/border`
     },
     {
         id: "tut-demo-gap",
@@ -305,11 +414,21 @@ Group([
 ], border=True, padding=32)`
     },
 
-    // --- Overflow ---
+    // ============================================================================
+    // OVERFLOW
+    // ============================================================================
     {
         id: "tut-ui-overflow",
         type: "markdown",
-        content: "## Overflow Handling\n\nControl what happens when content exceeds container size:\n- `overflow=\"visible\"` — Content overflows container (default)\n- `overflow=\"hidden\"` — Content is clipped\n- `overflow=\"scroll\"` — Scrollbars appear\n- `overflow=\"auto\"` — Scrollbars appear only when needed\n- `overflow=\"scroll-x\"` — Horizontal scroll only\n- `overflow=\"scroll-y\"` — Vertical scroll only"
+        content: `## Overflow Handling
+
+Control what happens when content exceeds container size:
+- \`overflow="visible"\` — Content overflows container (default)
+- \`overflow="hidden"\` — Content is clipped
+- \`overflow="scroll"\` — Scrollbars appear
+- \`overflow="auto"\` — Scrollbars appear only when needed
+- \`overflow="scroll-x"\` — Horizontal scroll only
+- \`overflow="scroll-y"\` — Vertical scroll only`
     },
     {
         id: "tut-demo-overflow",
@@ -327,11 +446,145 @@ Group([
 ], height=200, overflow="scroll-y", label="Scrollable (200px)", border=True)`
     },
 
-    // --- Hide/Show Section ---
+    // ============================================================================
+    // BORDERS
+    // ============================================================================
+    {
+        id: "tut-ui-borders",
+        type: "markdown",
+        content: `## Border Customization
+
+All components support a \`border\` parameter:
+- **\`border=True\`** — Default border (2px foreground color)
+- **\`border=False\`** or **\`border="none"\`** — No border
+- **Preset names**: \`"primary"\`, \`"secondary"\`, \`"accent"\`, etc. → Creates \`2px solid <theme-color>\` border
+- **Custom colors**: \`"#00ff00"\`, \`"rgb(255,0,0)"\` → Creates \`2px solid <color>\` border
+- **Full CSS**: \`"3px dashed red"\`, \`"1px dotted rgba(0,0,0,0.3)"\` → Complete control`
+    },
+    {
+        id: "tut-demo-borderless",
+        type: "code",
+        content: `from pynote_ui import Button, Input, Select, Group
+
+print("Borderless components:")
+Group([
+    Button(label="No Border", border=False),
+    Input(placeholder="No border input", border=False, grow=1),
+    Select(choices=["A", "B", "C"], value="A", border=False, grow=1),
+], layout="row", border=False, padding=16, gap=3)`
+    },
+    {
+        id: "tut-demo-colored-borders",
+        type: "code",
+        content: `from pynote_ui import Button, Slider, Input, Text, Group
+
+print("Custom colored borders:")
+Group([
+    Button(label="Red Button", border="3px solid #ef4444"),
+    Slider(value=50, label="Blue Slider", border="2px solid #3b82f6", grow=1),
+    Input(placeholder="Green input", border="2px solid #22c55e", grow=1),
+    Text(content="Dashed purple", border="2px dashed #a855f7", width="100%", align_h="center"),
+])`
+    },
+
+    // --- Interactive Border Demo ---
+    {
+        id: "tut-ui-border-interactive",
+        type: "markdown",
+        content: "### Interactive Border Demo\n\nTry this interactive demo to see all border options in action on every component type!"
+    },
+    {
+        id: "tut-demo-border-interactive",
+        type: "code",
+        content: `from pynote_ui import *
+
+# Border options to demonstrate
+border_options = [
+    "True",
+    "False", 
+    "primary",
+    "#00ff00",
+    "3px dashed red",
+    "1px dotted rgba(0,0,0,0.3)"
+]
+
+# Controls
+border_label = Text(content="border = ", width="fit-content", border=False)
+border_select = Select(
+    choices=border_options,
+    value="True",
+    width="fit-content"
+)
+
+# Convert string values to actual border values
+def get_border_value(option):
+    if option == "True":
+        return True
+    elif option == "False":
+        return False
+    else:
+        return option
+
+# Create all components with initial border
+initial_border = True
+
+# Column 1 components
+slider = Slider(min=0, max=100, value=50, label="Slider", border=initial_border, width="100%")
+text = Text(content="Text Component", border=initial_border, width="100%", align_h="center")
+input_box = Input(placeholder="Input field", border=initial_border, width="100%")
+select = Select(choices=["Option A", "Option B", "Option C"], value="Option A", border=initial_border, width="100%")
+
+# Column 2 components
+textarea = Textarea(placeholder="Textarea field", rows=3, border=initial_border, width="100%")
+toggle = Toggle(checked=True, label="Toggle", border=initial_border, width="100%")
+checkbox = Checkbox(checked=True, label="Checkbox", border=initial_border, width="100%")
+button = Button(label="Button", color="primary", border=initial_border, width="100%")
+
+# Layout: Two columns in a row
+col1 = Group([slider, text, input_box, select], border=False, grow=1)
+col2 = Group([textarea, toggle, checkbox, button], border=False, grow=1)
+components_row = Group([col1, col2], layout="row", border=initial_border, gap=4)
+
+# Update all borders when selection changes
+def update_borders(data):
+    border_value = get_border_value(data['value'])
+    
+    # Update all components
+    slider.send_update(border=border_value)
+    text.send_update(border=border_value)
+    input_box.send_update(border=border_value)
+    select.send_update(border=border_value)
+    textarea.send_update(border=border_value)
+    toggle.send_update(border=border_value)
+    checkbox.send_update(border=border_value)
+    button.send_update(border=border_value)
+    
+    # Update outer container
+    components_row.send_update(border=border_value)
+
+border_select.on_update(update_borders)
+
+# Display everything
+Group([
+    Group([border_label, border_select], layout="row", border=False, gap=2),
+    components_row
+], gap=4, border=False)`
+    },
+
+    // ============================================================================
+    // HIDE / SHOW
+    // ============================================================================
     {
         id: "tut-ui-hide-show-intro",
         type: "markdown",
-        content: "## Hide and Show Components\n\nAll UI components support `.hide()` and `.show()` methods for reactive visibility control. This is perfect for:\n- Showing results only after form submission\n- Conditional UI based on user actions\n- Progressive disclosure patterns\n\nComponents can also start hidden with `hidden=True` parameter."
+        content: `## Hide and Show Components
+
+All UI components support \`.hide()\` and \`.show()\` methods for reactive visibility control. This is perfect for:
+- Showing results only after form submission
+- Conditional UI based on user actions
+- Progressive disclosure patterns
+
+Components can also start hidden with \`hidden=True\` parameter.`
     },
     {
         id: "tut-demo-hide-show",
@@ -361,181 +614,23 @@ Group([
     {
         id: "tut-ui-hide-show-note",
         type: "markdown",
-        content: "**Try it:** Click \"Show Secret\" to reveal the hidden Text component, then \"Hide Secret\" to hide it again. The `hidden` property is reactive - changes take effect immediately.\n\n**Performance:** Hiding components uses CSS `display: none`, which is extremely efficient. Hidden components maintain their state and can be shown again instantly."
+        content: "**Try it:** Click \"Show Secret\" to reveal the hidden Text component, then \"Hide Secret\" to hide it again. The `hidden` property is reactive — changes take effect immediately.\n\n**Performance:** Hiding components uses CSS `display: none`, which is extremely efficient. Hidden components maintain their state and can be shown again instantly."
     },
 
-    // --- Form Introduction ---
-    {
-        id: "tut-ui-form-intro",
-        type: "markdown",
-        content: "## Form: Deferred Submission\n\n`Form` is a special container that **defers communication** with Python until a submit button is clicked. This is perfect for collecting multiple inputs before processing.\n\n**How it works:**\n1. Place any components inside Form (Input, Select, Checkbox, Toggle, Slider, etc.)\n2. Add a Button with `button_type=\"submit\"`\n3. When submit button clicked, Form:\n   - Collects all child values into a dictionary\n   - Sends dict to Python (accessible via `form.value`)\n   - Updates each child component individually\n\n**Result:** Python can access values via:\n- `form.value` — Dictionary of all values\n- Individual components — `input.value`, `checkbox.checked`, `slider.value`, etc."
-    },
-
-    // --- Form Basic Example ---
-    {
-        id: "tut-ui-form-basic",
-        type: "markdown",
-        content: "### Basic Form Example"
-    },
-    {
-        id: "tut-demo-form-basic",
-        type: "code",
-        content: `from pynote_ui import Form, Input, Button, Text, Group
-
-# Create form with inputs
-name_input = Input(placeholder="Your name", grow=1)
-email_input = Input(placeholder="Email", input_type="email", grow=1)
-submit_btn = Button(label="Submit", button_type="submit", color="primary")
-result = Text(content="", hidden=True)  # Start hidden
-
-# Button callback - called when submit is clicked AND after form processes
-def on_submit(data):
-    # Access individual component values
-    result.content = f"Submitted! Name: {name_input.value}, Email: {email_input.value}"
-    result.show()  # Show the result
-
-submit_btn.on_update(on_submit)
-
-# Form defers input updates until submit
-contact_form = Form([
-    Group([name_input, email_input], layout="row"),
-    submit_btn,
-    result
-], label="Contact Form", border=True)
-
-# Display the form
-contact_form`
-    },
-    {
-        id: "tut-ui-form-basic-note",
-        type: "markdown",
-        content: "**Try it:** Type in the inputs above. Notice that Python doesn't receive updates until you click Submit. After submitting, both `name_input.value` and `email_input.value` are populated!\n\n**Notice:** The result Text starts `hidden=True` and only appears when `result.show()` is called after submission. This creates a cleaner UI than showing empty text boxes. All components support `.hide()` and `.show()` methods for reactive visibility control."
-    },
-
-    // --- Form with Value Dict ---
-    {
-        id: "tut-ui-form-dict",
-        type: "markdown",
-        content: "### Accessing Form.value Dictionary\n\nYou can also access all values at once via `form.value`:"
-    },
-    {
-        id: "tut-demo-form-dict",
-        type: "code",
-        content: `from pynote_ui import Form, Input, Select, Checkbox, Button, Text, Group
-
-# Create form components
-username = Input(placeholder="Username", grow=1)
-role = Select(choices=["User", "Admin", "Guest"], placeholder="Select role", grow=1)
-agree = Checkbox(label="I agree to terms", checked=False)
-submit = Button(label="Register", button_type="submit", color="success")
-output = Text(content="", hidden=True)  # Start hidden
-
-def handle_registration(data):
-    # Access values two ways:
-    # 1. Via form.value dictionary
-    print(f"Form values dict: {registration_form.value}")
-    
-    # 2. Via individual components
-    output.content = f"Registered {username.value} as {role.value}. Agreed: {agree.checked}"
-    output.show()  # Show the result
-
-submit.on_update(handle_registration)
-
-registration_form = Form([
-    Group([username, role], layout="row"),
-    agree,
-    submit,
-    output
-], label="Registration Form", border=True)
-
-registration_form`
-    },
-
-    // --- Button Types ---
-    {
-        id: "tut-ui-button-types",
-        type: "markdown",
-        content: "## Button Types\n\nButtons support a `button_type` parameter:\n- `\"default\"` — Normal button (triggers immediately)\n- `\"primary\"` — Styled primary button (always filled background)\n- `\"submit\"` — Submit button (triggers form submission when inside Form)\n\nNote: `button_type` is different from the `style` parameter (outline, soft, etc.)"
-    },
-    {
-        id: "tut-demo-button-types",
-        type: "code",
-        content: `from pynote_ui import Button, Group
-
-Group([
-    Button(label="Default", button_type="default"),
-    Button(label="Primary", button_type="primary"),
-    Button(label="Submit (no form)", button_type="submit"),
-], layout="row")`
-    },
-
-    // --- Complete Form Example ---
-    {
-        id: "tut-ui-form-complete",
-        type: "markdown",
-        content: "### Complete Form with All Components"
-    },
-    {
-        id: "tut-demo-form-complete",
-        type: "code",
-        content: `from pynote_ui import Form, Input, Textarea, Select, Toggle, Checkbox, Button, Text, Group
-
-# Create all form fields
-full_name = Input(placeholder="Full name", grow=1)
-email = Input(placeholder="Email", input_type="email", grow=1)
-country = Select(
-    choices=["USA", "UK", "Canada", "Australia", "Other"],
-    placeholder="Country",
-    grow=1
-)
-bio = Textarea(placeholder="Tell us about yourself...", height="300px", rows=3, grow=1, width="100%")
-newsletter = Toggle(label="Subscribe to newsletter", color="primary", border=False)
-terms = Checkbox(label="I accept terms of service", color="success", border=False)
-
-# Submit button - initially disabled
-registration_submit_btn = Button(
-    label="Submit Registration",
-    button_type="submit",
-    color="primary",
-    disabled=True
-)
-
-# Result display
-result_display = Text(content="", hidden=True)
-
-# Enable submit only when terms checked
-def check_terms(data):
-    registration_submit_btn.disabled = not data['checked'] or full_name.value == '' or email.value == '' or bio.value == ''
-
-terms.on_update(check_terms)
-
-# Handle submission
-def handle_submit(data):
-    # Can access via form.value or individual components
-    result_display.content = f"✅ Registered {full_name.value} from {country.value}"
-    result_display.show()
-    print(f"Full form data: {user_form.value}")
-
-registration_submit_btn.on_update(handle_submit)
-
-# Build the form
-user_form = Form([
-    Group([full_name, email, country], layout="row"),
-    bio,
-    newsletter,
-    terms,
-    registration_submit_btn,
-    result_display
-], label="User Registration", border=True, gap=2)
-
-user_form`
-    },
-
-    // --- Display Functions ---
+    // ============================================================================
+    // DISPLAY FUNCTIONS
+    // ============================================================================
     {
         id: "tut-ui-display",
         type: "markdown",
-        content: "## Displaying UI Anywhere: `display()`\n\nBy default, UI components only render when they're the **last expression** in a cell. The `display()` function lets you output components **at any point** during execution.\n\n**Signature:** `display(*elements, inline=False, gap=1)`\n- `inline=False` (default): Each element on its own line\n- `inline=True`: Elements on the same line\n- `gap`: Spacing between elements"
+        content: `## Displaying UI Anywhere: \`display()\`
+
+By default, UI components only render when they're the **last expression** in a cell. The \`display()\` function lets you output components **at any point** during execution.
+
+**Signature:** \`display(*elements, inline=False, gap=1)\`
+- \`inline=False\` (default): Each element on its own line
+- \`inline=True\`: Elements on the same line
+- \`gap\`: Spacing between elements`
     },
     {
         id: "tut-demo-display",
@@ -562,6 +657,28 @@ display_reset_btn.on_update(reset_display_volume)
 display(display_vol_slider, display_status, display_reset_btn)
 
 print("☝️ Components displayed inline in the output")`
+    },
+
+    // --- Print with UI ---
+    {
+        id: "tut-ui-print",
+        type: "markdown",
+        content: "### Using `print()` with UI Elements\n\nFor convenience, you can also use Python's built-in `print()` function or f-strings to display widgets:"
+    },
+    {
+        id: "tut-demo-print",
+        type: "code",
+        content: `from pynote_ui import Slider, Text
+
+volume = Slider(value=75, min=0, max=100, label="🔊 Volume", width="100%")
+vol_text = Text(content="75%")
+
+def update_vol(data):
+    vol_text.content = f"{int(data['value'])}%"
+volume.on_update(update_vol)
+
+# F-strings work and maintain interactivity!
+print(f"Volume: {volume} Level: {vol_text}")`
     },
 
     // --- Print Markdown ---
@@ -597,103 +714,10 @@ Adjust the screen brightness:
 *Interactive components work inside markdown!*
 """)`
     },
-
-    // --- Cross-Cell Communication ---
     {
-        id: "tut-ui-cross-cell",
+        id: "tut-ui-printmd-note",
         type: "markdown",
-        content: "## Cross-Cell Communication\n\nUI components can communicate **across cells** since they persist in Python's memory. This enables powerful multi-cell interfaces.\n\n**Run the cells below in order:**"
-    },
-    {
-        id: "tut-demo-cross-cell1",
-        type: "code",
-        content: `# Cell 1: Create a shared slider
-from pynote_ui import Slider, display
-
-shared_slider = Slider(value=50, label="Shared Slider", width="100%")
-display(shared_slider)
-
-print("☝️ This slider will control the text in the next cell")`
-    },
-    {
-        id: "tut-demo-cross-cell2",
-        type: "code",
-        content: `# Cell 2: Create a text that responds to Cell 1's slider
-from pynote_ui import Text, display
-
-response_text = Text(content="Waiting for slider...", width="100%")
-
-def respond_to_slider(data):
-    response_text.content = f"Received value {int(data['value'])} from Cell 1!"
-
-# Connect to the slider from Cell 1
-shared_slider.on_update(respond_to_slider)
-
-display(response_text)
-print("☝️ Now move the slider in Cell 1 - this text updates!")`
-    },
-
-    // --- Communication Patterns ---
-    {
-        id: "tut-ui-patterns",
-        type: "markdown",
-        content: "## Communication Patterns\n\nHere are common patterns for building interactive interfaces:\n\n### 1. Immediate Updates (Normal Components)\nComponents outside Forms update Python immediately:\n```python\ninput.on_update(callback)  # Called on every keystroke\n```\n\n### 2. Deferred Updates (Inside Forms)\nComponents inside Forms defer updates until submit:\n```python\nform = Form([input, submit_button])\n# input only updates Python after submit clicked\n```\n\n### 3. Bidirectional Sync\nPython can update component state:\n```python\nslider.value = 75  # Updates UI immediately\n```\n\n### 4. Cross-Cell Communication\nComponents created in one cell can be used in others:\n```python\n# Cell 1\ncontrol = Slider(...)\n\n# Cell 2\ncontrol.on_update(callback)  # Works!\n```"
-    },
-
-    // --- Real-World Example ---
-    {
-        id: "tut-ui-real-world",
-        type: "markdown",
-        content: "## Real-World Example: Settings Panel"
-    },
-    {
-        id: "tut-demo-real-world",
-        type: "code",
-        content: `from pynote_ui import Group, Slider, Select, Toggle, Button, Text
-
-# Create settings controls
-volume = Slider(value=70, label="Volume", grow=1, width="100%")
-quality = Select(
-    choices=["Low", "Medium", "High", "Ultra"],
-    value="High",
-    grow=1, width="100%"
-)
-auto_play = Toggle(label="Auto-play next video", checked=True, width="100%", reverse=True, spaced=True)
-subtitles = Toggle(label="Show subtitles", checked=False, width="100%", reverse=True, spaced=True)
-
-save_btn = Button(label="Save Settings", color="primary", background="primary")
-settings_reset_btn = Button(label="Reset to Defaults", style="outline")
-
-status_text = Text(content="", hidden=True)
-
-def save_settings(data):
-    status_text.content = f"✅ Saved: Volume {int(volume.value)}%, Quality: {quality.value}"
-    status_text.show()
-
-def reset_settings(data):
-    volume.value = 70
-    quality.value = "High"
-    auto_play.checked = True
-    subtitles.checked = False
-    status_text.hide()
-
-save_btn.on_update(save_settings)
-settings_reset_btn.on_update(reset_settings)
-
-# Build the interface
-Group([
-    Group([
-        Text(content="VOLUME", size="sm", width="100%", border=False),
-        volume
-    ]),
-    Group([
-        Text(content="QUALITY", size="sm", width="100%", border=False),
-        quality
-    ]),
-    Group([auto_play, subtitles]),
-    Group([save_btn, settings_reset_btn], layout="row"),
-    status_text
-], label="Video Settings", border=True, gap=3)`
+        content: "**Note:** `print_md()` handles its own content processing, so components embedded within markdown may appear differently compared to standalone components. This is because markdown content flows as inline/block text.\n\nPass `styled=False` for a monospace look that matches stdout instead of prose styling."
     },
 
     // --- Next Steps ---
@@ -704,24 +728,25 @@ Group([
 
 <br />
 
-## 🎉 Interactive UI Complete!
+## 🎉 Part 2 Complete!
 
-You now know how to build complete reactive interfaces with PyNote!
+You now know how to build structured layouts and customize component appearance.
 
-**What you learned:**
-- Building layouts with Group (rows, columns, nesting)
-- Creating forms with deferred submission
-- Button types and form submission
-- Display functions for flexible output
+**Continue to Part 3** to learn about:
+- Forms with deferred submission
+- File uploads with drag & drop
 - Cross-cell communication patterns
+- The \`.options()\` method for clean configuration
+- Real-world example: Settings Panel
 
 <br />
 
-| Continue Learning |
-|-------------------|
-| **[Charts & Plotting](?open=tutorial_charts)** → Create beautiful visualizations |
-| **[Reactive Execution](?open=tutorial_reactive)** → Automatic cell propagation |
-| **[API Reference](?open=tutorial_api)** → Complete component reference |
+| Next Steps | |
+|------------|---|
+| **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
+| **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
+| **[API Reference](?open=tutorial_api)** | Complete component reference |
 
 <br />`
     }

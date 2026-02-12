@@ -1,4 +1,5 @@
 from .core import UIElement
+import base64
 
 class Slider(UIElement):
     """Interactive slider for numeric input within a range.
@@ -29,7 +30,7 @@ class Slider(UIElement):
         volume.value = 50    # Updates UI immediately
     """
     def __init__(self, value=0, min=0, max=100, step=1, label="Slider", size=None,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, color=None):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, color=None):
         self._value = value
         self._size = size
         self.min = min
@@ -38,7 +39,7 @@ class Slider(UIElement):
         self.label = label
         super().__init__(
             value=value, min=min, max=max, step=step, label=label, size=size,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, color=color
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, color=color
         )
 
     @property
@@ -70,6 +71,13 @@ class Slider(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 class Text(UIElement):
     """Display dynamic text content that can be updated programmatically.
     
@@ -98,13 +106,13 @@ class Text(UIElement):
         status.hide()  # Hide component
         status.show()  # Show component
     """
-    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, color=None):
+    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, background=True, color=None):
         self._content = content
         self._size = size
         super().__init__(
             content=content, size=size,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
-            align_h=align_h, align_v=align_v, border=border, color=color
+            align_h=align_h, align_v=align_v, border=border, background=background, color=color
         )
 
     @property
@@ -124,6 +132,13 @@ class Text(UIElement):
     def size(self, new_size):
         self._size = new_size
         self.send_update(size=new_size)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 class Group(UIElement):
     """Layout container for arranging multiple UI components.
@@ -159,7 +174,7 @@ class Group(UIElement):
         controls = Group([slider1, slider2, button], 
                         layout="col", border=True, label="Controls")
     """
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, padding=None, gap=None, overflow=None, force_dimensions=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, background=True, padding=None, gap=None, overflow=None, force_dimensions=False):
         self.children = children
 
         super().__init__(
@@ -172,6 +187,7 @@ class Group(UIElement):
             grow=grow,
             shrink=shrink,
             border=border,
+            background=background,
             padding=padding,
             gap=gap,
             overflow=overflow,
@@ -266,6 +282,13 @@ class Group(UIElement):
     def overflow(self, value):
         self.send_update(overflow=value)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Button(UIElement):
     """Clickable button with customizable styling and loading states.
@@ -301,14 +324,14 @@ class Button(UIElement):
         btn.on_update(handle_click)
     """
     def __init__(self, label="Button", color=None, style=None, size=None, disabled=False, loading=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._label = label
         self._disabled = disabled
         self._loading = loading
         self._size = size
         super().__init__(
             label=label, color=color, style=style, size=size, disabled=disabled, loading=loading,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -353,15 +376,22 @@ class Button(UIElement):
             pass
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Select(UIElement):
-    """Dropdown selection menu with multiple options.
+    """Dropdown selection menu with multiple choices.
     
-    A dropdown component for selecting from a list of options. Updates immediately
-    when user makes a selection. Options can be strings or dicts with label/value pairs.
+    A dropdown component for selecting from a list of choices. Updates immediately
+    when user makes a selection. Choices can be strings or dicts with label/value pairs.
     
     Args:
-        options: List of options (strings or dicts like [{'label': 'A', 'value': 1}])
+        choices: List of choices (strings or dicts like [{'label': 'A', 'value': 1}])
         value: Initially selected value
         placeholder: Placeholder text when nothing selected
         color: Color theme ('primary', 'secondary', 'accent', etc.)
@@ -373,26 +403,26 @@ class Select(UIElement):
     
     Properties:
         value: Get/set selected value
-        options: Get/set available options
+        choices: Get/set available choices
         disabled: Get/set disabled state
         size: Get/set size preset
     
     Example:
-        country = Select(options=["USA", "UK", "Canada"], placeholder="Country")
+        country = Select(choices=["USA", "UK", "Canada"], placeholder="Country")
         print(country.value)  # Selected value
         country.value = "UK"  # Set selection programmatically
     """
-    def __init__(self, options=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
-        if options is None:
-            options = []
+    def __init__(self, choices=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
+        if choices is None:
+            choices = []
         self._value = value
-        self._options = options
+        self._choices = choices
         self._disabled = disabled
         self._size = size
         super().__init__(
-            options=options, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            options=choices, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -405,13 +435,13 @@ class Select(UIElement):
         self.send_update(value=new_value)
 
     @property
-    def options(self):
-        return self._options
+    def choices(self):
+        return self._choices
 
-    @options.setter
-    def options(self, new_options):
-        self._options = new_options
-        self.send_update(options=new_options)
+    @choices.setter
+    def choices(self, new_choices):
+        self._choices = new_choices
+        self.send_update(options=new_choices)
 
     @property
     def disabled(self):
@@ -436,6 +466,13 @@ class Select(UIElement):
             self._value = data["value"]
             self.props["value"] = self._value
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Input(UIElement):
@@ -467,13 +504,13 @@ class Input(UIElement):
         email.value = "test@example.com"  # Set value programmatically
     """
     def __init__(self, value="", placeholder="", input_type="text", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, input_type=input_type, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -508,6 +545,13 @@ class Input(UIElement):
             self._value = data["value"]
             self.props["value"] = self._value
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Textarea(UIElement):
@@ -539,13 +583,13 @@ class Textarea(UIElement):
         bio.value = "New content"  # Set value programmatically
     """
     def __init__(self, value="", placeholder="", rows=4, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._value = value
         self._disabled = disabled
         self._size = size
         super().__init__(
             value=value, placeholder=placeholder, rows=rows, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -581,6 +625,13 @@ class Textarea(UIElement):
             self.props["value"] = self._value
         super().handle_interaction(data)
 
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
 
 class Toggle(UIElement):
     """Toggle switch for boolean on/off states.
@@ -594,6 +645,9 @@ class Toggle(UIElement):
         color: Color theme ('primary', 'secondary', 'accent', 'success', 'warning', 'error')
         size: Size preset ('xs', 'sm', 'md', 'lg')
         disabled: Disabled state (default: False)
+        align: Horizontal alignment ('left', 'center', 'right') - only affects layout when spaced=False
+        spaced: Space-between layout (toggle and label at opposite ends) (default: False)
+        reverse: Reverse element order (label to right of toggle) (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
         border: Show border (default: True)
@@ -609,13 +663,15 @@ class Toggle(UIElement):
         notifications.checked = False  # Programmatically update
     """
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 align=None, spaced=False, reverse=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            align=align, spaced=spaced, reverse=reverse,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -650,6 +706,13 @@ class Toggle(UIElement):
             self._checked = data["checked"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 
 class Checkbox(UIElement):
@@ -665,6 +728,9 @@ class Checkbox(UIElement):
         color: Color theme ('primary', 'secondary', 'accent', 'success', 'warning', 'error')
         size: Size preset ('xs', 'sm', 'md', 'lg')
         disabled: Disabled state (default: False)
+        align: Horizontal alignment ('left', 'center', 'right') - only affects layout when spaced=False
+        spaced: Space-between layout (checkbox and label at opposite ends) (default: False)
+        reverse: Reverse element order (label to right of checkbox) (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
         border: Show border (default: True)
@@ -680,13 +746,15 @@ class Checkbox(UIElement):
         terms.checked = True  # Programmatically check
     """
     def __init__(self, checked=False, label=None, color="primary", size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True):
+                 align=None, spaced=False, reverse=False,
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
         self._checked = checked
         self._disabled = disabled
         self._size = size
         super().__init__(
             checked=checked, label=label, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border
+            align=align, spaced=spaced, reverse=reverse,
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
         )
 
     @property
@@ -721,6 +789,154 @@ class Checkbox(UIElement):
             self._checked = data["checked"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
+class Upload(UIElement):
+    """Drag-and-drop file upload area with click-to-browse fallback.
+    
+    Provides a styled drop zone where users can drag files onto or click to open
+    a file picker. Supports multiple files, shows upload status per file (success/error),
+    and allows removing files after upload. Works standalone or inside a Form
+    (deferred upload until form submission).
+    
+    Args:
+        accept: Comma-separated MIME types or extensions (e.g. "image/*,.csv,.json")
+        max_size: Maximum file size in bytes (None = no limit)
+        label: Label text displayed in the drop zone (default: "Upload")
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        size: Size preset ('xs', 'sm', 'md', 'lg', 'xl')
+        disabled: Disable file dropping/selection
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        border: Border style (default: True → 2px dashed)
+        background: Background style
+        hidden: Start hidden
+    
+    Properties:
+        files: Dict of {filename: bytes} for all successfully uploaded files (read-only)
+    
+    Example:
+        # Basic usage
+        uploader = Upload(label="Drop CSV files", accept=".csv")
+        
+        def on_file(data):
+            for name, content in uploader.files.items():
+                print(f"Got {name}: {len(content)} bytes")
+        
+        uploader.on_update(on_file)
+        
+        # Inside a form (deferred)
+        upload = Upload(label="Attachments")
+        submit = Button(label="Send", button_type="submit")
+        form = Form([upload, submit], label="Upload Form")
+    """
+    def __init__(self, accept=None, max_size=None, label="Upload", color=None, size=None,
+                 disabled=False, width=None, height=None, grow=None, shrink=None,
+                 force_dimensions=False, border=True, background=True, hidden=False):
+        self._files = {}  # {key: bytes}
+        self._disabled = disabled
+        self._size = size
+        super().__init__(
+            accept=accept, max_size=max_size, label=label, color=color, size=size,
+            disabled=disabled, width=width, height=height, grow=grow, shrink=shrink,
+            force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
+        )
+
+    @property
+    def files(self):
+        """Dict of {filename: bytes} for all successfully uploaded files."""
+        return dict(self._files)
+
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @disabled.setter
+    def disabled(self, value):
+        self._disabled = value
+        self.send_update(disabled=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
+
+    def handle_interaction(self, data):
+        action = data.get("action") if hasattr(data, "get") else None
+
+        if action == "upload":
+            status = {}
+            files_list = data.get("files", [])
+            # Handle Pyodide proxy objects
+            if hasattr(files_list, "to_py"):
+                files_list = files_list.to_py()
+            for f in files_list:
+                # Handle both dict and proxy
+                if hasattr(f, "to_py"):
+                    f = f.to_py()
+                key = f.get("key", f.get("name", "unknown"))
+                try:
+                    raw = base64.b64decode(f.get("data_base64", ""))
+                    max_size = self.props.get("max_size")
+                    if max_size and len(raw) > max_size:
+                        status[key] = f"error:File exceeds max size ({max_size} bytes)"
+                    else:
+                        self._files[key] = raw
+                        status[key] = "success"
+                except Exception as e:
+                    status[key] = f"error:{e}"
+            self.send_update(upload_status=status)
+            super().handle_interaction(data)
+
+        elif action == "remove":
+            key = data.get("key", "")
+            self._files.pop(key, None)
+            self.send_update(upload_status={key: "removed"})
+            super().handle_interaction(data)
+
+        elif data.get("value") is not None:
+            # Form submission path: receives file list from form context
+            value = data.get("value")
+            if hasattr(value, "to_py"):
+                value = value.to_py()
+            status = {}
+            if isinstance(value, list):
+                for f in value:
+                    if hasattr(f, "to_py"):
+                        f = f.to_py()
+                    key = f.get("key", f.get("name", "unknown"))
+                    try:
+                        raw = base64.b64decode(f.get("data_base64", ""))
+                        max_size = self.props.get("max_size")
+                        if max_size and len(raw) > max_size:
+                            status[key] = f"error:File exceeds max size ({max_size} bytes)"
+                        else:
+                            self._files[key] = raw
+                            status[key] = "success"
+                    except Exception as e:
+                        status[key] = f"error:{e}"
+            self.send_update(form_upload_status=status)
+            super().handle_interaction(data)
+
+        else:
+            super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
 
 class Form(UIElement):
     """Form container that defers input updates until submission.
@@ -766,7 +982,7 @@ class Form(UIElement):
         contact_form = Form([name, email, submit], 
                            label="Contact Form", border=True)
     """
-    def __init__(self, children, label=None, width="full", height=None, border=True, padding=None, gap=2):
+    def __init__(self, children, label=None, width="full", height=None, border=True, background=True, padding=None, gap=2):
         self.children = children
 
         super().__init__(
@@ -775,6 +991,7 @@ class Form(UIElement):
             width=width,
             height=height,
             border=border,
+            background=background,
             padding=padding,
             gap=gap
         )
@@ -790,3 +1007,10 @@ class Form(UIElement):
                 key = getattr(child, 'placeholder', child.__class__.__name__.lower())
                 result[key] = child.value
         return result
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self

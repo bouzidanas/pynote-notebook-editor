@@ -4,7 +4,7 @@ import type { UploadFile } from "@solid-primitives/upload";
 import { kernel } from "../../lib/pyodide";
 import { useFormContext } from "./FormContext";
 import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
-import { UploadCloud, CheckCircle, XCircle, FileUp, X, Loader } from "lucide-solid";
+import { CloudUpload, CircleCheckBig, CloudAlert, Circle, X, Loader } from "lucide-solid";
 
 // --- Types ---
 
@@ -96,12 +96,12 @@ const Upload: Component<UploadProps> = (p) => {
 
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", iconSize: 20, fileTextSize: "text-[10px]" };
-      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", iconSize: 24, fileTextSize: "text-xs" };
-      case "md": return { padding: 12, textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
-      case "lg": return { padding: 14, textSize: "text-xl", iconSize: 40, fileTextSize: "text-sm" };
-      case "xl": return { padding: 16, textSize: "text-3xl", iconSize: 48, fileTextSize: "text-base" };
-      default: return { padding: 12, textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
+      case "xs": return { paddingClass: "p-1.5", textSize: "text-[length:var(--text-3xs)]", iconSize: 20, fileTextSize: "text-[10px]" };
+      case "sm": return { paddingClass: "p-2", textSize: "text-[length:var(--text-2xs)]", iconSize: 24, fileTextSize: "text-xs" };
+      case "md": return { paddingClass: "p-3", textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
+      case "lg": return { paddingClass: "p-3.5", textSize: "text-xl", iconSize: 40, fileTextSize: "text-sm" };
+      case "xl": return { paddingClass: "p-4", textSize: "text-3xl", iconSize: 48, fileTextSize: "text-base" };
+      default: return { paddingClass: "p-3", textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
     }
   };
 
@@ -111,13 +111,13 @@ const Upload: Component<UploadProps> = (p) => {
   });
 
   // --- Dropzone setup ---
-  const { setRef: dropzoneRef, files: droppedFiles } = createDropzone({
+  const { setRef: dropzoneRef } = createDropzone({
     onDrop: async (dropped) => {
       if (disabled()) return;
       await processNewFiles(dropped);
     },
-    onDragOver: () => setIsDragOver(true),
-    onDragStart: () => setIsDragOver(true),
+    onDragOver: () => { setIsDragOver(true); },
+    onDragStart: () => { setIsDragOver(true); },
   });
 
   // Also use createFileUploader for the click-to-browse fallback
@@ -354,33 +354,27 @@ const Upload: Component<UploadProps> = (p) => {
 
   const uploadClass = `upload-${componentId}`;
 
-  /** Default border is 2px dashed, not 2px solid like other components. */
-  const borderStyles = (): Record<string, string> => {
+  /** Tailwind classes for the common border cases. */
+  const borderClass = () => {
     const borderValue = allProps().border;
+    if (borderValue === false || borderValue === "none") return "border-none";
+    if (borderValue === true || borderValue == null) return "border-2 border-dashed border-foreground";
+    return ""; // Custom value — handled by borderStyle()
+  };
 
-    // border=false or "none"
-    if (borderValue === false || borderValue === "none") {
-      return { border: "none" };
+  /** Inline style only needed for custom border strings resolved through colorUtils. */
+  const borderStyle = (): Record<string, string> => {
+    const borderValue = allProps().border;
+    if (borderValue === false || borderValue === "none" || borderValue === true || borderValue == null) {
+      return {};
     }
-
-    // border=true, null, undefined → default dashed
-    if (borderValue === true || borderValue == null) {
-      return { border: "2px dashed var(--foreground)" };
-    }
-
-    // String preset or custom — resolve through colorUtils (but keep dashed for presets)
     const resolved = resolveBorder(borderValue);
     if (resolved.border) {
-      // If user specified a full CSS border string, use it as-is
-      // Otherwise make it dashed
       const isFullBorder = typeof borderValue === "string" && borderValue.includes(" ");
-      if (isFullBorder) {
-        return { border: resolved.border };
-      }
-      // It's a color preset or custom color → wrap as dashed
+      if (isFullBorder) return { border: resolved.border };
       return { border: resolved.border.replace("solid", "dashed") };
     }
-    return { border: "2px dashed var(--foreground)" };
+    return {};
   };
 
   const colorVar = () => resolveColor(allProps().color, "primary");
@@ -396,19 +390,12 @@ const Upload: Component<UploadProps> = (p) => {
       }
       .${uploadClass}.drag-over {
         border-color: ${cv};
-        background-color: color-mix(in srgb, ${cv} 6%, transparent);
+        background-color: color-mix(in srgb, ${cv} 15%, transparent);
       }
     `;
   };
 
-  // Status icon color helpers
-  const statusColor = (status: FileStatus) => {
-    switch (status) {
-      case "success": return "var(--success, #22c55e)";
-      case "error": return "var(--error, #ef4444)";
-      default: return "var(--foreground)";
-    }
-  };
+
 
   return (
     <>
@@ -420,21 +407,17 @@ const Upload: Component<UploadProps> = (p) => {
           el.addEventListener("dragleave", handleDragLeave);
           el.addEventListener("drop", handleDrop);
         }}
-        class={`${uploadClass} rounded-sm cursor-pointer select-none font-mono ${isDragOver() ? "drag-over" : ""}`}
+        class={`${uploadClass} rounded-sm cursor-pointer select-none font-mono flex-col ${sizeConfig().paddingClass} ${borderClass()} ${hidden() ? "hidden" : "flex"} ${allProps().height == null ? "min-h-[120px]" : ""} ${isDragOver() ? "drag-over" : ""}`}
         style={{
           ...componentStyles(),
-          ...borderStyles(),
+          ...borderStyle(),
           ...resolveBackground(allProps().background),
-          padding: `${sizeConfig().padding}px`,
-          "min-height": allProps().height == null ? "120px" : undefined,
-          display: hidden() ? "none" : "flex",
-          "flex-direction": "column",
         }}
         onClick={handleZoneClick}
       >
         {/* --- File list (top-left) --- */}
         <Show when={files().length > 0}>
-          <div class="flex flex-col w-full" style={{ "margin-bottom": "8px" }}>
+          <div class="flex flex-col w-full mb-2 gap-1">
             <For each={files()}>
               {(file) => (
                 <FileRow
@@ -449,13 +432,14 @@ const Upload: Component<UploadProps> = (p) => {
 
         {/* --- Center prompt --- */}
         <div
-          class="flex flex-col items-center justify-center flex-1 gap-1 pointer-events-none opacity-60"
-          style={{ "min-height": "60px" }}
+          class="flex flex-col items-center justify-center flex-1 gap-1 pointer-events-none min-h-15"
         >
-          <UploadCloud size={sizeConfig().iconSize} />
-          <span class={`${sizeConfig().textSize} font-semibold`}>{label()}</span>
-          <span class={`${sizeConfig().fileTextSize} opacity-70`}>
-            Drag & drop files here, or{" "}
+          <CloudUpload size={sizeConfig().iconSize} class="text-secondary/70" />
+          <span class={`${sizeConfig().textSize} font-semibold text-secondary/70`}>{label()}</span>
+          <span class={`${sizeConfig().fileTextSize}`}>
+            <span class="text-secondary/40">
+              Drag & drop files here, or{" "}
+            </span>
             <span
               class="underline pointer-events-auto cursor-pointer opacity-100"
               style={{ color: colorVar() }}
@@ -479,59 +463,42 @@ interface FileRowProps {
 }
 
 const FileRow: Component<FileRowProps> = (p) => {
-  const [hovered, setHovered] = createSignal(false);
 
   const statusIcon = () => {
     switch (p.file.status) {
       case "success":
-        return <CheckCircle size={14} style={{ color: "var(--success, #22c55e)", "flex-shrink": "0" }} />;
+        return <CircleCheckBig size={14} class="text-success shrink-0" />;
       case "error":
-        return <XCircle size={14} style={{ color: "var(--error, #ef4444)", "flex-shrink": "0" }} />;
+        return <CloudAlert size={14} class="text-error shrink-0" />;
       case "uploading":
-        return <Loader size={14} class="animate-spin" style={{ color: "var(--foreground)", opacity: "0.6", "flex-shrink": "0" }} />;
+        return <Loader size={14} class="animate-spin text-secondary shrink-0" />;
       default:
-        return <FileUp size={14} style={{ color: "var(--foreground)", opacity: "0.5", "flex-shrink": "0" }} />;
+        return <Circle size={14} class="text-secondary shrink-0" />;
     }
   };
 
-  const textColor = () => {
+  const textColorClass = () => {
     switch (p.file.status) {
-      case "success": return "var(--success, #22c55e)";
-      case "error": return "var(--error, #ef4444)";
-      default: return "var(--foreground)";
+      case "success": return "text-success";
+      case "error": return "text-error";
+      default: return "text-secondary";
     }
   };
 
   return (
     <div
-      class={`flex items-center gap-2 px-2 py-0.5 rounded-sm transition-colors ${p.textSize}`}
-      style={{
-        "background-color": hovered() ? "var(--foreground-alpha, rgba(128,128,128,0.1))" : "transparent",
-        color: textColor(),
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      class={`group flex items-center gap-2 px-2 py-0.5 rounded-sm transition-colors ${p.textSize} bg-secondary/5 hover:bg-foreground ${textColorClass()}`}
       onClick={(e) => e.stopPropagation()}
     >
       {statusIcon()}
-      <span class="truncate flex-1 font-mono" style={{ "font-size": "inherit" }}>
+      <span class="truncate flex-1 font-mono text-[length:inherit]">
         {p.file.name}
       </span>
-      <span class="opacity-50 whitespace-nowrap" style={{ "font-size": "inherit" }}>
+      <span class="text-secondary/40 whitespace-nowrap text-[length:inherit]">
         {formatSize(p.file.size)}
       </span>
       <button
-        class="flex items-center justify-center rounded-sm transition-opacity cursor-pointer"
-        style={{
-          opacity: hovered() ? "1" : "0",
-          width: "18px",
-          height: "18px",
-          "flex-shrink": "0",
-          color: "var(--error, #ef4444)",
-          background: "transparent",
-          border: "none",
-          padding: "0",
-        }}
+        class="flex items-center justify-center w-4.5 h-4.5 shrink-0 text-secondary/40 hover:text-secondary/80 bg-transparent border-none p-0 rounded-sm cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           p.onRemove(p.file.key);
