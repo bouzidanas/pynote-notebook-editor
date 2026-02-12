@@ -2,6 +2,7 @@
 export { tutorialQuickstartCells, tableOfContentsCells } from "./tutorial-quickstart";
 export { tutorialUIPart1Cells } from "./tutorial-ui-part1";
 export { tutorialUIPart2Cells } from "./tutorial-ui-part2";
+export { tutorialUIPart3Cells } from "./tutorial-ui-part3";
 export { tutorialUICells } from "./tutorial-ui";
 export { tutorialChartsCells } from "./tutorial-charts";
 export { tutorialReactiveCells } from "./tutorial-reactive";
@@ -11,6 +12,7 @@ export { tutorialTestingCells } from "./tutorial-testing";
 import { tutorialQuickstartCells } from "./tutorial-quickstart";
 import { tutorialUIPart1Cells } from "./tutorial-ui-part1";
 import { tutorialUIPart2Cells } from "./tutorial-ui-part2";
+import { tutorialUIPart3Cells } from "./tutorial-ui-part3";
 import { tutorialUICells } from "./tutorial-ui";
 import { tutorialChartsCells } from "./tutorial-charts";
 import { tutorialReactiveCells } from "./tutorial-reactive";
@@ -20,7 +22,7 @@ import type { CellData } from "../store";
 import type { CodeVisibilitySettings } from "../codeVisibility";
 
 // Tutorial type mapping
-export type TutorialType = "tutorial" | "tutorial_ui_part1" | "tutorial_ui_part2" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api" | "testing";
+export type TutorialType = "tutorial" | "tutorial_ui_part1" | "tutorial_ui_part2" | "tutorial_ui_part3" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api" | "testing";
 
 // Document-level code visibility settings for tutorials
 // These hide result output by default so users run the cells themselves
@@ -51,6 +53,13 @@ export const TUTORIAL_CONFIG: Record<TutorialType, TutorialConfig> = {
     "tutorial_ui_part2": {
         cells: tutorialUIPart2Cells,
         filename: "Tutorial - Interactive UI Part 2.ipynb",
+        codeview: {
+            showResult: false
+        }
+    },
+    "tutorial_ui_part3": {
+        cells: tutorialUIPart3Cells,
+        filename: "Tutorial - Interactive UI Part 3.ipynb",
         codeview: {
             showResult: false
         }

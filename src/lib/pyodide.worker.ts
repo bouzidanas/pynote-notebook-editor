@@ -45,6 +45,50 @@ _completion_filters = {
 # Cache for dir() results to avoid repeated introspection on large modules
 _dir_cache = {}
 
+# Pre-computed completions for builtins + embedded modules (pynote_ui).
+# These never change during a session, so we build once and reuse.
+_builtins_cache = None  # Will be dict: name -> {"label": str, "type": str}
+
+def _build_builtins_cache():
+    """
+    Build a cache of completion items for builtins and embedded modules.
+    Called lazily on first global-scope completion request.
+    Includes: dir(builtins) + dir(pynote_ui) with pre-computed type info.
+    """
+    global _builtins_cache
+    import builtins, inspect
+    cache = {}
+
+    # --- builtins ---
+    for name in dir(builtins):
+        obj = getattr(builtins, name, None)
+        cache[name] = {"label": name, "type": _classify(obj, inspect)}
+
+    # --- embedded modules (pynote_ui) ---
+    try:
+        import pynote_ui
+        # Add the module name itself
+        cache["pynote_ui"] = {"label": "pynote_ui", "type": "module"}
+        for name in dir(pynote_ui):
+            obj = getattr(pynote_ui, name, None)
+            cache[name] = {"label": name, "type": _classify(obj, inspect)}
+    except ImportError:
+        pass
+
+    _builtins_cache = cache
+
+def _classify(obj, inspect):
+    """Classify an object into a completion type string."""
+    if obj is None:
+        return "variable"
+    if inspect.ismodule(obj):
+        return "module"
+    if inspect.isclass(obj):
+        return "class"
+    if inspect.isfunction(obj) or inspect.isbuiltin(obj) or inspect.ismethod(obj) or callable(obj):
+        return "function"
+    return "variable"
+
 def configure_completions(**kwargs):
     """
     Configure completion filtering behavior.
@@ -63,7 +107,9 @@ def clear_completion_cache():
     Call this only on kernel restart, not after normal cell execution.
     The cache naturally stays in sync with the runtime since all cells share the same namespace.
     """
+    global _builtins_cache
     _dir_cache.clear()
+    _builtins_cache = None
 
 def _filter_completions(items, partial, parent_obj=None):
     """
@@ -178,44 +224,42 @@ def get_completions(code, offset):
             # Global scope completion
             partial = text
             
-            # Combine globals and builtins
-            all_names = list(globals().keys())
-            import builtins
-            all_names += dir(builtins)
+            # Lazily build the builtins+embedded-modules cache
+            if _builtins_cache is None:
+                _build_builtins_cache()
             
-            # Dedup
-            all_names = list(set(all_names))
-            
-            # Filter using configurable filter function
-            filtered = _filter_completions(all_names, partial)
-            
-            # Build completion items with type info
-            import inspect
+            # --- Cached builtins: just filter the pre-computed items ---
             result = []
-            for n in filtered:
+            for name, item in _builtins_cache.items():
+                if not name.startswith(partial):
+                    continue
+                if name.startswith('__'):
+                    if not _completion_filters["show_dunder"]:
+                        continue
+                elif name.startswith('_'):
+                    if not _completion_filters["show_private"]:
+                        continue
+                result.append(item)
+            
+            # --- User globals: inspect fresh (these change on every cell run) ---
+            import inspect
+            seen = set(item["label"] for item in result)
+            user_names = [k for k in globals().keys() if k not in _builtins_cache]
+            filtered_user = _filter_completions(user_names, partial)
+            for n in filtered_user:
+                if n in seen:
+                    continue
                 try:
-                    obj = None
-                    # Try to get from globals first, then builtins
-                    if n in globals():
-                        obj = globals()[n]
-                    else:
-                        obj = getattr(builtins, n, None)
-                    
-                    if obj is not None:
-                        # Determine type (check module first)
-                        if inspect.ismodule(obj):
-                            item_type = "module"
-                        elif inspect.isclass(obj):
-                            item_type = "class"
-                        elif inspect.isfunction(obj) or inspect.isbuiltin(obj) or inspect.ismethod(obj) or callable(obj):
-                            item_type = "function"
-                        else:
-                            item_type = "variable"
-                        result.append({"label": n, "type": item_type})
-                    else:
-                        result.append({"label": n, "type": "variable"})
+                    obj = globals().get(n)
+                    result.append({"label": n, "type": _classify(obj, inspect)})
                 except:
                     result.append({"label": n, "type": "variable"})
+            
+            # Sort and limit
+            result.sort(key=lambda x: (x["label"] != partial, x["label"].lower()))
+            max_results = _completion_filters["max_results"]
+            if max_results and len(result) > max_results:
+                result = result[:max_results]
             
             return result
     except Exception:
@@ -490,12 +534,12 @@ from .core import (
     MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
     MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END
 )
-from .elements import Slider, Text, Group, Form, Button, Select, Input, Textarea, Toggle, Checkbox
+from .elements import Slider, Text, Group, Form, Button, Select, Input, Textarea, Toggle, Checkbox, Upload
 from . import oplot, uplot, fplot
 
 __all__ = [
     "UIElement", "StateManager", "handle_interaction", 
-    "Slider", "Text", "Group", "Form", "Button", "Select", "Input", "Textarea", "Toggle", "Checkbox",
+    "Slider", "Text", "Group", "Form", "Button", "Select", "Input", "Textarea", "Toggle", "Checkbox", "Upload",
     "oplot", "uplot", "fplot",
     "set_current_cell", "clear_cell", "register_comm_target",
     "display", "print_md",
@@ -1352,6 +1396,106 @@ class Checkbox(UIElement):
             self._checked = data["value"]
             self.props["checked"] = self._checked
         super().handle_interaction(data)
+
+    def options(self, **kwargs):
+        """Update component properties after initialization"""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.send_update(**kwargs)
+        return self
+
+class Upload(UIElement):
+    def __init__(self, accept=None, max_size=None, label="Upload", color=None, size=None,
+                 disabled=False, width=None, height=None, grow=None, shrink=None,
+                 force_dimensions=False, border=True, background=True, hidden=False):
+        self._files = {}
+        self._disabled = disabled
+        self._size = size
+        super().__init__(
+            accept=accept, max_size=max_size, label=label, color=color, size=size,
+            disabled=disabled, width=width, height=height, grow=grow, shrink=shrink,
+            force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
+        )
+
+    @property
+    def files(self):
+        return dict(self._files)
+
+    @property
+    def disabled(self):
+        return self._disabled
+
+    @disabled.setter
+    def disabled(self, value):
+        self._disabled = value
+        self.send_update(disabled=value)
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size):
+        self._size = new_size
+        self.send_update(size=new_size)
+
+    def handle_interaction(self, data):
+        import base64
+        action = data.get("action") if hasattr(data, "get") else None
+
+        if action == "upload":
+            status = {}
+            files_list = data.get("files", [])
+            if hasattr(files_list, "to_py"):
+                files_list = files_list.to_py()
+            for f in files_list:
+                if hasattr(f, "to_py"):
+                    f = f.to_py()
+                key = f.get("key", f.get("name", "unknown"))
+                try:
+                    raw = base64.b64decode(f.get("data_base64", ""))
+                    max_size = self.props.get("max_size")
+                    if max_size and len(raw) > max_size:
+                        status[key] = f"error:File exceeds max size ({max_size} bytes)"
+                    else:
+                        self._files[key] = raw
+                        status[key] = "success"
+                except Exception as e:
+                    status[key] = f"error:{e}"
+            self.send_update(upload_status=status)
+            super().handle_interaction(data)
+
+        elif action == "remove":
+            key = data.get("key", "")
+            self._files.pop(key, None)
+            self.send_update(upload_status={key: "removed"})
+            super().handle_interaction(data)
+
+        elif data.get("value") is not None:
+            value = data.get("value")
+            if hasattr(value, "to_py"):
+                value = value.to_py()
+            status = {}
+            if isinstance(value, list):
+                for f in value:
+                    if hasattr(f, "to_py"):
+                        f = f.to_py()
+                    key = f.get("key", f.get("name", "unknown"))
+                    try:
+                        raw = base64.b64decode(f.get("data_base64", ""))
+                        max_size = self.props.get("max_size")
+                        if max_size and len(raw) > max_size:
+                            status[key] = f"error:File exceeds max size ({max_size} bytes)"
+                        else:
+                            self._files[key] = raw
+                            status[key] = "success"
+                    except Exception as e:
+                        status[key] = f"error:{e}"
+            self.send_update(form_upload_status=status)
+            super().handle_interaction(data)
+
+        else:
+            super().handle_interaction(data)
 
     def options(self, **kwargs):
         """Update component properties after initialization"""

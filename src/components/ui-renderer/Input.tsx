@@ -76,12 +76,11 @@ const Input: Component<InputProps> = (p) => {
     const newValue = target.value;
     setAllProps(prev => ({ ...prev, value: newValue }));
     
-    // If inside a form, update form context instead of sending to Python
+    // Always send to Python for live on_update callbacks
+    kernel.sendInteraction(componentId, { value: newValue });
+    // Also store in form context for batch submission
     if (formContext) {
       formContext.setChildValue(componentId, newValue);
-    } else {
-      // Not in a form: send immediately to Python
-      kernel.sendInteraction(componentId, { value: newValue });
     }
   };
 

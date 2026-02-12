@@ -145,7 +145,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       isShowingAll={isShowingAll()}
       onToggleVisibility={() => toggleCellShowAll(props.cell.id)}
     >
-      <div class="flex flex-col p-2.25 py-2.75">
+      <div class="flex flex-col p-2.25 py-2.75 min-w-0">
         {/* Hidden code message */}
         <Show when={showHiddenMessage()}>
           <div class="text-secondary/40 italic text-sm py-4 px-3 text-center">

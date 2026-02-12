@@ -497,17 +497,17 @@ export const OutputStdoutUI: Component<OutputProps> = (props) => {
 
   return (
     <Show when={hasContent()}>
-      <div class="first:pb-4 flex flex-col gap-5 font-mono text-sm p-2 pl-1.25 border-foreground">
+      <div class="first:pb-4 flex flex-col gap-5 font-mono text-sm p-2 pl-1.25 border-foreground min-w-0">
         <Show when={segments().length > 0}>
           {/* Render all segments in one container for inline flow */}
-          <div class="text-secondary whitespace-pre-wrap">
+          <div class="text-secondary whitespace-pre-wrap min-w-0">
             <For each={segments()}>
               {(segment,) => {
                 if (segment.type === "ui") {
                   return (
-                    <span class="inline-block align-middle mt-2 first:mt-0">
+                    <div class="mt-2 first:mt-0 min-w-0 w-full">
                       <UIOutputRenderer data={segment.data} />
-                    </span>
+                    </div>
                   );
                 } else if (segment.type === "markdown") {
                   return <MarkdownWithUI content={segment.content} styled={segment.styled} />;

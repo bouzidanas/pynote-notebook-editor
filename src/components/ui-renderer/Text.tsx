@@ -130,7 +130,7 @@ const Text: Component<TextProps> = (p) => {
 
   return (
     <div 
-      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono ${sizeConfig().textSize}`}
+      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}`}
       style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), color: colorValue() }}
     >
       {content()}

@@ -229,14 +229,6 @@ const Form: Component<FormProps> = (p) => {
     return `flex ${direction} ${gap} w-full ${verticalStretch} ${alignClass()}`;
   };
 
-  const content = (
-    <div class={formContainerClass()}>
-      <For each={p.props.children}>
-        {(childData) => <UIOutputRenderer data={childData} onSubmit={handleSubmit} />}
-      </For>
-    </div>
-  );
-
   // Fieldset border styling
   const fieldsetBorderClass = () => {
     const borderValue = p.props.border ?? true; // Forms default to border=true
@@ -282,7 +274,11 @@ const Form: Component<FormProps> = (p) => {
               {p.props.label}
             </legend>
           </Show>
-          {content}
+          <div class={formContainerClass()}>
+            <For each={p.props.children}>
+              {(childData) => <UIOutputRenderer data={childData} onSubmit={handleSubmit} />}
+            </For>
+          </div>
         </fieldset>
       </div>
     </FormContext.Provider>

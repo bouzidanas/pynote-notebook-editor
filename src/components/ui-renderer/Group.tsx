@@ -268,7 +268,7 @@ const Group: Component<GroupProps> = (p) => {
   // };
 
   return (
-    <div style={componentStyles()}>
+    <div style={componentStyles()} class="min-w-0">
       <Show when={needsWrapper()} fallback={content}>
         <div 
           class={`relative rounded-sm w-full ${containerBorderClass()}`}

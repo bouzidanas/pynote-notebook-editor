@@ -1,4 +1,4 @@
-import { type Component, createSignal, onMount, For, Show } from "solid-js";
+import { type Component, createSignal, onMount, onCleanup, For, Show } from "solid-js";
 import { X, Activity, Zap, Clock, Layout, Gauge, Trash } from "lucide-solid";
 import { actions, notebookStore } from "../lib/store";
 
@@ -22,9 +22,12 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
   };
 
   onMount(() => {
+    let vitalsObserver: PerformanceObserver | undefined;
+    let resObserver: PerformanceObserver | undefined;
+
     // Observe Web Vitals
     try {
-        const observer = new PerformanceObserver((entryList) => {
+        vitalsObserver = new PerformanceObserver((entryList) => {
           for (const entry of entryList.getEntries()) {
             if (entry.entryType === "largest-contentful-paint") {
                 updateMetric("LCP", entry.startTime, "ms");
@@ -35,22 +38,31 @@ const PerformanceMonitor: Component<{ onClose: () => void }> = (props) => {
             }
           }
         });
-        observer.observe({ type: "largest-contentful-paint", buffered: true });
-        observer.observe({ type: "layout-shift", buffered: true });
-        observer.observe({ type: "first-input", buffered: true });
+        vitalsObserver.observe({ type: "largest-contentful-paint", buffered: true });
+        vitalsObserver.observe({ type: "layout-shift", buffered: true });
+        vitalsObserver.observe({ type: "first-input", buffered: true });
     } catch (e) {
         console.warn("PerformanceObserver not supported");
     }
 
     // Observe Resources
-    const resObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries().map(e => ({
-            name: e.name.split('/').pop() || e.name,
-            duration: e.duration
-        })).sort((a, b) => b.duration - a.duration).slice(0, 10);
-        setResources(entries);
+    try {
+        resObserver = new PerformanceObserver((list) => {
+            const entries = list.getEntries().map(e => ({
+                name: e.name.split('/').pop() || e.name,
+                duration: e.duration
+            })).sort((a, b) => b.duration - a.duration).slice(0, 10);
+            setResources(entries);
+        });
+        resObserver.observe({ type: "resource", buffered: true });
+    } catch (e) {
+        console.warn("PerformanceObserver not supported");
+    }
+
+    onCleanup(() => {
+      vitalsObserver?.disconnect();
+      resObserver?.disconnect();
     });
-    resObserver.observe({ type: "resource", buffered: true });
   });
 
   const updateMetric = (name: string, value: number, unit: string) => {
