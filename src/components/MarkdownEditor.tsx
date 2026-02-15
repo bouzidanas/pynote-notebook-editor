@@ -4,6 +4,7 @@ import { actions, type CellData } from "../lib/store";
 
 // Core Framework
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, schemaCtx } from "@milkdown/kit/core";
+import { remarkStringifyOptionsCtx } from "@milkdown/kit/core";
 
 // Theme (remains separate)
 import { nord } from "@milkdown/theme-nord";
@@ -44,10 +45,11 @@ import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"
 import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
 // UI Components
-import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete } from "lucide-solid";
+import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon } from "lucide-solid";
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
 import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
+import { captionMark, toggleCaptionCommand } from "../lib/captionPlugin";
 
 
 interface MarkdownEditorProps {
@@ -69,6 +71,18 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .config((ctx) => {
         ctx.set(rootCtx, editorRef);
         ctx.set(defaultValueCtx, props.value);
+
+        // Register remark-stringify handler for caption nodes
+        ctx.update(remarkStringifyOptionsCtx, (options: any) => ({
+          ...options,
+          handlers: {
+            ...options.handlers,
+            caption: (node: any, _: any, state: any, info: any) => {
+              const value = state.containerPhrasing(node, { before: info.before, after: info.after });
+              return `<span class="caption">${value}</span>`;
+            },
+          },
+        }));
 
         // Use the listener to sync changes back to props
         ctx.get(listenerCtx)
@@ -99,6 +113,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .use(listener)
       .use(sectionScopePlugin)
       .use(codeBlockNavigationPlugin)
+      .use(captionMark)
       .create()
       .then((editor) => {
         editorInstance = editor;
@@ -299,6 +314,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             <Heading size={16} />
           </button>
           <Dropdown
+            compact
             trigger={
               <button class="btn-icon rounded-l-none px-1" title="Heading Options">
                  <ChevronDown size={12} />
@@ -323,6 +339,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         {/* Mobile "More" Menu (Visible on mobile only) */}
         <div class="flex sm:hidden items-center">
              <Dropdown
+                compact
                 usePortal={true}
                 trigger={
                     <button class="btn-icon" title="More Formatting">
@@ -347,7 +364,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 <DropdownItem onClick={() => call(toggleInlineCodeCommand.key)}>
                     <div class="flex items-center gap-2"><Code size={16} /> Inline Code</div>
                 </DropdownItem>
-                <DropdownNested label={<div class="flex items-center gap-2"><SquareCode size={16} /> Code Block</div>}>
+                <DropdownNested compact label={<div class="flex items-center gap-2"><SquareCode size={16} /> Code Block</div>}>
                     <DropdownItem onClick={() => insertCodeBlock()}>
                         <div class="flex items-center gap-2">Plain</div>
                     </DropdownItem>
@@ -364,7 +381,10 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 <DropdownItem onClick={insertImage}>
                     <div class="flex items-center gap-2"><Image size={16} /> Image</div>
                 </DropdownItem>
-                <DropdownNested label={<div class="flex items-center gap-2"><Table size={16} /> Table</div>}>
+                <DropdownItem onClick={() => call(toggleCaptionCommand.key)}>
+                    <div class="flex items-center gap-2"><CaptionsIcon size={16} /> Caption</div>
+                </DropdownItem>
+                <DropdownNested compact label={<div class="flex items-center gap-2"><Table size={16} /> Table</div>}>
                     <DropdownItem onClick={insertTable}>
                         <div class="flex items-center gap-2"><Plus size={16} /> Insert Table</div>
                     </DropdownItem>
@@ -418,6 +438,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             </button>
             {/* Code Block Dropdown */}
             <Dropdown
+              compact
               align="right"
               trigger={
                 <button class="btn-icon" title="Code Block">
@@ -444,6 +465,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             </button>
             {/* Table Dropdown (Desktop) */}
             <Dropdown
+              compact
               align="right"
               trigger={
                 <button class="btn-icon" title="Table Options">
@@ -473,6 +495,20 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 </DropdownItem>
                 <DropdownItem onClick={deleteTable}>
                     <div class="flex items-center gap-2 text-primary"><Trash size={16} /> Delete Table</div>
+                </DropdownItem>
+            </Dropdown>
+            {/* More Menu (Desktop) */}
+            <Dropdown
+              compact
+              align="right"
+              trigger={
+                <button class="btn-icon" title="More Formatting">
+                  <MoreHorizontal size={16} />
+                </button>
+              }
+            >
+                <DropdownItem onClick={() => call(toggleCaptionCommand.key)}>
+                    <div class="flex items-center gap-2"><CaptionsIcon size={16} /> Caption</div>
                 </DropdownItem>
             </Dropdown>
         </div>

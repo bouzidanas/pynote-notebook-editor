@@ -9,8 +9,6 @@ export const tutorialAPICells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
-<br />
-
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -20,8 +18,6 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components *(you are here)* |
-
-<br />
 
 ---`
     },
@@ -202,8 +198,6 @@ Plot(data, x="x", y="y", title="My Chart",
         type: "markdown",
         content: `---
 
-<br />
-
 ## 📚 Full Tutorial Navigation
 
 <br/>
@@ -216,8 +210,6 @@ Plot(data, x="x", y="y", title="My Chart",
 | **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |  
-
-<br />
 
 Happy coding! 🐍`
     }

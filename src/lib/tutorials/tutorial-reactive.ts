@@ -9,8 +9,6 @@ export const tutorialReactiveCells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
-<br />
-
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -20,8 +18,6 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies *(you are here)* |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
-
-<br />
 
 ---`
     },
@@ -350,8 +346,6 @@ PyNote offers four execution modes. Here's when to use each:
         type: "markdown",
         content: `---
 
-<br />
-
 ## 🎉 Reactive Execution Complete!
 
 You now understand how PyNote's reactive execution mode works:
@@ -361,13 +355,9 @@ You now understand how PyNote's reactive execution mode works:
 - **Automatic Propagation**: Running a cell triggers all its dependents
 - **Local Variables**: Use \`_underscore\` prefix for cell-local variables
 
-<br />
-
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
 | **[API Reference](?open=tutorial_api)** | Complete reference for all components |
-
-<br />
 
 Happy coding! 🐍⚡`
     }
