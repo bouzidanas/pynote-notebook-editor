@@ -24,4 +24,4 @@ node_modules
 *.sw?
 
 # Cloned repos
-no-magic/
+/no-magic/
