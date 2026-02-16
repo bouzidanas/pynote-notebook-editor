@@ -6,7 +6,11 @@ export const microDiffusionCells: CellData[] = [
     {
         id: "nm-dif-001",
         type: "markdown",
-        content: `# Micro Diffusion
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro Diffusion
 
 How images emerge from noise — the denoising diffusion algorithm behind Stable Diffusion,
 demonstrated on a 2D spiral. Train a model to predict noise, then iteratively remove it to
@@ -17,8 +21,6 @@ scaled down from billion-param U-Nets on images to ~1000-param MLPs on point clo
 
 **Reference:** \`01-foundations/microdiffusion.py\` — no-magic collection
 (Ho et al., "Denoising Diffusion Probabilistic Models", 2020)
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

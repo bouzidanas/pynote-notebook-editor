@@ -6,7 +6,11 @@ export const microConvCells: CellData[] = [
     {
         id: "nm-conv-001",
         type: "markdown",
-        content: `# Micro Conv
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro Conv
 
 How a sliding kernel extracts spatial features — the convolution operation, pooling, and
 feature maps that powered computer vision before transformers.
@@ -16,8 +20,6 @@ implementation builds a minimal CNN from scratch using scalar autograd, demonstr
 learned kernels become edge detectors and how pooling provides translation invariance.
 
 **Reference:** \`01-foundations/microconv.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

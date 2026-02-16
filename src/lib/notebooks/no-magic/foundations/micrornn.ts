@@ -6,7 +6,11 @@ export const microRNNCells: CellData[] = [
     {
         id: "nm-rnn-001",
         type: "markdown",
-        content: `# Micro RNN
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro RNN
 
 Before attention conquered everything — how sequences were modeled with recurrence,
 and why gating was the breakthrough that made RNNs actually work.
@@ -16,8 +20,6 @@ introduced by Cho et al. (2014). This implementation demonstrates both side-by-s
 on the same character-level language modeling task to show why gating matters.
 
 **Reference:** \`01-foundations/micrornn.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

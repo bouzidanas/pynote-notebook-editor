@@ -6,7 +6,11 @@ export const microGPTCells: CellData[] = [
     {
         id: "nm-gpt-001",
         type: "markdown",
-        content: `# Micro GPT
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro GPT
 
 The autoregressive language model from first principles: GPT learns to predict the next
 character in a sequence using nothing but matrix multiplication, attention, and gradient descent.
@@ -15,8 +19,6 @@ This implementation follows the GPT-2 architecture (Radford et al., 2019) with p
 simplifications: RMSNorm instead of LayerNorm, ReLU instead of GELU, no bias terms.
 
 **Reference:** \`01-foundations/microgpt.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

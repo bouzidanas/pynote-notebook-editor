@@ -126,6 +126,29 @@ select:-webkit-autofill:active {
 }
 
 /* Fix Tailwind resets for Milkdown content and Prose (Shared styles) */
+.milkdown .editor p,
+.prose p {
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
+}
+/* No paragraph margins inside list items (Milkdown wraps li content in p) */
+.milkdown .editor li > p,
+.prose li > p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+/* Remove margins when p is at edges of the cell */
+.prose > p:first-child,
+.prose > .section-scope:first-child > p:first-child,
+.milkdown .editor > p:first-child {
+    margin-top: 0 !important;
+}
+.prose > p:last-child,
+.prose > .section-scope:last-child > p:last-child,
+.milkdown .editor > p:last-child {
+    margin-bottom: 0 !important;
+}
+
 .milkdown .editor ul,
 .prose ul {
     list-style-type: disc !important;
@@ -143,6 +166,23 @@ select:-webkit-autofill:active {
     margin-bottom: var(--block-margin) !important;
     margin-left: 2.2rem !important;
 }
+/* Remove margins when ul/ol is at edges of the cell */
+.prose > ul:first-child,
+.prose > .section-scope:first-child > ul:first-child,
+.milkdown .editor > ul:first-child,
+.prose > ol:first-child,
+.prose > .section-scope:first-child > ol:first-child,
+.milkdown .editor > ol:first-child {
+    margin-top: 0 !important;
+}
+.prose > ul:last-child,
+.prose > .section-scope:last-child > ul:last-child,
+.milkdown .editor > ul:last-child,
+.prose > ol:last-child,
+.prose > .section-scope:last-child > ol:last-child,
+.milkdown .editor > ol:last-child {
+    margin-bottom: 0 !important;
+}
 .milkdown .editor li::marker,
 .prose li::marker {
     color: var(--primary);
@@ -155,6 +195,21 @@ select:-webkit-autofill:active {
 .prose li > ul,
 .prose li > ol {
     margin-left: 0.5rem !important;
+}
+/* Remove edge margins for nested lists at the edges of the top-level list block.
+   Use li:last-child/li:first-child so only the chain to the block edge matches,
+   not every nested list (which is always first/last within its own li). */
+.milkdown .editor li:first-child > ul,
+.milkdown .editor li:first-child > ol,
+.prose li:first-child > ul,
+.prose li:first-child > ol {
+    margin-top: 0 !important;
+}
+.milkdown .editor li:last-child > ul,
+.milkdown .editor li:last-child > ol,
+.prose li:last-child > ul,
+.prose li:last-child > ol {
+    margin-bottom: 0 !important;
 }
 
 /* Table wrapper with border and overflow scrolling */
@@ -483,6 +538,26 @@ select:-webkit-autofill:active {
     margin-left: 1px !important;
     color: var(--secondary) !important;
     font-style: normal;
+}
+/* Reduce margins when blockquote is at edges of the cell */
+.prose > blockquote:first-child,
+.prose > .section-scope:first-child > blockquote:first-child,
+.milkdown .editor > blockquote:first-child {
+    margin-top: 6px !important;
+}
+.prose > blockquote:last-child,
+.prose > .section-scope:last-child > blockquote:last-child,
+.milkdown .editor > blockquote:last-child {
+    margin-bottom: 6px !important;
+}
+/* Remove paragraph margins at edges inside blockquotes */
+.prose blockquote > p:first-child,
+.milkdown .editor blockquote > p:first-child {
+    margin-top: 0 !important;
+}
+.prose blockquote > p:last-child,
+.milkdown .editor blockquote > p:last-child {
+    margin-bottom: 0 !important;
 }
 
 /* Horizontal Rule styling */

@@ -6,7 +6,11 @@ export const microOptimizerCells: CellData[] = [
     {
         id: "nm-opt-001",
         type: "markdown",
-        content: `# Micro Optimizer
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro Optimizer
 
 Why Adam converges when SGD stalls — momentum, adaptive learning rates, and the geometry of
 loss landscapes, demonstrated head-to-head.
@@ -17,8 +21,6 @@ to show why adaptive methods dominate. Extension: learning rate warmup + cosine 
 
 **Reference:** \`01-foundations/microoptimizer.py\` — no-magic collection
 (Adam optimizer from Kingma & Ba, 2015)
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

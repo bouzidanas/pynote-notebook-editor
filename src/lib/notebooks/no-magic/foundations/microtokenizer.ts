@@ -6,20 +6,42 @@ export const microTokenizerCells: CellData[] = [
     {
         id: "nm-tok-header",
         type: "markdown",
-        content: `# Byte-Pair Encoding (BPE) Tokenizer
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Byte-Pair Encoding (BPE) Tokenizer
 
 How text becomes numbers — the compression algorithm hiding inside every LLM.
 
 Byte-Pair Encoding learns a vocabulary by iteratively merging the most frequent
 adjacent token pairs, then encodes new text by replaying those merges in priority order.
 
+
+Breaking this down further:\n
+\n
+A **token** is whatever unit the model treats as a single symbol — it could be a
+character, a subword like \`"ing"\`, or even a whole word. A **token pair** is two
+tokens sitting next to each other in a sequence, like \`("h", "e")\` in
+\`["t", "h", "e"]\`.
+
+**Training:** BPE scans the corpus, finds the most frequent token pair, and
+replaces every occurrence of that pair with a single new token. This is one
+"merge." It repeats this hundreds or thousands of times, each merge gluing two
+existing tokens into a longer one (characters → subwords → common words).
+
+**Encoding new text:** the learned merges are saved as an ordered list. To
+tokenize a new string, we start from the base tokens and apply merge #1
+everywhere it matches, then merge #2, then #3, and so on — earliest-learned
+merges go first because they captured the most common patterns. This fixed
+replay order is what makes tokenization deterministic: the same string always
+produces the same token sequence.
+
 > Philip Gage, *"A New Algorithm for Data Compression"* (1994).
 > GPT-2's byte-level BPE variant (Radford et al., 2019) starts from raw bytes
 > rather than characters — that's the version implemented here.
 
 **Reference:** \`01-foundations/microtokenizer.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

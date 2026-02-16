@@ -6,7 +6,11 @@ export const microEmbeddingCells: CellData[] = [
     {
         id: "nm-emb-001",
         type: "markdown",
-        content: `# Micro Embedding
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro Embedding
 
 How meaning becomes geometry — training vectors where distance equals similarity,
 using only character n-grams and contrastive loss.
@@ -18,7 +22,7 @@ simplified to a linear projection without the deep network machinery.
 
 **Reference:** \`01-foundations/microembedding.py\` — no-magic collection
 
-[← Back to No-Magic Index](?open=no-magic)`
+---`
     },
     {
         id: "nm-emb-002",

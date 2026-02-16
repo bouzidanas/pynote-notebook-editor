@@ -6,7 +6,11 @@ export const microVAECells: CellData[] = [
     {
         id: "nm-vae-001",
         type: "markdown",
-        content: `# Micro VAE
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro VAE
 
 How to learn a compressed, generative representation of data — the reparameterization
 trick demystified, in pure Python with zero dependencies.
@@ -18,8 +22,6 @@ architecture changes when scaling to pixels.
 
 **Reference:** \`01-foundations/microvae.py\` — no-magic collection
 (Kingma & Welling, "Auto-Encoding Variational Bayes", 2013)
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

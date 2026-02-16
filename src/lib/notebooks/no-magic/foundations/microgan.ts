@@ -6,7 +6,11 @@ export const microGANCells: CellData[] = [
     {
         id: "nm-gan-001",
         type: "markdown",
-        content: `# Micro GAN
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro GAN
 
 Two networks at war — how a generator learns to fool a discriminator, and why the
 equilibrium is so fragile.
@@ -17,8 +21,6 @@ images to ~500-param MLPs on point clouds. Completes the "generative trilogy": d
 denoises, VAE decodes from latent, GAN fools a critic.
 
 **Reference:** \`01-foundations/microgan.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

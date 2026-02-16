@@ -6,7 +6,11 @@ export const microBERTCells: CellData[] = [
     {
         id: "nm-bert-001",
         type: "markdown",
-        content: `# Micro BERT
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro BERT
 
 The other half of the transformer — how BERT learns bidirectional representations by
 predicting masked tokens, and why encoders complement decoders.
@@ -17,8 +21,6 @@ with one critical difference: **no causal mask**. Every token attends to every o
 token, enabling the model to use BOTH left and right context when predicting masked positions.
 
 **Reference:** \`01-foundations/microbert.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },

@@ -6,7 +6,11 @@ export const microRAGCells: CellData[] = [
     {
         id: "nm-rag-001",
         type: "markdown",
-        content: `# Micro RAG
+        content: `[← Back to No-Magic Index](?open=no-magic)
+
+<br />
+        
+# Micro RAG
 
 How retrieval augments generation — the simplest system that actually works, with BM25
 search and a character-level MLP in pure Python.
@@ -15,8 +19,6 @@ RAG architecture inspired by *"Retrieval-Augmented Generation for Knowledge-Inte
 NLP Tasks"* (Lewis et al., 2020), BM25 scoring from Robertson and Zaragoza (2009).
 
 **Reference:** \`01-foundations/microrag.py\` — no-magic collection
-
-[← Back to No-Magic Index](?open=no-magic)
 
 ---`
     },
