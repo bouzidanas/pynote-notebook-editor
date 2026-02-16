@@ -101,8 +101,8 @@ const postProcessAndSanitize = async (html: string): Promise<string> => {
 };
 
 const purifyOptions = {
-    ADD_TAGS: ["math", "maction", "maligngroup", "malignmark", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mlongdiv", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mscarries", "mscarry", "msgroup", "mstack", "msline", "mspace", "msqrt", "msrow", "mstack", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "semantics", "annotation", "annotation-xml"],
-    ADD_ATTR: ["xmlns", "display", "mathvariant", "columnalign", "columnspacing", "rowspacing", "groupalign", "class", "style", "data-level"] 
+    ADD_TAGS: ["video", "source", "iframe", "math", "maction", "maligngroup", "malignmark", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mlongdiv", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mscarries", "mscarry", "msgroup", "mstack", "msline", "mspace", "msqrt", "msrow", "mstack", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "semantics", "annotation", "annotation-xml"],
+    ADD_ATTR: ["xmlns", "display", "mathvariant", "columnalign", "columnspacing", "rowspacing", "groupalign", "class", "style", "data-level", "controls", "autoplay", "loop", "muted", "preload", "poster", "frameborder", "allowfullscreen", "allow"] 
 };
 
 interface MarkdownCellProps {

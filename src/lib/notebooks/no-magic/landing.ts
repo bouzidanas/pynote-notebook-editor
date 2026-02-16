@@ -11,9 +11,12 @@ These notebooks are adapted from [**no-magic**](https://github.com/Mathews-Tom/n
 
 Each original script is a standalone \`.py\` file that trains a model from scratch and performs inference using nothing but Python's standard library. We converted them into interactive notebooks to make them easier to read and process, experiment with, and learn from.
 
----
-
-## What we changed
+---`
+    },
+    {
+        id: "nm-landing-prelude",
+        type: "markdown",
+        content: `## What we changed
 
 - **Format**: Converted from standalone Python scripts into notebook cells with markdown explanations.
 - **Data loading**: Replaced \`urllib\` file downloads with Pyodide-compatible \`open_url()\` for in-browser execution.

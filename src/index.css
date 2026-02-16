@@ -277,6 +277,14 @@ select:-webkit-autofill:active {
     border-radius: var(--radius-sm);
 }
 
+/* Links in markdown / prose */
+.milkdown .editor a,
+.prose a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 /* Markdown cell placeholder text */
 .markdown-placeholder {
     color: var(--foreground);
@@ -304,13 +312,15 @@ select:-webkit-autofill:active {
     margin-bottom: var(--block-margin) !important;
     overflow-x: auto;
 }
-/* Reduce margins when pre is at edges of container */
-.prose pre:first-child,
-.milkdown .editor pre:first-child {
+/* Reduce margins when pre is at edges of the cell */
+.prose > pre:first-child,
+.prose > .section-scope:first-child > pre:first-child,
+.milkdown .editor > pre:first-child {
     margin-top: 0.5rem !important;
 }
-.prose pre:last-child,
-.milkdown .editor pre:last-child {
+.prose > pre:last-child,
+.prose > .section-scope:last-child > pre:last-child,
+.milkdown .editor > pre:last-child {
     margin-bottom: 0.5rem !important;
 }
 .prose pre code,
@@ -440,8 +450,27 @@ select:-webkit-autofill:active {
 .prose h1 {
     font-size: calc(var(--font-size-base) + 4 * var(--font-size-delta)) !important;
 }
-.prose strong {
+/* Inline code in headers should scale with the same delta as the header */
+.prose h4 code {
+    font-size: calc(var(--code-inline-font-size) + var(--font-size-delta)) !important;
+}
+.prose h3 code {
+    font-size: calc(var(--code-inline-font-size) + 2 * var(--font-size-delta)) !important;
+}
+.prose h2 code {
+    font-size: calc(var(--code-inline-font-size) + 3 * var(--font-size-delta)) !important;
+}
+.prose h1 code {
+    font-size: calc(var(--code-inline-font-size) + 4 * var(--font-size-delta)) !important;
+}
+.prose strong,
+.milkdown .editor strong {
     color: var(--primary) !important;
+    font-weight: bold !important;
+}
+.prose em,
+.milkdown .editor em {
+    font-style: italic !important;
 }
 
 /* Blockquote styling */
@@ -465,12 +494,14 @@ select:-webkit-autofill:active {
     margin-bottom: var(--header-margin-bottom) !important;
     margin-right: 5px;
 }
-.prose hr:first-child,
-.milkdown .editor hr:first-child {
+.prose > hr:first-child,
+.prose > .section-scope:first-child > hr:first-child,
+.milkdown .editor > hr:first-child {
     margin-top: 10px !important;
 }
-.prose hr:last-child,
-.milkdown .editor hr:last-child {
+.prose > hr:last-child,
+.prose > .section-scope:last-child > hr:last-child,
+.milkdown .editor > hr:last-child {
     margin-bottom: 6px !important;
 }
 
@@ -481,6 +512,63 @@ select:-webkit-autofill:active {
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     margin-top: var(--block-margin) !important;
     margin-bottom: var(--block-margin) !important;
+    margin-right: 5px;
+}
+
+/* Video Styling — only when NOT inside a wrapper (presentation mode) */
+.prose video:not(.video-embed-wrapper *),
+.milkdown .editor video:not(.video-embed-wrapper *) {
+    display: block;
+    width: 100%;
+    max-width: 1080px;
+    height: auto;
+    margin: var(--block-margin) auto !important;
+    margin-right: 5px;
+    border-radius: var(--radius-sm) !important;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+.video-embed-wrapper video {
+    display: block;
+    width: 100%;
+    max-width: 1080px;
+    height: auto;
+    margin: 0 auto !important;
+    border-radius: var(--radius-sm) !important;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+
+/* Embedded video (YouTube/Vimeo iframe) — only when NOT inside a wrapper */
+.prose iframe.video-embed:not(.video-embed-wrapper *),
+.milkdown .editor iframe.video-embed:not(.video-embed-wrapper *) {
+    display: block;
+    width: 100%;
+    max-width: 1080px;
+    aspect-ratio: 16 / 9;
+    margin: var(--block-margin) auto !important;
+    margin-right: 5px;
+    border-radius: var(--radius-sm) !important;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+.video-embed-wrapper iframe.video-embed {
+    display: block;
+    width: 100%;
+    max-width: 1080px;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto !important;
+    border-radius: var(--radius-sm) !important;
+    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+}
+
+/* Video embed wrapper in editor */
+.video-embed-wrapper {
+    display: flex;
+    justify-content: center;
+    margin: var(--block-margin) 5px var(--block-margin) 0 !important;
+}
+.video-embed-wrapper.ProseMirror-selectednode {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
 }
 
 /* Caption element — smaller text, inherits color so bold/italic formatting works */

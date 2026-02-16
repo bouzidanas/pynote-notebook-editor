@@ -45,11 +45,12 @@ import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"
 import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
 // UI Components
-import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon } from "lucide-solid";
+import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video } from "lucide-solid";
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
 import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
 import { captionMark, toggleCaptionCommand } from "../lib/captionPlugin";
+import { videoEmbed } from "../lib/videoEmbedPlugin";
 
 
 interface MarkdownEditorProps {
@@ -114,6 +115,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .use(sectionScopePlugin)
       .use(codeBlockNavigationPlugin)
       .use(captionMark)
+      .use(videoEmbed)
       .create()
       .then((editor) => {
         editorInstance = editor;
@@ -258,6 +260,34 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
     }
   };
 
+  const insertVideo = () => {
+    const url = window.prompt("Enter Video URL (YouTube, Vimeo, or direct link)");
+    if (url) {
+      editorInstance?.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const schema = ctx.get(schemaCtx);
+        const { state, dispatch } = view;
+        const videoType = schema.nodes.video_embed;
+        if (videoType) {
+          let embedHtml = "";
+          // YouTube
+          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/);
+          // Vimeo
+          const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+          if (ytMatch) {
+            embedHtml = `<iframe src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen class="video-embed"></iframe>`;
+          } else if (vimeoMatch) {
+            embedHtml = `<iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" frameborder="0" allowfullscreen class="video-embed"></iframe>`;
+          } else {
+            embedHtml = `<video src="${url}" controls></video>`;
+          }
+          const node = videoType.create({ value: embedHtml });
+          dispatch(state.tr.replaceSelectionWith(node));
+        }
+      });
+    }
+  };
+
   const insertTable = () => {
       call(insertTableCommand.key, { row: 3, col: 3 });
   };
@@ -380,6 +410,9 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 </DropdownNested>
                 <DropdownItem onClick={insertImage}>
                     <div class="flex items-center gap-2"><Image size={16} /> Image</div>
+                </DropdownItem>
+                <DropdownItem onClick={insertVideo}>
+                    <div class="flex items-center gap-2"><Video size={16} /> Video</div>
                 </DropdownItem>
                 <DropdownItem onClick={() => call(toggleCaptionCommand.key)}>
                     <div class="flex items-center gap-2"><CaptionsIcon size={16} /> Caption</div>
@@ -507,6 +540,9 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 </button>
               }
             >
+                <DropdownItem onClick={insertVideo}>
+                    <div class="flex items-center gap-2"><Video size={16} /> Video</div>
+                </DropdownItem>
                 <DropdownItem onClick={() => call(toggleCaptionCommand.key)}>
                     <div class="flex items-center gap-2"><CaptionsIcon size={16} /> Caption</div>
                 </DropdownItem>
