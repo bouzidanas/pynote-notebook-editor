@@ -2,7 +2,7 @@ import { type Component, For, Show, createSignal, onCleanup, createEffect, onMou
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
 import { TransitionGroup } from "solid-transition-group";
 import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, type ExecutionMode } from "../lib/store";
-import { isTutorialType, getTutorialContent } from "../lib/tutorials";
+import { isBuiltinNotebook, getBuiltinNotebook } from "../lib/notebooks";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
 import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette } from "lucide-solid";
@@ -852,11 +852,11 @@ const Notebook: Component = () => {
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     const openParam = params.get("open");
-    const tutorialType = isTutorialType(openParam) ? openParam : null;
+    const builtinType = isBuiltinNotebook(openParam) ? openParam : null;
     let sessionId = sessionManager.getSessionIdFromUrl();
 
-    // Handle Tutorial Initialization (Fresh)
-    if (tutorialType && !sessionId) {
+    // Handle Built-in Notebook Initialization (Fresh)
+    if (builtinType && !sessionId) {
       // Create new session ID for the tutorial
       sessionId = crypto.randomUUID();
       const url = new URL(window.location.href);
@@ -866,12 +866,12 @@ const Notebook: Component = () => {
       // Load app theme for new session
       updateTheme(loadAppTheme());
       
-      const { cells, filename, codeview } = getTutorialContent(tutorialType);
+      const { cells, filename, codeview } = getBuiltinNotebook(builtinType);
       
-      // Reset user override flag for fresh tutorial load
+      // Reset user override flag for fresh notebook load
       resetUserOverride();
       
-      // Apply tutorial-specific code visibility settings if present (respects loadMetadataOnDocumentLoad flag)
+      // Apply notebook-specific code visibility settings if present (respects loadMetadataOnDocumentLoad flag)
       if (codeview && shouldLoadMetadataSettings()) {
         applyDocumentSettings(codeview);
       }
@@ -910,14 +910,14 @@ const Notebook: Component = () => {
         
         if (!restored) {
             // ID exists but data is gone (expired/deleted)
-            if (tutorialType) {
-                 // Tutorial link with invalid/expired session -> Reload Tutorial
-                 const { cells, filename, codeview } = getTutorialContent(tutorialType);
+            if (builtinType) {
+                 // Built-in notebook link with invalid/expired session -> Reload
+                 const { cells, filename, codeview } = getBuiltinNotebook(builtinType);
                  
-                 // Reset user override flag for fresh tutorial load
+                 // Reset user override flag for fresh notebook load
                  resetUserOverride();
                  
-                 // Apply tutorial-specific code visibility settings if present
+                 // Apply notebook-specific code visibility settings if present
                  if (codeview) {
                    setVisibilitySettings(codeview, false); // false = not a user change
                  }

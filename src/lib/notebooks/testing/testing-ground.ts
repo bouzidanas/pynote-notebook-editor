@@ -1,6 +1,6 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
-export const tutorialTestingCells: CellData[] = [
+export const testingGroundCells: CellData[] = [
     {
         id: "test-header",
         type: "markdown",

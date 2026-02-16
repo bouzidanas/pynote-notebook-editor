@@ -1,4 +1,4 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
 export const tutorialUIPart3Cells: CellData[] = [
     // Table of contents

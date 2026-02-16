@@ -1,4 +1,4 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
 export const tutorialReactiveCells: CellData[] = [
     // Table of contents (with modified "you are here")

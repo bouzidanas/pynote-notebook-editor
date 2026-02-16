@@ -1,4 +1,4 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
 // Table of contents cell that appears at the top of all tutorials
 export const tableOfContentsCells: CellData[] = [
