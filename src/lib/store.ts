@@ -650,6 +650,24 @@ export const actions = {
     setStore("cells", (c) => c.id === id, "lastEditTimestamp", undefined);
   },
 
+  // Set cell-level code visibility metadata
+  setCellCodeVisibility: (id: string, codeview: CellCodeVisibility) => {
+    setStore("cells", (c) => c.id === id, "metadata", {
+      pynote: { codeview }
+    });
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
+  },
+
+  // Clear cell-level code visibility metadata
+  clearCellCodeVisibility: (id: string) => {
+    setStore("cells", (c) => c.id === id, "metadata", undefined);
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
+  },
+
   // Called by CodeEditor when entering edit mode to save entry position
   setCodeCellEntryPosition: (id: string, position: number) => {
     const existing = editSessionStart.get(id);

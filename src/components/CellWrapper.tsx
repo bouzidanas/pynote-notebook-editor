@@ -217,8 +217,8 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
               </button>
             </Show>
 
-            {/* Visibility Toggle (Code cells only, when elements are hidden) */}
-            <Show when={props.type === "code" && props.hasHiddenElements && props.onToggleVisibility}>
+            {/* Visibility Toggle (Code cells only, when elements are hidden OR show-all is active) */}
+            <Show when={props.type === "code" && (props.hasHiddenElements || props.isShowingAll) && props.onToggleVisibility}>
               <button 
                 onClick={(e) => { 
                   e.stopPropagation(); 

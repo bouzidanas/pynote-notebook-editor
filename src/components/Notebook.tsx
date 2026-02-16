@@ -998,10 +998,6 @@ const Notebook: Component = () => {
 
   // Build notebook JSON for saving
   const buildNotebookJson = () => {
-    // When saving with global codeview settings (saveToExport), remove cell-level overrides
-    // since the document metadata now contains the authoritative settings
-    const savingGlobalCodeview = codeVisibility.saveToExport;
-    
     return {
       cells: notebookStore.cells.map(c => ({
         cell_type: c.type,
@@ -1014,8 +1010,9 @@ const Notebook: Component = () => {
           return lines.map((l, i) => l + (i < lines.length - 1 || hasTrailing ? '\n' : ''));
         })(),
         outputs: [], 
-        // Include cell metadata ONLY if it has codeview settings AND we're NOT saving global settings
-        metadata: (c.metadata?.pynote?.codeview && !savingGlobalCodeview) ? {
+        // Include cell metadata if cell has codeview settings
+        // Cell-level metadata is always saved when present (set via cell-scoped visibility dialog)
+        metadata: c.metadata?.pynote?.codeview ? {
           pynote: {
             codeview: c.metadata.pynote.codeview
           }
@@ -2093,6 +2090,7 @@ const Notebook: Component = () => {
        <Show when={showCodeVisibility()}>
           <CodeVisibilityDialog 
             onClose={() => setShowCodeVisibility(false)} 
+            activeCellId={notebookStore.activeCellId}
             onSave={() => {
               // Autosave after visibility settings change
               autosaveNotebookImmediate();

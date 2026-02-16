@@ -853,22 +853,13 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
           <div class="order-1 flex w-full lg:w-auto lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:z-10">
             <div class="relative flex items-center justify-between w-full lg:block lg:w-auto">
               <div
-                class="relative flex items-center p-1 cursor-pointer select-none transition-colors bg-opacity-20 hover:bg-opacity-30"
-                style={{
-                  "border": `1px solid ${currentTheme.colors.foreground}`,
-                  "border-radius": currentTheme.radii.sm,
-                  width: "160px",
-                  height: "36px"
-                }}
+                class="relative flex items-center p-1 cursor-pointer select-none transition-colors border border-foreground hover:border-secondary/30 w-40 h-9 rounded-sm"
                 onClick={() => setApplyScope(applyScope() === "app-wide" ? "session-only" : "app-wide")}
               >
                 {/* Sliding background */}
                 <div
-                  class="absolute h-[calc(100%-8px)] shadow-sm transition-all duration-300 cubic-bezier(0.4, 0, 0.2, 1)"
+                  class="absolute h-[calc(100%-8px)] shadow-sm transition-all duration-300 bg-accent rounded-[calc(var(--radius-sm)-2px)] w-[calc(50%-4px)]"
                   style={{
-                    "background-color": currentTheme.colors.accent,
-                    "border-radius": `calc(${currentTheme.radii.sm} - 2px)`,
-                    width: "calc(50% - 4px)",
                     left: applyScope() === "app-wide" ? "4px" : "calc(50% + 0px)",
                     top: "4px"
                   }}
@@ -877,14 +868,18 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 {/* Text labels */}
                 <div class="relative z-10 flex w-full h-full">
                   <div
-                    class="flex-1 flex items-center justify-center text-xs font-bold tracking-wide transition-colors duration-300"
-                    style={{ color: applyScope() === "app-wide" ? currentTheme.colors.background : currentTheme.colors.secondary }}
+                    class={clsx(
+                      "flex-1 flex items-center justify-center text-xs font-bold tracking-wide transition-colors duration-300",
+                      applyScope() === "app-wide" ? "text-background" : "text-secondary"
+                    )}
                   >
                     App
                   </div>
                   <div
-                    class="flex-1 flex items-center justify-center text-xs font-bold tracking-wide transition-colors duration-300"
-                    style={{ color: applyScope() === "session-only" ? currentTheme.colors.background : currentTheme.colors.secondary }}
+                    class={clsx(
+                      "flex-1 flex items-center justify-center text-xs font-bold tracking-wide transition-colors duration-300",
+                      applyScope() === "session-only" ? "text-background" : "text-secondary"
+                    )}
                   >
                     Session
                   </div>

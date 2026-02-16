@@ -9,7 +9,6 @@ import { Play, Square, Trash2, Timer } from "lucide-solid";
 import clsx from "clsx";
 import { 
   getEffectiveVisibility, 
-  hasHiddenElements, 
   isCellShowingAll, 
   toggleCellShowAll 
 } from "../lib/codeVisibility";
@@ -34,6 +33,13 @@ const CodeCell: Component<CodeCellProps> = (props) => {
     props.cell.metadata?.pynote?.codeview
   );
   const isShowingAll = () => isCellShowingAll(props.cell.id);
+
+  // Check if THIS cell has any hidden elements (considering cell-level metadata overrides)
+  const cellHasHiddenElements = () => {
+    const v = visibility();
+    return !v.showCode || !v.showStdout || !v.showStderr ||
+           !v.showResult || !v.showError || !v.showStatusDot;
+  };
 
   // Check if cell has any actual output content (regardless of visibility settings)
   const hasAnyOutput = createMemo(() => {
@@ -141,7 +147,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       // Pass visibility toggle info for sidebar button
-      hasHiddenElements={hasHiddenElements()}
+      hasHiddenElements={cellHasHiddenElements()}
       isShowingAll={isShowingAll()}
       onToggleVisibility={() => toggleCellShowAll(props.cell.id)}
     >
