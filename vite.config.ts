@@ -11,6 +11,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
+          // =================================================================
+          // NOTEBOOK CONTENT - Large string literals, split into own chunks
+          // =================================================================
+          if (id.includes('/notebooks/no-magic/')) return 'notebooks-nomagic';
+          if (id.includes('/notebooks/tutorials/')) return 'notebooks-tutorials';
+          if (id.includes('/notebooks/testing/')) return 'notebooks-testing';
+
           if (id.includes('node_modules')) {
             // =================================================================
             // CHART LIBRARIES - Lazy loaded, separate chunks
