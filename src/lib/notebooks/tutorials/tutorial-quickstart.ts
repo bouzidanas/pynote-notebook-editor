@@ -1,4 +1,4 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
 // Table of contents cell that appears at the top of all tutorials
 export const tableOfContentsCells: CellData[] = [
@@ -8,8 +8,6 @@ export const tableOfContentsCells: CellData[] = [
         content: `# 📚 PyNote Tutorial Series
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
-
-<br />
 
 | Section | Description |
 |---------|-------------|
@@ -21,7 +19,6 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
 
-<br />
 
 ---`
     }
@@ -150,13 +147,9 @@ export const tutorialQuickstartCells: CellData[] = [
         type: "markdown",
         content: `---
 
-<br />
-
 ## 🎉 Quick Start Complete!
 
 You now know the basics of PyNote. Continue your learning:
-
-<br />
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
@@ -166,8 +159,6 @@ You now know the basics of PyNote. Continue your learning:
 | **[Charts & Plotting](?open=tutorial_charts)** | Create beautiful visualizations with Observable Plot, uPlot, and Frappe |
 | **[Reactive Execution](?open=tutorial_reactive)** | Auto-run dependent cells with DAG-based propagation |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
-
-<br />
 
 Happy coding! 🐍`
     }

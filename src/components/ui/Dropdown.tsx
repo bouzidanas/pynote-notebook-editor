@@ -9,6 +9,7 @@ interface DropdownProps {
   fullWidthMobile?: boolean;
   stayWide?: boolean; // If true with fullWidthMobile, stays w-70 at sm+ (for non-nested dropdowns)
   usePortal?: boolean;
+  compact?: boolean; // Narrower panel for toolbar menus
 }
 
 const Dropdown: Component<DropdownProps> = (props) => {
@@ -61,10 +62,12 @@ const Dropdown: Component<DropdownProps> = (props) => {
       window.removeEventListener("resize", updatePosition);
   });
 
+  const widthClass = props.compact ? "w-48" : "w-70";
+
   const menuClasses = clsx(
     "shadow-lg bg-background border border-foreground ring-1 ring-black/5 focus:outline-none z-50",
     props.fullWidthMobile ? "max-menu:fixed max-menu:left-0 max-menu:right-0 max-menu:top-[65px] max-menu:mt-0 max-menu:rounded-none max-menu:border-t-0 max-menu:w-auto max-menu:overflow-y-auto max-menu:max-h-[calc(100dvh-65px)]" : "",
-    props.fullWidthMobile ? (props.stayWide ? "menu:absolute menu:mt-2 menu:w-70 menu:rounded-sm" : "menu:absolute menu:mt-2 menu:w-70 sm:w-40 menu:rounded-sm") : "mt-2 w-70 rounded-sm",
+    props.fullWidthMobile ? (props.stayWide ? `menu:absolute menu:mt-2 menu:${widthClass} menu:rounded-sm` : `menu:absolute menu:mt-2 menu:${widthClass} sm:w-40 menu:rounded-sm`) : `mt-2 ${widthClass} rounded-sm`,
     // If NOT using portal, we use relative positioning classes
     !props.usePortal && (props.align === "right" ? "right-0" : "left-0"),
     !props.usePortal && "absolute"
@@ -123,7 +126,7 @@ export const DropdownItem: Component<{ onClick?: () => void; children: JSX.Eleme
 }
 
 // Nested dropdown item with side menu
-export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Element }> = (props) => {
+export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Element; compact?: boolean }> = (props) => {
   const [isOpen, setIsOpen] = createSignal(false);
 
   return (
@@ -145,7 +148,7 @@ export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Eleme
       </button>
       <Show when={isOpen()}>
         <div 
-          class="absolute left-full -top-1 w-70 rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50"
+          class={`absolute left-full -top-1 ${props.compact ? 'w-48' : 'w-70'} rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50`}
         >
           <div class="py-1" role="menu" aria-orientation="vertical">
             {props.children}

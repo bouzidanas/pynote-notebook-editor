@@ -1,4 +1,4 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
 export const tutorialUIPart1Cells: CellData[] = [
     // Table of contents
@@ -9,8 +9,6 @@ export const tutorialUIPart1Cells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
-<br />
-
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -20,8 +18,6 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
-
-<br />
 
 ---`
     },
@@ -38,8 +34,6 @@ The built-in \`pynote_ui\` package provides a rich set of interactive widgets fo
 
 **This tutorial is split into three parts:**
 
-<br />
-
 | Part | Topics |
 |------|--------|
 | **Part 1** *(you are here)* | All available components, colors, sizes, and states |
@@ -55,8 +49,6 @@ The built-in \`pynote_ui\` package provides a rich set of interactive widgets fo
 
 Here's every component in \`pynote_ui\`:
 
-<br />
-
 | Component | Description | Key Props |
 |-----------|-------------|-----------|
 | \`Slider\` | Numeric input with draggable control | \`value\`, \`min\`, \`max\`, \`step\`, \`label\` |
@@ -70,8 +62,6 @@ Here's every component in \`pynote_ui\`:
 | \`Upload\` | Drag & drop file upload | \`label\`, \`files\` |
 | \`Group\` | Layout container (row/column) | \`layout\`, \`align\`, \`gap\`, \`border\` |
 | \`Form\` | Deferred submission container | Same as Group + submit behavior |
-
-<br />
 
 **Shared props:** All components support \`size\`, \`color\`, \`width\`, \`height\`, \`grow\`, \`shrink\`, \`border\`, \`background\`, \`hidden\`, \`disabled\`.
 
@@ -426,8 +416,6 @@ Group([
         type: "markdown",
         content: `---
 
-<br />
-
 ## 🎉 Part 1 Complete!
 
 You've learned about all available components and how to style them with colors and sizes.
@@ -437,8 +425,6 @@ You've learned about all available components and how to style them with colors 
 - Flex sizing and dimensions
 - Border and background customization
 - Displaying UI elements anywhere in your code
-
-<br />
 
 | Next Steps | |
 |------------|---|

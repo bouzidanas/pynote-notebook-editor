@@ -164,6 +164,9 @@ select:-webkit-autofill:active {
     overflow-x: auto;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
+    margin-right: 5px;
 }
 
 /* Table inside wrapper stretches to fit or overflow */
@@ -199,7 +202,8 @@ select:-webkit-autofill:active {
     width: 100%;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
-    margin: 0 !important;
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
 }
 
 .milkdown .editor table:not(.table-wrapper table) > * {
@@ -457,6 +461,17 @@ select:-webkit-autofill:active {
 .milkdown .editor hr {
     border: none !important;
     border-top: 1px solid var(--foreground) !important;
+    margin-top: var(--header-margin-bottom) !important;
+    margin-bottom: var(--header-margin-bottom) !important;
+    margin-right: 5px;
+}
+.prose hr:first-child,
+.milkdown .editor hr:first-child {
+    margin-top: 10px !important;
+}
+.prose hr:last-child,
+.milkdown .editor hr:last-child {
+    margin-bottom: 6px !important;
 }
 
  /* Image Styling */
@@ -464,6 +479,30 @@ select:-webkit-autofill:active {
 .milkdown .editor img {
     border-radius: var(--radius-sm) !important;
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    margin-top: var(--block-margin) !important;
+    margin-bottom: var(--block-margin) !important;
+}
+
+/* Caption element — smaller text, inherits color so bold/italic formatting works */
+.prose .caption,
+.milkdown .editor .caption {
+    font-size: calc(var(--font-size-base) * 0.85);
+}
+
+/* Caption paragraph adjacent to ANY element — collapse the neighbor's facing margin.
+ * The caption <p> itself has no margin (from Tailwind reset), so we only need
+ * to remove the margin on the adjacent element's side that faces the caption. */
+
+/* Element directly BEFORE a caption paragraph → collapse its bottom margin */
+.prose *:not(br):has(+ p:has(> .caption)),
+.milkdown .editor *:not(br):has(+ p:has(> .caption)) {
+    margin-bottom: 0 !important;
+}
+
+/* Element directly AFTER a caption paragraph → collapse its top margin */
+.prose p:has(> .caption) + *:not(br),
+.milkdown .editor p:has(> .caption) + *:not(br) {
+    margin-top: 0 !important;
 }
 
 /* Section Scoping Logic */

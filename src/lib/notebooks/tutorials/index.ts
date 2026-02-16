@@ -1,14 +1,4 @@
-// Tutorial index - exports all tutorial content
-export { tutorialQuickstartCells, tableOfContentsCells } from "./tutorial-quickstart";
-export { tutorialUIPart1Cells } from "./tutorial-ui-part1";
-export { tutorialUIPart2Cells } from "./tutorial-ui-part2";
-export { tutorialUIPart3Cells } from "./tutorial-ui-part3";
-export { tutorialUICells } from "./tutorial-ui";
-export { tutorialChartsCells } from "./tutorial-charts";
-export { tutorialReactiveCells } from "./tutorial-reactive";
-export { tutorialAPICells } from "./tutorial-api";
-export { tutorialTestingCells } from "./tutorial-testing";
-
+// Tutorial notebook index
 import { tutorialQuickstartCells } from "./tutorial-quickstart";
 import { tutorialUIPart1Cells } from "./tutorial-ui-part1";
 import { tutorialUIPart2Cells } from "./tutorial-ui-part2";
@@ -17,24 +7,12 @@ import { tutorialUICells } from "./tutorial-ui";
 import { tutorialChartsCells } from "./tutorial-charts";
 import { tutorialReactiveCells } from "./tutorial-reactive";
 import { tutorialAPICells } from "./tutorial-api";
-import { tutorialTestingCells } from "./tutorial-testing";
-import type { CellData } from "../store";
-import type { CodeVisibilitySettings } from "../codeVisibility";
+import type { NotebookConfig } from "../types";
 
-// Tutorial type mapping
-export type TutorialType = "tutorial" | "tutorial_ui_part1" | "tutorial_ui_part2" | "tutorial_ui_part3" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api" | "testing";
+// Tutorial type identifiers (matching ?open= param values)
+export type TutorialType = "tutorial" | "tutorial_ui_part1" | "tutorial_ui_part2" | "tutorial_ui_part3" | "tutorial_ui" | "tutorial_charts" | "tutorial_reactive" | "tutorial_api";
 
-// Document-level code visibility settings for tutorials
-// These hide result output by default so users run the cells themselves
-type TutorialCodeView = Partial<Omit<CodeVisibilitySettings, "saveToExport">>;
-
-interface TutorialConfig {
-    cells: CellData[];
-    filename: string;
-    codeview?: TutorialCodeView;
-}
-
-export const TUTORIAL_CONFIG: Record<TutorialType, TutorialConfig> = {
+export const TUTORIAL_CONFIG: Record<TutorialType, NotebookConfig> = {
     "tutorial": {
         cells: tutorialQuickstartCells,
         filename: "Tutorial - Quick Start.ipynb",
@@ -89,22 +67,5 @@ export const TUTORIAL_CONFIG: Record<TutorialType, TutorialConfig> = {
         cells: tutorialAPICells,
         filename: "Tutorial - API Reference.ipynb"
         // API reference doesn't need hidden results - it's documentation
-    },
-    "testing": {
-        cells: tutorialTestingCells,
-        filename: "Testing Ground.ipynb",
-        codeview: {
-            showResult: false
-        }
     }
 };
-
-// Helper to check if a string is a valid tutorial type
-export function isTutorialType(value: string | null): value is TutorialType {
-    return value !== null && value in TUTORIAL_CONFIG;
-}
-
-// Get tutorial cells and filename for a given type
-export function getTutorialContent(type: TutorialType): TutorialConfig {
-    return TUTORIAL_CONFIG[type];
-}

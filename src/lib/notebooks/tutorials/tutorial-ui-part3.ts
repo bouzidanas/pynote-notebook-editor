@@ -1,4 +1,4 @@
-import type { CellData } from "../store";
+import type { CellData } from "../../store";
 
 export const tutorialUIPart3Cells: CellData[] = [
     // Table of contents
@@ -9,8 +9,6 @@ export const tutorialUIPart3Cells: CellData[] = [
 
 Welcome! This tutorial is split into focused sections. Click any link below to navigate.
 
-<br />
-
 | Section | Description |
 |---------|-------------|
 | **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
@@ -20,8 +18,6 @@ Welcome! This tutorial is split into focused sections. Click any link below to n
 | **[Charts & Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
 | **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
 | **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
-
-<br />
 
 ---`
     },
@@ -531,8 +527,6 @@ Group([
         type: "markdown",
         content: `---
 
-<br />
-
 ## 🎉 Interactive UI Complete!
 
 You now know how to build complete reactive interfaces with PyNote!
@@ -542,15 +536,11 @@ You now know how to build complete reactive interfaces with PyNote!
 - **Part 2:** Layout with Group, sizing, borders, and display functions
 - **Part 3:** Forms, file uploads, cross-cell communication, and advanced patterns
 
-<br />
-
 | Continue Learning |
 |-------------------|
 | **[Charts & Plotting](?open=tutorial_charts)** → Create beautiful visualizations |
 | **[Reactive Execution](?open=tutorial_reactive)** → Automatic cell propagation |
 | **[API Reference](?open=tutorial_api)** → Complete component reference |
-
-<br />
 
 Happy coding! 🐍`
     }
