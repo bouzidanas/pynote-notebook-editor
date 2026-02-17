@@ -152,6 +152,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         "z-index": props.cellIndex !== undefined ? 100000 - props.cellIndex : "auto",
         ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {})
       }}
+      onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         if (!presentationMode()) {
           e.stopPropagation();

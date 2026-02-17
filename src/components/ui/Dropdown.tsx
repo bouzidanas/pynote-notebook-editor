@@ -82,6 +82,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
             left: props.align === "right" ? 'auto' : `${coords().left}px`,
             right: props.align === "right" ? `${document.documentElement.clientWidth - coords().right}px` : 'auto'
         } : undefined}
+        onMouseDown={(e: MouseEvent) => e.stopPropagation()}
     >
       <div class="py-1" role="menu" aria-orientation="vertical" onClick={() => setIsOpen(false)}>
         {props.children}

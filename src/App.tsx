@@ -14,7 +14,7 @@ const App: Component = () => {
   return (
     <div 
       class="min-h-screen bg-background text-secondary transition-colors duration-300 font-mono"
-      onClick={() => actions.setActiveCell(null)}
+      onMouseDown={() => actions.setActiveCell(null)}
     >
       <Notebook />
     </div>

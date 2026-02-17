@@ -1324,6 +1324,7 @@ const Notebook: Component = () => {
        >
          <div class="px-7.5 max-xs:pl-6.5 max-xs:pr-2 py-4 flex items-center justify-between" 
               style={{ "max-width": "var(--page-max-width-header)", "margin-left": "var(--page-margin-x-header)", "margin-right": "var(--page-margin-x-header)" }} 
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}>
            <div class="flex items-center gap-2">
              <div class="btn-toolbar bg-primary! text-background! hover:bg-primary/90! flex items-center justify-center font-bold! text-xl! leading-none sm:flex border-primary">PyNote</div>
@@ -1992,6 +1993,7 @@ const Notebook: Component = () => {
          <Show when={!notebookStore.presentationMode}>
            <div 
              class="flex justify-center gap-4 mt-8 opacity-50 hover:opacity-100 transition-opacity"
+             onMouseDown={(e) => e.stopPropagation()}
              onClick={(e) => e.stopPropagation()}
            >
              <button onClick={() => actions.addCell("code")} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
