@@ -10,6 +10,22 @@ export const APP_DEFAULT_EXECUTION_MODE: ExecutionMode = "hybrid";
 // Quick edit mode: single-click to edit code cells (default: on)
 export const APP_QUICK_EDIT_MODE = true;
 
+// Show the "+ Code" / "+ Text" buttons at the bottom of the cell list (default: on)
+export const APP_SHOW_TRAILING_ADD_BUTTONS = true;
+
+// Enable drag-and-drop cell reordering (default: on)
+// When off, DragDropSensors are not rendered so drags never initiate.
+// The sortable infrastructure stays mounted (zero conditional rendering).
+export const APP_ENABLE_CELL_DND = true;
+
+// Quiet mode: softer cell borders when selected/editing (default: off)
+// When on, selected border uses secondary/10 instead of accent/60,
+// and editing border uses secondary/15 with no glow instead of accent + shadow.
+export const APP_QUIET_MODE = false;
+
+// Default visibility of the markdown formatting toolbar when entering edit mode (default: off)
+export const APP_DEFAULT_SHOW_FORMATTING = false;
+
 // Cell-level visibility metadata (for code cells only)
 // These override document/app settings for this specific cell
 // true = force show, false = force hide, undefined = use global setting
@@ -92,6 +108,7 @@ export interface NotebookState {
   executionMode: ExecutionMode;
   executionQueue: string[]; // List of cell IDs waiting to run
   sidebarAlignment: "top" | "center" | "bottom";
+  showTrailingAddButtons: boolean;
   // Reactive execution mode state (Marimo-style DAG)
   cellDependencies: Map<string, CellDependencyInfo>;
   dependenciesStale: boolean; // True when switching to reactive mode, need to analyze all cells
@@ -209,6 +226,7 @@ const [store, setStore] = createStore<NotebookState>({
   executionMode: APP_DEFAULT_EXECUTION_MODE,
   executionQueue: [],
   sidebarAlignment: "top",
+  showTrailingAddButtons: APP_SHOW_TRAILING_ADD_BUTTONS,
   // Reactive execution mode (Marimo-style DAG)
   cellDependencies: new Map(),
   dependenciesStale: false
@@ -999,7 +1017,7 @@ export const actions = {
     }
   },
 
-  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null, executionMode?: ExecutionMode) => {
+  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null, executionMode?: ExecutionMode, showTrailingAddButtons?: boolean) => {
     setStore({
       cells,
       filename,
@@ -1008,6 +1026,7 @@ export const actions = {
       historyIndex: historyIndex !== undefined ? historyIndex : (history ? history.length - 1 : -1),
       // Use document's execution mode if provided, otherwise use app default
       executionMode: executionMode || APP_DEFAULT_EXECUTION_MODE,
+      showTrailingAddButtons: showTrailingAddButtons ?? APP_SHOW_TRAILING_ADD_BUTTONS,
       // Reset reactive mode state when loading a new notebook
       cellDependencies: new Map(),
       dependenciesStale: executionMode === "reactive" // Need to analyze if loading in reactive mode

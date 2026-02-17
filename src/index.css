@@ -137,6 +137,14 @@ select:-webkit-autofill:active {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
+/* No paragraph margins inside table cells (Milkdown wraps td/th content in p) */
+.milkdown .editor td > p,
+.milkdown .editor th > p,
+.prose td > p,
+.prose th > p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
 /* Remove margins when p is at edges of the cell */
 .prose > p:first-child,
 .prose > .section-scope:first-child > p:first-child,
@@ -254,7 +262,7 @@ select:-webkit-autofill:active {
 .milkdown .editor table:not(.table-wrapper table) {
     display: block;
     overflow-x: auto;
-    width: 100%;
+    width: calc(100% - 5px);
     border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
     border-radius: var(--radius-sm);
     margin-top: var(--block-margin) !important;
@@ -327,9 +335,10 @@ select:-webkit-autofill:active {
     font-family: var(--code-font-family);
     font-size: var(--code-inline-font-size);
     font-weight: var(--code-font-weight);
-    background-color: color-mix(in srgb, var(--foreground) 20%, transparent);
-    padding: 0.2em 0.4em;
+    background-color: color-mix(in srgb, var(--accent) 8%, transparent);
+    padding: 0.2em 0.5em;
     border-radius: var(--radius-sm);
+    color: color-mix(in srgb, var(--secondary) 75%, transparent);
 }
 
 /* Links in markdown / prose */
@@ -652,20 +661,64 @@ select:-webkit-autofill:active {
     font-size: calc(var(--font-size-base) * 0.85);
 }
 
-/* Caption paragraph adjacent to ANY element — collapse the neighbor's facing margin.
- * The caption <p> itself has no margin (from Tailwind reset), so we only need
- * to remove the margin on the adjacent element's side that faces the caption. */
+/* Caption paragraph adjacent to a BLOCK element (table, hr, image, etc.) —
+ * collapse the margin facing the block so caption hugs it tightly.
+ * Does NOT apply when both neighbors are paragraphs or headings (normal spacing preserved).
+ * NOTE: Avoids nested :has() — browsers handle :has(+ p > .caption) but NOT :has(+ p:has(> .caption)). */
 
-/* Element directly BEFORE a caption paragraph → collapse its bottom margin */
-.prose *:not(br):has(+ p:has(> .caption)),
-.milkdown .editor *:not(br):has(+ p:has(> .caption)) {
+/* Caption paragraph directly AFTER a block element → collapse its top margin only */
+.prose *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) + p:has(> .caption),
+.milkdown .editor *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) + p:has(> .caption) {
+    margin-top: 0 !important;
+}
+
+/* Caption paragraph followed by a block element → collapse its bottom margin */
+.prose p:has(> .caption):has(+ *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)),
+.milkdown .editor p:has(> .caption):has(+ *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6)) {
     margin-bottom: 0 !important;
 }
 
-/* Element directly AFTER a caption paragraph → collapse its top margin */
-.prose p:has(> .caption) + *:not(br),
-.milkdown .editor p:has(> .caption) + *:not(br) {
+/* Block element directly BEFORE a caption paragraph → collapse its bottom margin.
+ * Uses combinator inside :has() instead of nested :has() for browser compatibility. */
+.prose *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):has(+ p > .caption),
+.milkdown .editor *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):has(+ p > .caption) {
+    margin-bottom: 0 !important;
+}
+
+/* Block element directly AFTER a caption paragraph → collapse its top margin */
+.prose p:has(> .caption) + *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+.milkdown .editor p:has(> .caption) + *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
     margin-top: 0 !important;
+}
+
+/* Explicit table ↔ caption collapse for edit mode (bare <table>, no wrapper) */
+.milkdown .editor table:has(+ p > .caption) {
+    margin-bottom: 0 !important;
+}
+.milkdown .editor table + p:has(> .caption) {
+    margin-top: 0 !important;
+}
+/* Explicit table ↔ caption collapse for view mode (.table-wrapper) */
+.prose .table-wrapper:has(+ p > .caption) {
+    margin-bottom: 0 !important;
+}
+.prose .table-wrapper + p:has(> .caption) {
+    margin-top: 0 !important;
+}
+
+/* Image (or table) in the SAME paragraph as a caption — collapse image bottom margin
+ * so the caption text hugs the image tightly.
+ * Handles: ![](url)\n<span class="caption">text</span>  (no blank line between) */
+.prose p:has(> .caption) img,
+.milkdown .editor p:has(> .caption) img {
+    margin-bottom: 2px !important;
+}
+
+/* Caption text displayed as block when sharing a paragraph with an image,
+ * so it appears below the image rather than inline beside it. */
+.prose p > img ~ .caption,
+.milkdown .editor p > img ~ .caption {
+    display: block;
 }
 
 /* Section Scoping Logic */
@@ -688,6 +741,12 @@ select:-webkit-autofill:active {
 .cell-list-exit-to {
   opacity: 0;
   transform: translateX(20px);
+}
+
+/* Quiet Mode — no visible cell borders */
+[data-quiet] {
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* Chart container styles - ensure consistent border-radius with UI components */

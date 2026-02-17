@@ -1,7 +1,7 @@
 import { type Component, For, Show, createSignal, onCleanup, createEffect, onMount, lazy } from "solid-js";
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
 import { TransitionGroup } from "solid-transition-group";
-import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, type ExecutionMode } from "../lib/store";
+import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, APP_ENABLE_CELL_DND, type ExecutionMode } from "../lib/store";
 import { isBuiltinNotebook, getBuiltinNotebook } from "../lib/notebooks";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
@@ -779,6 +779,7 @@ const Notebook: Component = () => {
       historyIndex: notebookStore.historyIndex,
       activeCellId: notebookStore.activeCellId,
       executionMode: notebookStore.executionMode, // Persist session execution mode
+      showTrailingAddButtons: notebookStore.showTrailingAddButtons, // Persist trailing add buttons setting
       theme: sessionHasTheme() ? { ...currentTheme } : undefined,
       codeVisibility: getSessionState() // Persist code visibility settings & cell overrides
     };
@@ -826,7 +827,8 @@ const Notebook: Component = () => {
           data.history || [],
           typeof data.historyIndex === "number" ? data.historyIndex : undefined,
           data.activeCellId,
-          sessionExecutionMode
+          sessionExecutionMode,
+          typeof data.showTrailingAddButtons === "boolean" ? data.showTrailingAddButtons : undefined
         );
         
         // Load theme if session has one
@@ -866,7 +868,7 @@ const Notebook: Component = () => {
       // Load app theme for new session
       updateTheme(loadAppTheme());
       
-      const { cells, filename, codeview } = getBuiltinNotebook(builtinType);
+      const { cells, filename, codeview, showTrailingAddButtons } = getBuiltinNotebook(builtinType);
       
       // Reset user override flag for fresh notebook load
       resetUserOverride();
@@ -876,7 +878,7 @@ const Notebook: Component = () => {
         applyDocumentSettings(codeview);
       }
       
-      actions.loadNotebook([...cells], filename, []);
+      actions.loadNotebook([...cells], filename, [], undefined, undefined, undefined, showTrailingAddButtons);
       autosaveNotebook();
       
       // Mark as new session for auto-run
@@ -912,7 +914,7 @@ const Notebook: Component = () => {
             // ID exists but data is gone (expired/deleted)
             if (builtinType) {
                  // Built-in notebook link with invalid/expired session -> Reload
-                 const { cells, filename, codeview } = getBuiltinNotebook(builtinType);
+                 const { cells, filename, codeview, showTrailingAddButtons } = getBuiltinNotebook(builtinType);
                  
                  // Reset user override flag for fresh notebook load
                  resetUserOverride();
@@ -922,7 +924,7 @@ const Notebook: Component = () => {
                    setVisibilitySettings(codeview, false); // false = not a user change
                  }
                  
-                 actions.loadNotebook([...cells], filename, []);
+                 actions.loadNotebook([...cells], filename, [], undefined, undefined, undefined, showTrailingAddButtons);
             } else {
                  // Normal link with invalid/expired session -> New Notebook
                  actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
@@ -1201,6 +1203,11 @@ const Notebook: Component = () => {
           ? nb.metadata.PyNote.executionMode as ExecutionMode
           : undefined; // Will use app default if not specified
         
+        // Extract showTrailingAddButtons from document metadata
+        const docShowTrailingAddButtons = typeof nb.metadata?.PyNote?.showTrailingAddButtons === "boolean"
+          ? nb.metadata.PyNote.showTrailingAddButtons
+          : undefined; // Will use app default if not specified
+        
         // Store the file handle for later saving (only if opened via File System Access API)
         fileHandle = handle;
         
@@ -1224,7 +1231,8 @@ const Notebook: Component = () => {
             history,
             history.length - 1,
             null,
-            docExecutionMode || APP_DEFAULT_EXECUTION_MODE
+            docExecutionMode || APP_DEFAULT_EXECUTION_MODE,
+            docShowTrailingAddButtons
           );
           
           // Update URL without reload
@@ -1251,6 +1259,7 @@ const Notebook: Component = () => {
           historyIndex: history.length - 1,
           activeCellId: null,
           executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
+          showTrailingAddButtons: docShowTrailingAddButtons, // Document's trailing add buttons setting
           theme: themeData || undefined,
           codeVisibility: documentVisibilityState || undefined
         };
@@ -1943,7 +1952,7 @@ const Notebook: Component = () => {
          <DragDropProvider onDragStart={onDragStart} onDragEnd={onDragEnd} collisionDetector={closestCorners}>
            <DragOffsetTracker setGrabOffsetX={setGrabOffsetX} />
            <AutoScroller />
-           <DragDropSensors />
+           <Show when={APP_ENABLE_CELL_DND}><DragDropSensors /></Show>
            <div class="px-4 max-xs:px-3">
              <For each={[notebookVersion()]}>
                {() => (
@@ -1989,8 +1998,8 @@ const Notebook: Component = () => {
            <CustomDragOverlay height={draggedHeight()} grabOffsetX={grabOffsetX()} cellWidth={cellWidth()} />
          </DragDropProvider>
          
-         {/* Bottom Add Buttons - Hidden in presentation mode */}
-         <Show when={!notebookStore.presentationMode}>
+         {/* Bottom Add Buttons - Hidden in presentation mode or by config */}
+         <Show when={!notebookStore.presentationMode && notebookStore.showTrailingAddButtons}>
            <div 
              class="flex justify-center gap-4 mt-8 opacity-50 hover:opacity-100 transition-opacity"
              onMouseDown={(e) => e.stopPropagation()}

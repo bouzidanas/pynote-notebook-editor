@@ -1,9 +1,9 @@
 import { type Component, type JSX, Show, createSignal, createEffect, onCleanup } from "solid-js";
 import { createStore } from "solid-js/store";
 import { createSortable } from "@thisbeyond/solid-dnd";
-import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff } from "lucide-solid";
+import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff, AArrowUp, AArrowDown } from "lucide-solid";
 import clsx from "clsx";
-import { notebookStore } from "../lib/store";
+import { notebookStore, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../lib/store";
 import { currentTheme } from "../lib/theme";
 
 // Reactive store for cell exit levels - tracks each cell's exit level
@@ -67,6 +67,9 @@ interface CellWrapperProps {
   hasHiddenElements?: boolean; // Whether any visibility settings are hiding elements
   isShowingAll?: boolean;      // Whether this cell is in "show all" override mode
   onToggleVisibility?: () => void; // Toggle between show-all and user settings
+  // For markdown formatting toolbar toggle
+  showFormattingToolbar?: boolean;
+  onToggleFormattingToolbar?: () => void;
   // For stacking order control
   cellIndex?: number;          // Cell position in notebook (for reverse z-index stacking)
 }
@@ -134,11 +137,12 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
     <div
       id={`cell-${props.id}`}
       ref={(el) => { sortable.ref(el); elementRef = el; }}
-      {...sortable.dragActivators}
+      {...(APP_ENABLE_CELL_DND ? sortable.dragActivators : {})}
       onKeyDown={undefined}
+      data-quiet={APP_QUIET_MODE || undefined}
       class={clsx(
         "group relative flex flex-col rounded-sm border-2 transition-all duration-200 p-1 max-xs:p-0",
-        !presentationMode() && "cursor-grab active:cursor-grabbing",
+        APP_ENABLE_CELL_DND && !presentationMode() && "cursor-grab active:cursor-grabbing",
         !props.isActive && "border-transparent",
         !presentationMode() && !props.isActive && "hover:border-secondary/10",
         props.isActive && !props.isEditing && "border-accent/60",
@@ -218,6 +222,27 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
               </button>
             </Show>
 
+            {/* Formatting Toolbar Toggle (Markdown cells in edit mode) */}
+            <Show when={props.type === "markdown" && props.isEditing && props.onToggleFormattingToolbar}>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  props.onToggleFormattingToolbar?.(); 
+                }}
+                class={clsx(
+                  "p-2 -m-1 rounded-sm transition-colors",
+                  props.showFormattingToolbar 
+                    ? "text-accent hover:text-accent/80" 
+                    : "text-foreground hover:text-accent"
+                )}
+                title={props.showFormattingToolbar ? "Hide Formatting Toolbar" : "Show Formatting Toolbar"}
+              >
+                <Show when={props.showFormattingToolbar} fallback={<AArrowDown size={14} />}>
+                  <AArrowUp size={14} />
+                </Show>
+              </button>
+            </Show>
+
             {/* Visibility Toggle (Code cells only, when elements are hidden OR show-all is active) */}
             <Show when={props.type === "code" && (props.hasHiddenElements || props.isShowingAll) && props.onToggleVisibility}>
               <button 
@@ -239,9 +264,11 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
               </button>
             </Show>
 
-            <div class="cursor-grab hover:text-accent p-2 -m-1 rounded-sm text-foreground">
-              <GripVertical size={16} />
-            </div>
+            <Show when={APP_ENABLE_CELL_DND}>
+              <div class="cursor-grab hover:text-accent p-2 -m-1 rounded-sm text-foreground">
+                <GripVertical size={16} />
+              </div>
+            </Show>
             
             {/* Quick Actions */}
             <button onClick={(e) => { e.stopPropagation(); props.onDelete(); }} class="p-2 -m-1 hover:text-primary rounded-sm text-foreground">

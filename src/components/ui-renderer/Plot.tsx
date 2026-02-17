@@ -556,6 +556,7 @@ const Plot: Component<PlotProps> = (p) => {
         type: p.props.y_type,
         domain: p.props.y_domain,
         grid: p.props.grid !== false, // Grid on by default for Y
+        tickFormat: "~s",  // SI-prefix notation (e.g. "300k" instead of "300,000") to prevent label overflow
         line: true,
         labelOffset: 50,
         labelAnchor: "center",

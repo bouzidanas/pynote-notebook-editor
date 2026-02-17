@@ -1,4 +1,4 @@
-import { type Component, onMount, onCleanup, createEffect } from "solid-js";
+import { type Component, onMount, onCleanup, createEffect, createSignal } from "solid-js";
 import { TextSelection } from "@milkdown/kit/prose/state"; // Standard state handling
 import { actions, type CellData } from "../lib/store";
 
@@ -45,12 +45,14 @@ import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"
 import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
 // UI Components
-import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video } from "lucide-solid";
+import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video, TextAlignCenter, TextAlignEnd, TextAlignStart } from "lucide-solid";
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
 import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
 import { captionMark, toggleCaptionCommand } from "../lib/captionPlugin";
 import { videoEmbed } from "../lib/videoEmbedPlugin";
+import { textAlign } from "../lib/textAlignPlugin";
+import clsx from "clsx";
 
 
 interface MarkdownEditorProps {
@@ -58,12 +60,26 @@ interface MarkdownEditorProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   cell: CellData;
+  showToolbar?: () => boolean;
+  initialClickCoords?: { left: number; top: number };
 }
 
 const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let editorInstance: Editor | null = null;
   const isUpdatingFromProps = false;
+  const [currentAlign, setCurrentAlign] = createSignal<string | null>(null);
+
+  /** Read the textAlign attr from the block node at the cursor. */
+  const syncAlignState = (view: any) => {
+    const { $from } = view.state.selection;
+    const node = $from.parent;
+    if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+      setCurrentAlign(node.attrs.textAlign || null);
+    } else {
+      setCurrentAlign(null);
+    }
+  };
 
   onMount(() => {
     if (!editorRef) return;
@@ -104,6 +120,15 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                        actions.updateEditorCapabilities(props.cell.id, canUndo, canRedo);
                    }
                }
+               if (view) syncAlignState(view);
+            })
+            .selectionUpdated((_ctx, selection) => {
+               const node = selection.$from.parent;
+               if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                 setCurrentAlign(node.attrs.textAlign || null);
+               } else {
+                 setCurrentAlign(null);
+               }
             });
       })
       .config(nord) // Theme config
@@ -116,6 +141,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .use(codeBlockNavigationPlugin)
       .use(captionMark)
       .use(videoEmbed)
+      .use(textAlign)
       .create()
       .then((editor) => {
         editorInstance = editor;
@@ -127,21 +153,26 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
               // Restore Selection State if available
               if (props.cell.editorState) {
                   try {
-                       // We can't use EditorState.fromJSON fully because plugins/history aren't serializable
-                       // But we CAN restore the cursor position (Selection)
                        const savedSelection = props.cell.editorState.selection;
                        if (savedSelection) {
-                            // Recover selection from JSON. 
-                            // Note: This relies on the document structure being 99% identical to when we saved.
-                            // Since we reconstruct the doc from the same markdown, it matches.
                             const sel = TextSelection.fromJSON(view.state.doc, savedSelection);
                             const tr = view.state.tr.setSelection(sel);
                             view.dispatch(tr);
-                            // Scroll line into view
                             view.dispatch(view.state.tr.scrollIntoView());
                        }
                   } catch (e) {
                       console.warn("Failed to restore markdown cursor:", e);
+                  }
+              } else if (props.initialClickCoords) {
+                  // Place cursor at the double-click position
+                  try {
+                      const pos = view.posAtCoords({ left: props.initialClickCoords.left, top: props.initialClickCoords.top });
+                      if (pos) {
+                          const sel = TextSelection.near(view.state.doc.resolve(pos.pos));
+                          view.dispatch(view.state.tr.setSelection(sel).scrollIntoView());
+                      }
+                  } catch (e) {
+                      // Fall through — cursor stays at default position
                   }
               }
 
@@ -226,6 +257,26 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       } else {
         setBlockType(heading, { level: nextLevel })(state, dispatch);
       }
+    });
+  };
+
+  const cycleTextAlign = () => {
+    editorInstance?.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const { state, dispatch } = view;
+      const { $from } = state.selection;
+
+      const node = $from.parent;
+      if (node.type.name !== 'paragraph' && node.type.name !== 'heading') return;
+
+      const currentAlign = node.attrs.textAlign || null;
+      const CYCLE: (string | null)[] = [null, 'center', 'right'];
+      const idx = CYCLE.indexOf(currentAlign);
+      const nextAlign = CYCLE[(idx + 1) % CYCLE.length];
+
+      const pos = $from.before($from.depth);
+      dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: nextAlign }));
+      setCurrentAlign(nextAlign);
     });
   };
 
@@ -322,7 +373,15 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   return (
     <div class="flex flex-col gap-2">
       {/* Toolbar */}
-      <div class="flex items-center gap-1 pb-1 -mt-2 max-xs:-mt-0.5 border-b border-foreground/30">
+      <div
+        class={clsx(
+          "transition-[max-height,opacity,margin] duration-250 ease-out",
+          (props.showToolbar?.() ?? true)
+            ? "max-h-12 opacity-100"
+            : "max-h-0 opacity-0 -mb-2 overflow-hidden"
+        )}
+      >
+      <div class="flex items-center gap-1 pb-1 -mt-2 max-xs:-mt-0.5 border-b border-foreground/30" onMouseDown={e => e.preventDefault()}>
         {/* Bold */}
         <button onClick={() => call(toggleStrongCommand.key)} class="btn-icon" title="Bold">
           <Bold size={16} />
@@ -365,6 +424,13 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             </DropdownItem>
           </Dropdown>
         </div>
+
+        {/* Text Alignment */}
+        <button onClick={cycleTextAlign} class="btn-icon" title="Cycle Text Alignment">
+          <span class="flex transition-transform duration-150">
+            {currentAlign() === 'center' ? <TextAlignCenter size={16} /> : currentAlign() === 'right' ? <TextAlignEnd size={16} /> : <TextAlignStart size={16} />}
+          </span>
+        </button>
 
         {/* Mobile "More" Menu (Visible on mobile only) */}
         <div class="flex sm:hidden items-center">
@@ -548,6 +614,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                 </DropdownItem>
             </Dropdown>
         </div>
+      </div>
       </div>
 
       <div class="milkdown-editor-wrapper" ref={editorRef} />

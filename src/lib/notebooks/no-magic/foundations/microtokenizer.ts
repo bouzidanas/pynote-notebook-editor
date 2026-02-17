@@ -168,20 +168,26 @@ compression step that naturally discovers morphological units (\`"an" + "a"\`,
 
 The merge table is ordered by priority: merge 0 was most frequent in the original
 corpus, merge 1 most frequent after merge 0, and so on. This ordering is critical
-for encoding.`
+for encoding.
+
+> The implementation below also collects per-step statistics (pair frequency and
+> corpus length) for creating the plots that follow.`
     },
     {
         id: "nm-tok-train-fn",
         type: "code",
         content: `def train_bpe(
     token_ids: list[int], num_merges: int
-) -> list[tuple[tuple[int, int], int]]:
+) -> tuple[list[tuple[tuple[int, int], int]], list[dict]]:
     """Learn BPE merge rules by greedily merging the most frequent adjacent pair.
 
-    Returns: ordered list of (pair, new_id) tuples where new_id = 256 + merge_index.
+    Returns:
+        merges: ordered list of (pair, new_id) tuples where new_id = 256 + merge_index.
+        stats:  per-merge statistics (merge index, pair frequency, corpus length).
     """
     ids = list(token_ids)  # work on a copy
     merges: list[tuple[tuple[int, int], int]] = []
+    stats: list[dict] = []  # track frequency & corpus length per merge
 
     for i in range(num_merges):
         counts = get_pair_counts(ids)
@@ -196,6 +202,7 @@ for encoding.`
 
         ids = apply_merge(ids, pair, new_id)
         merges.append((pair, new_id))
+        stats.append({"step": i + 1, "frequency": counts[pair], "corpus_length": len(ids)})
 
         if (i + 1) % 32 == 0 or i == 0:
             a, b = pair
@@ -205,7 +212,7 @@ for encoding.`
                 f"freq={counts[pair]:>5}  corpus_len={len(ids)}"
             )
 
-    return merges`
+    return merges, stats`
     },
     {
         id: "nm-tok-runtrain-md",
@@ -218,15 +225,23 @@ Watch how the corpus length shrinks with each merge — that's compression happe
         id: "nm-tok-train-run",
         type: "code",
         content: `print("Training BPE...")
-merges = train_bpe(corpus_ids, NUM_MERGES)
+merges, training_stats = train_bpe(corpus_ids, NUM_MERGES)
 print(f"\\nTraining complete: {len(merges)} merges learned")`
+    },
+    {
+        id: "nm-tok-plots-md",
+        type: "markdown",
+        content: `### Training Visualizations\n\nTwo views of the same greedy process:\n\n- **Merge frequency decay** — the pair count chosen at each step. Early merges capture very common patterns (e.g. newline pairs), then returns diminish quickly.\n- **Corpus shrinkage** — total token count after each merge. Every merge removes exactly \`frequency - 1\` tokens from the sequence (each pair of two tokens becomes one), so the curve drops fastest at the start.`
+    },
+    {
+        id: "nm-tok-plots",
+        type: "code",
+        content: `from pynote_ui.oplot import line\n\n# Merge frequency decay\nfreq_plot = line(training_stats, x="step", y="frequency",\n     stroke="#8b5cf6", stroke_width=2,\n     title="Merge Frequency Decay",\n     x_label="Merge step", y_label="Pair frequency",\n     grid="both")\n\n# Corpus shrinkage\ncorpus_plot = line(training_stats, x="step", y="corpus_length",\n     stroke="#f59e0b", stroke_width=2,\n     title="Corpus Length During Training",\n     x_label="Merge step", y_label="Tokens in corpus",\n     grid="both")\n\n[freq_plot, corpus_plot]`
     },
     {
         id: "nm-tok-encdec-md",
         type: "markdown",
-        content: `## Encoding & Decoding
-
-Once training is done, we can encode any text by replaying merges in priority order, and decode by looking up each token ID in the vocabulary table.`
+        content: `## Encoding & Decoding\n\nOnce training is done, we can encode any text by replaying merges in priority order, and decode by looking up each token ID in the vocabulary table.`
     },
     {
         id: "nm-tok-vocab-md",
@@ -367,5 +382,10 @@ print(f'Tokenization example: "{example}"')
 print(f"  Bytes:  {list(example.encode('utf-8'))}")
 print(f"  Tokens: {example_tokens}")
 print(f"  Pieces: {pieces}")`
+    },
+    {
+        id: "nm-tok-footer",
+        type: "markdown",
+        content: `[Contrastive Learning (InfoNCE) →](?open=nm_microembedding)`
     }
 ];

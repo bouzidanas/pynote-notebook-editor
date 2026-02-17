@@ -9,4 +9,5 @@ export interface NotebookConfig {
     cells: CellData[];
     filename: string;
     codeview?: NotebookCodeView;
+    showTrailingAddButtons?: boolean;
 }

@@ -1,5 +1,5 @@
 import { type Component, createSignal, Show, createEffect, createMemo } from "solid-js";
-import { type CellData, actions, notebookStore } from "../lib/store";
+import { type CellData, actions, notebookStore, APP_DEFAULT_SHOW_FORMATTING } from "../lib/store";
 import { currentTheme } from "../lib/theme";
 import CellWrapper, { getLastHeaderLevel } from "./CellWrapper";
 import MarkdownEditor from "./MarkdownEditor";
@@ -175,6 +175,12 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
     }
   });
 
+  const [showFormattingToolbar, setShowFormattingToolbar] = createSignal(APP_DEFAULT_SHOW_FORMATTING);
+  const toggleFormattingToolbar = () => setShowFormattingToolbar(prev => !prev);
+
+  // Track double-click coordinates so the editor can place the cursor there
+  let dblClickCoords: { left: number; top: number } | undefined;
+
   const toggleEdit = () => {
     actions.setEditing(props.cell.id, !props.cell.isEditing);
   };
@@ -219,6 +225,8 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
       toolbar={toolbar}
       type="markdown"
       onActionClick={toggleEdit}
+      showFormattingToolbar={showFormattingToolbar()}
+      onToggleFormattingToolbar={toggleFormattingToolbar}
       hasError={renderError()}
       prevCellId={props.prevCellId}
       cellIndex={props.index}
@@ -226,7 +234,10 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
     >
       <div 
         class="min-h-12.5 w-full"
-        onDblClick={() => actions.setEditing(props.cell.id, true)}
+        onDblClick={(e) => {
+          dblClickCoords = { left: e.clientX, top: e.clientY };
+          actions.setEditing(props.cell.id, true);
+        }}
       >
         <Show
           when={props.cell.isEditing} 
@@ -242,6 +253,8 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
               value={props.cell.content}
               onChange={(val) => actions.updateCell(props.cell.id, val)}
               cell={props.cell}
+              showToolbar={showFormattingToolbar}
+              initialClickCoords={dblClickCoords}
             />
           </div>
         </Show>

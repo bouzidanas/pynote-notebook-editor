@@ -114,6 +114,7 @@ class UIElement:
         self.id = str(uuid.uuid4())
         self.props = kwargs
         self._on_update = None
+        self._auto_displayed = False
         StateManager.register(self)
 
     def to_json(self):
@@ -125,7 +126,13 @@ class UIElement:
         }
 
     def _repr_mimebundle_(self, include=None, exclude=None):
-        """IPython display protocol for rich output."""
+        """IPython display protocol for rich output.
+        
+        Returns empty dict if the element was already auto-displayed via stdout,
+        preventing duplicate rendering when used as the last expression in a cell.
+        """
+        if self._auto_displayed:
+            return {}
         return {
             "application/vnd.pynote.ui+json": self.to_json()
         }
