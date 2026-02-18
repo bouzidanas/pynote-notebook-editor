@@ -10,7 +10,7 @@ import { bracketMatching, matchBrackets, indentOnInput, indentUnit } from "@code
 import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
 import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
 import { currentTheme } from "../lib/theme";
-import { type CellData, actions, APP_QUICK_EDIT_MODE } from "../lib/store";
+import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE } from "../lib/store";
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
 
@@ -689,6 +689,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
 
   // Read-only state
   createExtension(() => EditorState.readOnly.of(!!props.readOnly));
+
+  // Disable editor interaction entirely in presentation mode (hides cursor)
+  createExtension(() => EditorView.editable.of(!notebookStore.presentationMode));
 
   // Report capabilities to store for UI buttons
   createEffect(() => {

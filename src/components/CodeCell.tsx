@@ -187,6 +187,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                checkRedefinitions={props.checkRedefinitions}
                isActive={props.isActive}
                onClick={() => {
+                 if (notebookStore.presentationMode) return;
                  if (APP_QUICK_EDIT_MODE && !props.cell.isEditing) {
                    actions.setEditing(props.cell.id, true);
                  } else if (props.isActive && !props.cell.isEditing) {

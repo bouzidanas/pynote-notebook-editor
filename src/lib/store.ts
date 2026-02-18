@@ -597,6 +597,8 @@ export const actions = {
   isBatching: () => batchingActive,
 
   setActiveCell: (id: string | null) => {
+    // Block selection in presentation mode
+    if (store.presentationMode) return;
     // Commit any active edit sessions before switching
     store.cells.forEach(cell => {
       if (cell.isEditing && cell.id !== id) {
@@ -619,6 +621,8 @@ export const actions = {
   },
 
   setEditing: (id: string, isEditing: boolean) => {
+    // Block editing in presentation mode
+    if (store.presentationMode && isEditing) return;
     // Session State Tracking for Undo/Redo
     const cell = store.cells.find(c => c.id === id);
     if (cell) {

@@ -2001,7 +2001,7 @@ const Notebook: Component = () => {
          {/* Bottom Add Buttons - Hidden in presentation mode or by config */}
          <Show when={!notebookStore.presentationMode && notebookStore.showTrailingAddButtons}>
            <div 
-             class="flex justify-center gap-4 mt-8 opacity-50 hover:opacity-100 transition-opacity"
+             class="flex justify-center gap-4 mt-8 opacity-50 transition-opacity"
              onMouseDown={(e) => e.stopPropagation()}
              onClick={(e) => e.stopPropagation()}
            >

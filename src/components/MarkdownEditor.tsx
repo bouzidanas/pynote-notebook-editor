@@ -141,7 +141,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .use(codeBlockNavigationPlugin)
       .use(captionMark)
       .use(videoEmbed)
-      .use(textAlign)
+      // .use(textAlign) // disabled until alignment bug (Enter→code_block) is fixed
       .create()
       .then((editor) => {
         editorInstance = editor;
@@ -150,8 +150,19 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         editor.action((ctx) => {
           const view = ctx.get(editorViewCtx);
           if (view) {
-              // Restore Selection State if available
-              if (props.cell.editorState) {
+              // Place cursor at double-click position (takes priority — reflects current intent)
+              if (props.initialClickCoords) {
+                  try {
+                      const pos = view.posAtCoords({ left: props.initialClickCoords.left, top: props.initialClickCoords.top });
+                      if (pos) {
+                          const sel = TextSelection.near(view.state.doc.resolve(pos.pos));
+                          view.dispatch(view.state.tr.setSelection(sel).scrollIntoView());
+                      }
+                  } catch (e) {
+                      // Fall through to saved state or default
+                  }
+              } else if (props.cell.editorState) {
+                  // Fallback: restore saved selection (e.g. programmatic edit entry)
                   try {
                        const savedSelection = props.cell.editorState.selection;
                        if (savedSelection) {
@@ -162,17 +173,6 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                        }
                   } catch (e) {
                       console.warn("Failed to restore markdown cursor:", e);
-                  }
-              } else if (props.initialClickCoords) {
-                  // Place cursor at the double-click position
-                  try {
-                      const pos = view.posAtCoords({ left: props.initialClickCoords.left, top: props.initialClickCoords.top });
-                      if (pos) {
-                          const sel = TextSelection.near(view.state.doc.resolve(pos.pos));
-                          view.dispatch(view.state.tr.setSelection(sel).scrollIntoView());
-                      }
-                  } catch (e) {
-                      // Fall through — cursor stays at default position
                   }
               }
 
@@ -425,10 +425,10 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
           </Dropdown>
         </div>
 
-        {/* Text Alignment */}
-        <button onClick={cycleTextAlign} class="btn-icon" title="Cycle Text Alignment">
+        {/* Text Alignment (disabled until alignment bug is fixed) */}
+        <button disabled class="btn-icon opacity-40 cursor-not-allowed" title="Text Alignment (coming soon)">
           <span class="flex transition-transform duration-150">
-            {currentAlign() === 'center' ? <TextAlignCenter size={16} /> : currentAlign() === 'right' ? <TextAlignEnd size={16} /> : <TextAlignStart size={16} />}
+            <TextAlignStart size={16} />
           </span>
         </button>
 
