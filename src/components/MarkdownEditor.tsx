@@ -1,4 +1,4 @@
-import { type Component, onMount, onCleanup, createEffect, createSignal } from "solid-js";
+import { type Component, onMount, onCleanup, createEffect /* , createSignal */ } from "solid-js";
 import { TextSelection } from "@milkdown/kit/prose/state"; // Standard state handling
 import { actions, type CellData } from "../lib/store";
 
@@ -45,13 +45,13 @@ import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"
 import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
 // UI Components
-import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video, TextAlignCenter, TextAlignEnd, TextAlignStart } from "lucide-solid";
+import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video, /* TextAlignCenter, TextAlignEnd, */ TextAlignStart } from "lucide-solid";
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
 import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
 import { captionMark, toggleCaptionCommand } from "../lib/captionPlugin";
 import { videoEmbed } from "../lib/videoEmbedPlugin";
-import { textAlign } from "../lib/textAlignPlugin";
+// import { textAlign } from "../lib/textAlignPlugin"; // disabled until alignment bug is fixed
 import clsx from "clsx";
 
 
@@ -68,18 +68,17 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let editorInstance: Editor | null = null;
   const isUpdatingFromProps = false;
-  const [currentAlign, setCurrentAlign] = createSignal<string | null>(null);
-
-  /** Read the textAlign attr from the block node at the cursor. */
-  const syncAlignState = (view: any) => {
-    const { $from } = view.state.selection;
-    const node = $from.parent;
-    if (node.type.name === 'paragraph' || node.type.name === 'heading') {
-      setCurrentAlign(node.attrs.textAlign || null);
-    } else {
-      setCurrentAlign(null);
-    }
-  };
+  // --- Text alignment disabled until bug is fixed ---
+  // const [currentAlign, setCurrentAlign] = createSignal<string | null>(null);
+  // const syncAlignState = (view: any) => {
+  //   const { $from } = view.state.selection;
+  //   const node = $from.parent;
+  //   if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+  //     setCurrentAlign(node.attrs.textAlign || null);
+  //   } else {
+  //     setCurrentAlign(null);
+  //   }
+  // };
 
   onMount(() => {
     if (!editorRef) return;
@@ -120,16 +119,17 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                        actions.updateEditorCapabilities(props.cell.id, canUndo, canRedo);
                    }
                }
-               if (view) syncAlignState(view);
+               // if (view) syncAlignState(view); // disabled until alignment bug is fixed
             })
-            .selectionUpdated((_ctx, selection) => {
-               const node = selection.$from.parent;
-               if (node.type.name === 'paragraph' || node.type.name === 'heading') {
-                 setCurrentAlign(node.attrs.textAlign || null);
-               } else {
-                 setCurrentAlign(null);
-               }
-            });
+            // .selectionUpdated((_ctx, selection) => {
+            //    const node = selection.$from.parent;
+            //    if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+            //      setCurrentAlign(node.attrs.textAlign || null);
+            //    } else {
+            //      setCurrentAlign(null);
+            //    }
+            // })
+            ;
       })
       .config(nord) // Theme config
       .use(commonmark) // Foundation (Paragraphs, Bold, etc.)
@@ -260,25 +260,22 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
     });
   };
 
-  const cycleTextAlign = () => {
-    editorInstance?.action((ctx) => {
-      const view = ctx.get(editorViewCtx);
-      const { state, dispatch } = view;
-      const { $from } = state.selection;
-
-      const node = $from.parent;
-      if (node.type.name !== 'paragraph' && node.type.name !== 'heading') return;
-
-      const currentAlign = node.attrs.textAlign || null;
-      const CYCLE: (string | null)[] = [null, 'center', 'right'];
-      const idx = CYCLE.indexOf(currentAlign);
-      const nextAlign = CYCLE[(idx + 1) % CYCLE.length];
-
-      const pos = $from.before($from.depth);
-      dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: nextAlign }));
-      setCurrentAlign(nextAlign);
-    });
-  };
+  // const cycleTextAlign = () => {
+  //   editorInstance?.action((ctx) => {
+  //     const view = ctx.get(editorViewCtx);
+  //     const { state, dispatch } = view;
+  //     const { $from } = state.selection;
+  //     const node = $from.parent;
+  //     if (node.type.name !== 'paragraph' && node.type.name !== 'heading') return;
+  //     const currentAlign = node.attrs.textAlign || null;
+  //     const CYCLE: (string | null)[] = [null, 'center', 'right'];
+  //     const idx = CYCLE.indexOf(currentAlign);
+  //     const nextAlign = CYCLE[(idx + 1) % CYCLE.length];
+  //     const pos = $from.before($from.depth);
+  //     dispatch(state.tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: nextAlign }));
+  //     setCurrentAlign(nextAlign);
+  //   });
+  // };
 
   const deleteTable = () => {
     editorInstance?.action((ctx) => {
