@@ -249,6 +249,11 @@ const Notebook: Component = () => {
   const [showCodeVisibility, setShowCodeVisibility] = createSignal(false);
   const [showThemeDialog, setShowThemeDialog] = createSignal(false);
   const [sessionHasTheme, setSessionHasTheme] = createSignal(false);
+  // Original theme/codeview from the loaded document metadata.
+  // Preserved on save when saveToExport is off, so user UI changes
+  // don't accidentally overwrite the file's embedded metadata.
+  let loadedDocumentTheme: Record<string, any> | null = null;
+  let loadedDocumentCodeview: Record<string, any> | null = null;
   // Version signal to force re-mounting of the list on full reloads
   const [notebookVersion, ] = createSignal(0);
   
@@ -781,7 +786,11 @@ const Notebook: Component = () => {
       executionMode: notebookStore.executionMode, // Persist session execution mode
       showTrailingAddButtons: notebookStore.showTrailingAddButtons, // Persist trailing add buttons setting
       theme: sessionHasTheme() ? { ...currentTheme } : undefined,
-      codeVisibility: getSessionState() // Persist code visibility settings & cell overrides
+      codeVisibility: getSessionState(), // Persist code visibility settings & cell overrides
+      // Preserve original document metadata so it survives page refresh
+      // (used to write back unchanged metadata on save when saveToExport is off)
+      loadedDocumentTheme: loadedDocumentTheme || undefined,
+      loadedDocumentCodeview: loadedDocumentCodeview || undefined
     };
     
     sessionManager.saveSession(sessionId, data);
@@ -843,6 +852,10 @@ const Notebook: Component = () => {
         if (data.codeVisibility) {
           restoreSessionState(data.codeVisibility);
         }
+        
+        // Restore original document metadata (for unchanged re-save)
+        loadedDocumentTheme = data.loadedDocumentTheme || null;
+        loadedDocumentCodeview = data.loadedDocumentCodeview || null;
         
         return true;
       }
@@ -1034,6 +1047,8 @@ const Notebook: Component = () => {
           history: notebookStore.history,
           // Always save execution mode to document metadata
           executionMode: notebookStore.executionMode,
+          // saveToExport ON  → write current UI state (user explicitly wants to overwrite)
+          // saveToExport OFF + doc had metadata → preserve original document metadata
           ...(codeVisibility.saveToExport ? {
             codeview: {
               showCode: codeVisibility.showCode,
@@ -1043,12 +1058,16 @@ const Notebook: Component = () => {
               showError: codeVisibility.showError,
               showStatusDot: codeVisibility.showStatusDot
             }
+          } : loadedDocumentCodeview ? {
+            codeview: loadedDocumentCodeview
           } : {}),
           ...(currentTheme.saveToExport ? {
             theme: (() => {
               const { saveToExport, ...themeToExport } = currentTheme;
               return themeToExport;
             })()
+          } : loadedDocumentTheme ? {
+            theme: loadedDocumentTheme
           } : {})
         }
       },
@@ -1197,6 +1216,11 @@ const Notebook: Component = () => {
         // Extract theme from document metadata
         const themeData = nb.metadata?.PyNote?.theme;
         
+        // Store original document metadata for re-saving unchanged
+        // (used when saveToExport is off to preserve the file's embedded settings)
+        loadedDocumentTheme = themeData ? JSON.parse(JSON.stringify(themeData)) : null;
+        loadedDocumentCodeview = codeview ? JSON.parse(JSON.stringify(codeview)) : null;
+        
         // Extract execution mode from document metadata
         const validModes: ExecutionMode[] = ["queue_all", "hybrid", "direct", "reactive"];
         const docExecutionMode = validModes.includes(nb.metadata?.PyNote?.executionMode)
@@ -1261,7 +1285,10 @@ const Notebook: Component = () => {
           executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
           showTrailingAddButtons: docShowTrailingAddButtons, // Document's trailing add buttons setting
           theme: themeData || undefined,
-          codeVisibility: documentVisibilityState || undefined
+          codeVisibility: documentVisibilityState || undefined,
+          // Preserve original document metadata for re-save
+          loadedDocumentTheme: loadedDocumentTheme || undefined,
+          loadedDocumentCodeview: loadedDocumentCodeview || undefined
         };
         
         // Save to the new session slot
