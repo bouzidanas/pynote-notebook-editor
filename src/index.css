@@ -1,5 +1,11 @@
 @import "tailwindcss";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/roboto-mono";
+@import "@fontsource-variable/atkinson-hyperlegible-mono";
+@import "@fontsource-variable/inconsolata";
+@import "@fontsource/ibm-plex-mono";
+@import "@fontsource-variable/source-code-pro";
+@import "@fontsource/google-sans-code";
 
 @theme {
   --color-primary: var(--primary);

@@ -7,7 +7,6 @@ interface DropdownProps {
   children: JSX.Element;
   align?: "left" | "right";
   fullWidthMobile?: boolean;
-  stayWide?: boolean; // If true with fullWidthMobile, stays w-70 at sm+ (for non-nested dropdowns)
   usePortal?: boolean;
   compact?: boolean; // Narrower panel for toolbar menus
 }
@@ -62,12 +61,12 @@ const Dropdown: Component<DropdownProps> = (props) => {
       window.removeEventListener("resize", updatePosition);
   });
 
-  const widthClass = props.compact ? "w-48" : "w-70";
-
   const menuClasses = clsx(
     "shadow-lg bg-background border border-foreground ring-1 ring-black/5 focus:outline-none z-50",
     props.fullWidthMobile ? "max-menu:fixed max-menu:left-0 max-menu:right-0 max-menu:top-[65px] max-menu:mt-0 max-menu:rounded-none max-menu:border-t-0 max-menu:w-auto max-menu:overflow-y-auto max-menu:max-h-[calc(100dvh-65px)]" : "",
-    props.fullWidthMobile ? (props.stayWide ? `menu:absolute menu:mt-2 menu:${widthClass} menu:rounded-sm` : `menu:absolute menu:mt-2 menu:${widthClass} sm:w-40 menu:rounded-sm`) : `mt-2 ${widthClass} rounded-sm`,
+    props.fullWidthMobile
+      ? (props.compact ? "menu:absolute menu:mt-2 menu:w-48 menu:rounded-sm" : "menu:absolute menu:mt-2 menu:w-70 menu:rounded-sm")
+      : (props.compact ? "mt-2 w-48 rounded-sm" : "mt-2 w-70 rounded-sm"),
     // If NOT using portal, we use relative positioning classes
     !props.usePortal && (props.align === "right" ? "right-0" : "left-0"),
     !props.usePortal && "absolute"

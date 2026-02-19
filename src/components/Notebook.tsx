@@ -7,7 +7,7 @@ import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
 import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
-import Dropdown, { DropdownItem, DropdownNested, DropdownDivider } from "./ui/Dropdown";
+import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRunOnNewSession, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
@@ -1578,144 +1578,6 @@ const Notebook: Component = () => {
                  }
                  fullWidthMobile={true}
                >
-                   {/* Nested on sm+, sectioned on max-sm (mobile/small tablet) */}
-                   <div class="hidden sm:block">
-                     <DropdownNested label={<div class="flex items-center gap-2"><Save size={18} /> File</div>}>
-                         <DropdownItem onClick={() => {
-                            const url = sessionManager.createNewSessionUrl();
-                            window.open(url, '_blank');
-                         }} shortcut="Alt+N">
-                             <div class="flex items-center gap-2"><FileText size={18} /> New Notebook</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={handleOpenFile} shortcut="Ctrl+O">
-                             <div class="flex items-center gap-2"><FolderOpen size={18} /> Open...</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={handleSave} shortcut="Ctrl+S">
-                             <div class="flex items-center gap-2"><Save size={18} /> Save</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={handleSaveAs} shortcut="Ctrl+Shift+S">
-                             <div class="flex items-center gap-2"><Save size={18} /> Save As...</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={handleExport} shortcut="Ctrl+E">
-                             <div class="flex items-center gap-2"><Download size={18} /> Export .ipynb</div>
-                         </DropdownItem>
-                         <DropdownDivider />
-                         <DropdownItem onClick={() => setShowThemeDialog(true)} shortcut="Alt+T">
-                             <div class="flex items-center gap-2"><Palette size={18} /> Theme</div>
-                         </DropdownItem>
-                         <DropdownDivider />
-                         <DropdownItem onClick={() => actions.setPresentationMode(true)} shortcut="Alt+P">
-                             <div class="flex items-center gap-2"><Eye size={18} /> Presentation</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => setShowCodeVisibility(true)} shortcut="Alt+V">
-                             <div class="flex items-center gap-2"><EyeOff size={18} /> Code</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => setShowPerformance(true)}>
-                             <div class="flex items-center gap-2"><Activity size={18} /> Performance</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => {
-                             // Open tutorial in new tab
-                             const url = `${window.location.origin}${window.location.pathname}?open=tutorial`;
-                             window.open(url, '_blank');
-                         }}>
-                            <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+\">
-                             <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
-                         </DropdownItem>
-                     </DropdownNested>
-                     <DropdownNested label={<div class="flex items-center gap-2"><RotateCw size={18} /> Kernel</div>}>
-                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Cell</div>
-                         <DropdownItem 
-                              onClick={runSelected}
-                              disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
-                              shortcut="Shift+Enter"
-                         >
-                             <div class="flex items-center gap-2"><Play size={18} /> Run Selected</div>
-                         </DropdownItem>
-                         <DropdownItem 
-                              onClick={clearSelectedOutput}
-                              disabled={kernel.status !== "ready" || !notebookStore.activeCellId || (() => {
-                                  const c = notebookStore.cells.find(c => c.id === notebookStore.activeCellId);
-                                  return !c || !c.outputs;
-                              })()}
-                              shortcut="Ctrl+Backspace"
-                         >
-                             <div class="flex items-center gap-2"><X size={18} /> Clear Output</div>
-                         </DropdownItem>
-                         <DropdownItem 
-                              onClick={deleteSelected}
-                              disabled={kernel.status !== "ready" || !notebookStore.activeCellId}
-                              shortcut="Ctrl+Delete"
-                         >
-                             <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete Cell</div>
-                         </DropdownItem>
-
-                         <DropdownDivider />
-                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Notebook</div>
-                         
-                         <DropdownItem 
-                              onClick={runAll} 
-                              disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
-                              shortcut="Alt+R"
-                         >
-                             <div class="flex items-center gap-2"><Play size={18} /> Run All</div>
-                         </DropdownItem>
-                         <DropdownItem 
-                              onClick={() => actions.clearAllOutputs()}
-                              disabled={kernel.status !== "ready" || !notebookStore.cells.some(c => c.outputs)}
-                              shortcut="Alt+Backspace"
-                         >
-                             <div class="flex items-center gap-2"><X size={18} /> Clear All Outputs</div>
-                         </DropdownItem>
-                         <DropdownItem 
-                              onClick={handleDeleteAllCells}
-                              disabled={kernel.status !== "ready" || notebookStore.cells.length === 0}
-                              shortcut="Alt+Delete"
-                         >
-                             <div class="flex items-center gap-2 text-primary"><Trash2 size={18} /> Delete All Cells</div>
-                         </DropdownItem>
-
-                         <DropdownDivider />
-                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Execution</div>
-                         <DropdownItem onClick={() => actions.setExecutionMode("queue_all")}>
-                             <div class="flex items-center gap-2">
-                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "queue_all" ? "bg-accent" : ""}`}></div>
-                                 Sequential
-                             </div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => actions.setExecutionMode("hybrid")}>
-                             <div class="flex items-center gap-2">
-                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "hybrid" ? "bg-accent" : ""}`}></div>
-                                 Hybrid
-                             </div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => actions.setExecutionMode("direct")}>
-                             <div class="flex items-center gap-2">
-                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "direct" ? "bg-accent" : ""}`}></div>
-                                 Concurrent
-                             </div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => actions.setExecutionMode("reactive")}>
-                             <div class="flex items-center gap-2">
-                                 <div class={`w-4 h-4 rounded-full border border-current ${notebookStore.executionMode === "reactive" ? "bg-accent" : ""}`}></div>
-                                 Reactive
-                             </div>
-                         </DropdownItem>
-
-                         <DropdownDivider />
-                         <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">Session</div>
-
-                         <DropdownItem onClick={() => { kernel.restart(); actions.resetExecutionState(); }} shortcut="Alt+K">
-                             <div class="flex items-center gap-2 text-accent"><RotateCw size={18} /> Restart</div>
-                         </DropdownItem>
-                         <DropdownItem onClick={() => { kernel.terminate(); actions.resetExecutionState(); }} shortcut="Alt+Q">
-                             <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
-                         </DropdownItem>
-                     </DropdownNested>
-                   </div>
-                   {/* Sectioned layout on max-sm (mobile/small tablet) */}
-                   <div class="block sm:hidden">
                      {/* File Section */}
                      <div class="px-4 py-2 text-xs font-bold text-secondary/70 uppercase">File</div>
                      <DropdownItem onClick={() => {
@@ -1794,7 +1656,6 @@ const Notebook: Component = () => {
                      <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+\">
                          <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                      </DropdownItem>
-                   </div>
                </Dropdown>
 
                {/* Actions Dropdown (Add + Undo/Redo) */}
@@ -1805,50 +1666,7 @@ const Notebook: Component = () => {
                    </button>
                  }
                  fullWidthMobile={true}
-                 stayWide={true}
                >
-                   {/* Desktop/tablet: compact menu (sm+) */}
-                   <div class="hidden sm:block">
-                     <DropdownItem onClick={() => {
-                       const idx = (() => {
-                         const activeId = notebookStore.activeCellId;
-                         if (!activeId) return undefined;
-                         const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                         if (i === -1) return undefined;
-                         return i + 1;
-                       })();
-                       actions.addCell("code", idx);
-                     }}>
-                         <div class="flex items-center gap-2"><Code size={18} /> Add Code Cell</div>
-                     </DropdownItem>
-                     <DropdownItem onClick={() => {
-                       const idx = (() => {
-                         const activeId = notebookStore.activeCellId;
-                         if (!activeId) return undefined;
-                         const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                         if (i === -1) return undefined;
-                         return i + 1;
-                       })();
-                       actions.addCell("markdown", idx);
-                     }}>
-                         <div class="flex items-center gap-2"><FileText size={18} /> Add Markdown Cell</div>
-                     </DropdownItem>
-                     <DropdownDivider />
-                     <DropdownItem 
-                       onClick={handleUndo}
-                       disabled={getUndoDisabled()}
-                     >
-                         <div class="flex items-center gap-2"><Undo2 size={16} /> Undo</div>
-                     </DropdownItem>
-                     <DropdownItem 
-                       onClick={handleRedo}
-                       disabled={getRedoDisabled()}
-                     >
-                         <div class="flex items-center gap-2"><Redo2 size={16} /> Redo</div>
-                     </DropdownItem>
-                   </div>
-                   {/* Mobile/small tablet: expanded menu with kernel actions (max-sm) */}
-                   <div class="block sm:hidden">
                      {/* Undo/Redo at top */}
                      <DropdownItem 
                        onClick={handleUndo}
@@ -1952,7 +1770,6 @@ const Notebook: Component = () => {
                      <DropdownItem onClick={() => kernel.terminate()} shortcut="Alt+Q">
                          <div class="flex items-center gap-2 text-primary"><StopCircle size={18} /> Shut Down</div>
                      </DropdownItem>
-                   </div>
                </Dropdown>
              </div>
              

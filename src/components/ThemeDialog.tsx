@@ -3,6 +3,18 @@ import { X, Palette, ChevronDown, Pipette, ChevronUp, RotateCcw, Sparkles } from
 import clsx from "clsx";
 import { currentTheme, updateTheme, defaultTheme } from "../lib/theme";
 import { highlightPython } from "../lib/syntax-highlighter";
+import ComboBox from "./ui/ComboBox";
+import type { ComboBoxOption } from "./ui/ComboBox";
+
+const FONT_OPTIONS: ComboBoxOption[] = [
+  { label: "JetBrains Mono",              value: '"JetBrains Mono Variable", monospace' },
+  { label: "Roboto Mono",                 value: '"Roboto Mono Variable", monospace' },
+  { label: "Atkinson Hyperlegible Mono",  value: '"Atkinson Hyperlegible Mono Variable", monospace' },
+  { label: "Inconsolata",                 value: '"Inconsolata Variable", monospace' },
+  { label: "IBM Plex Mono",               value: '"IBM Plex Mono", monospace' },
+  { label: "Source Code Pro",             value: '"Source Code Pro Variable", monospace' },
+  { label: "Google Sans Code",            value: '"Google Sans Code", monospace' },
+];
 
 interface ThemeDialogProps {
   onClose: () => void;
@@ -619,9 +631,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
             {/* Markdown Typography Section */}
             <div class="space-y-2">
               <h3 class="text-xs font-bold text-accent uppercase mb-2">Markdown Typography</h3>
-              <InputField
+              <ComboBox
                 label="Font Family"
                 value={currentTheme.font}
+                options={FONT_OPTIONS}
                 onChange={(v) => updateTheme({ font: v })}
                 placeholder='"JetBrains Mono Variable", monospace'
               />
@@ -644,9 +657,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
             {/* Code Typography Section */}
             <div class="space-y-2">
               <h3 class="text-xs font-bold text-accent uppercase mb-2">Code Typography</h3>
-              <InputField
+              <ComboBox
                 label="Font Family"
                 value={currentTheme.codeTypography.fontFamily}
+                options={FONT_OPTIONS}
                 onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontFamily: v } })}
                 placeholder='"JetBrains Mono Variable", monospace'
               />
