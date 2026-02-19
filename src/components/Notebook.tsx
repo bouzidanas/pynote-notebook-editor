@@ -3,6 +3,7 @@ import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, close
 import { TransitionGroup } from "solid-transition-group";
 import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, APP_ENABLE_CELL_DND, type ExecutionMode } from "../lib/store";
 import { isBuiltinNotebook, getBuiltinNotebook } from "../lib/notebooks";
+import { isBuiltinTheme, getBuiltinTheme } from "../lib/themes";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
 import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette } from "lucide-solid";
@@ -863,10 +864,30 @@ const Notebook: Component = () => {
   }
 
 
+  // Apply a built-in theme from the ?theme= query param.
+  // Works with any notebook (builtin, restored, new) — the theme is injected as an
+  // override, marked for save-to-export, and the param is cleaned from the URL.
+  const applyThemeParam = (themeParam: string | null) => {
+    if (!isBuiltinTheme(themeParam)) return;
+    const themeData = getBuiltinTheme(themeParam);
+    updateTheme({ ...themeData, saveToExport: true });
+    setSessionHasTheme(true);
+    // Store as the loaded document theme so it persists on re-save even if
+    // the user later turns saveToExport off
+    loadedDocumentTheme = JSON.parse(JSON.stringify(themeData));
+    // Clean the param from the URL (one-shot injection)
+    const url = new URL(window.location.href);
+    url.searchParams.delete("theme");
+    window.history.replaceState({}, "", url.toString());
+    // Persist immediately so the theme survives a page refresh
+    autosaveNotebook();
+  };
+
   // On mount, restore autosaved notebook if present, else load default cells
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     const openParam = params.get("open");
+    const themeParam = params.get("theme");
     const builtinType = isBuiltinNotebook(openParam) ? openParam : null;
     let sessionId = sessionManager.getSessionIdFromUrl();
 
@@ -893,6 +914,9 @@ const Notebook: Component = () => {
       
       actions.loadNotebook([...cells], filename, [], undefined, undefined, undefined, showTrailingAddButtons);
       autosaveNotebook();
+      
+      // Apply theme from ?theme= param if present (overrides app theme)
+      applyThemeParam(themeParam);
       
       // Mark as new session for auto-run
       pendingAutoRun = true;
@@ -949,6 +973,9 @@ const Notebook: Component = () => {
         }
         // If restored === true, this is a page refresh - pendingAutoRun stays false
     }
+
+    // Apply theme from ?theme= param if present (overrides any loaded theme)
+    applyThemeParam(themeParam);
   });
 
   // Auto-run all cells when kernel becomes ready on a NEW session
