@@ -615,12 +615,12 @@ print("-" * 70)`
     {
         id: "nm-rnn-030b",
         type: "markdown",
-        content: `### Gradient Norm Visualization
+        content: `### Gradient Norm per Timestep
 
-The chart below shows ‖∂L/∂hₜ‖ at each timestep. For the vanilla RNN, norms
-decay exponentially as you move further from the loss (earlier timesteps).
-For the GRU, the gating mechanism keeps norms more uniform — evidence of
-the gradient highway in action.`
+Each bar shows ‖∂L/∂hₜ‖ at a single timestep. The vanilla RNN's bars shrink
+exponentially toward earlier timesteps — the vanishing gradient in action.
+The GRU's bars stay roughly level, evidence of the gradient highway
+created by the update gate.`
     },
     {
         id: "nm-rnn-030c",
@@ -628,11 +628,11 @@ the gradient highway in action.`
         content: `grad_data = [{"timestep": t, "norm": round(n, 6), "model": "Vanilla RNN"} for t, n in enumerate(vanilla_grad_norms)]
 grad_data += [{"timestep": t, "norm": round(n, 6), "model": "GRU"} for t, n in enumerate(gru_grad_norms)]
 
-pynote_ui.oplot.line(
+pynote_ui.oplot.bar(
     grad_data,
     x="timestep",
     y="norm",
-    stroke="model",
+    fill="model",
     height=340,
     title="Gradient Norm ‖∂L/∂hₜ‖ per Timestep"
 )`

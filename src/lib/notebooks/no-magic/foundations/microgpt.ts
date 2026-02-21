@@ -15,8 +15,6 @@ export const microGPTCells: CellData[] = [
 The autoregressive language model from first principles: GPT learns to predict the next
 character in a sequence using nothing but matrix multiplication, attention, and gradient descent.
 
-Breaking this down further:
-
 **Autoregressive** means the model generates one token at a time, left to right.
 Each prediction is conditioned on all previous tokens. To generate "hello", it
 predicts \`h\`, then \`e\` given \`h\`, then \`l\` given \`he\`, and so on.
@@ -503,12 +501,12 @@ print(f"\\nTraining complete. Final loss: {loss.data:.4f}")`
     {
         id: "nm-gpt-024b",
         type: "markdown",
-        content: `### Training Visualization\n\nThe loss curve shows how the model improves at next-token prediction over training.\nA declining cross-entropy loss means the model assigns increasingly higher probability\nto the correct next character — it's learning the statistical patterns of names.`
+        content: `### Training Visualization\n\nThe shaded region traces cross-entropy loss over training. As the area contracts,\nthe model assigns higher probability to the correct next character — it's\ninternalizing the statistical patterns of English names.`
     },
     {
         id: "nm-gpt-024c",
         type: "code",
-        content: `from pynote_ui.oplot import line\n\nline(loss_history, x="step", y="loss",\n     stroke="#f59e0b", stroke_width=2,\n     title="GPT Training Loss (Cross-Entropy)",\n     x_label="Training step", y_label="Loss",\n     grid="both")`
+        content: `import pynote_ui\n\npynote_ui.oplot.area(\n    loss_history, x="step", y="loss",\n    fill="#f59e0b", opacity=0.5,\n    height=320,\n    title="GPT Training Loss (Cross-Entropy)"\n)`
     },
     {
         id: "nm-gpt-025",

@@ -567,23 +567,24 @@ rag_history = train_rag(documents, bm25, mlp, NUM_EPOCHS, LEARNING_RATE)`
     {
         id: "nm-rag-022b",
         type: "markdown",
-        content: `## RAG Training Loss
+        content: `## Training Progress
 
-The loss measures how well the MLP predicts the next character given the query
-concatenated with retrieved context. Because the knowledge base is small and
-the patterns are templated, loss should decrease steadily.`
+The shaded region tracks how well the MLP predicts the next character given
+query text concatenated with retrieved context. With a small, templated knowledge
+base the patterns are regular and loss should drop smoothly.`
     },
     {
         id: "nm-rag-022c",
         type: "code",
         content: `import pynote_ui
 
-pynote_ui.oplot.line(
+pynote_ui.oplot.area(
     rag_history,
     x="epoch",
     y="loss",
-    stroke="#f97316",
-    height=340,
+    fill="#f97316",
+    opacity=0.5,
+    height=320,
     title="RAG Training Loss"
 )`
     },

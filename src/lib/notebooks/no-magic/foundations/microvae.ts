@@ -469,12 +469,14 @@ print("\\nTraining complete\\n")`
     {
         id: "nm-vae-021b",
         type: "markdown",
-        content: `## Loss Components
+        content: `## ELBO Decomposition
 
-The three curves show the ELBO decomposition. Early in training, reconstruction
-loss dominates as the decoder learns to map latent codes back to data. The KL
-term grows as the encoder starts producing non-trivial distributions, then
-stabilizes as the latent space organizes.`
+The three curves show the loss decomposition over training. Reconstruction loss
+dominates early as the decoder learns to map latent codes back to data, while
+the KL term grows as the encoder starts producing non-trivial distributions.
+
+The donut chart below the curves shows the final-epoch split: how much of the
+total loss comes from reconstruction vs. KL regularization.`
     },
     {
         id: "nm-vae-021c",
@@ -494,6 +496,21 @@ pynote_ui.oplot.line(
     stroke="component",
     height=380,
     title="VAE Training Loss — ELBO Decomposition"
+)`
+    },
+    {
+        id: "nm-vae-021d",
+        type: "code",
+        content: `final = vae_loss_history[-1]
+pynote_ui.fplot.Chart(
+    type="donut",
+    data={
+        "labels": ["Reconstruction", "KL Divergence"],
+        "datasets": [{"values": [round(final["recon"], 2), round(final["kl"], 2)]}]
+    },
+    title="Final Epoch — Loss Breakdown",
+    height=260,
+    colors=["#3b82f6", "#ef4444"]
 )`
     },
     {

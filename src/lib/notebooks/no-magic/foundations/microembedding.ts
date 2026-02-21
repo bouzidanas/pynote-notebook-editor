@@ -15,8 +15,6 @@ export const microEmbeddingCells: CellData[] = [
 How meaning becomes geometry — training vectors where distance equals similarity,
 using only character n-grams and contrastive loss.
 
-Breaking this down further:
-
 An **embedding** is a dense vector (a list of numbers) that represents some input —
 a word, a name, a sentence — in a way that preserves meaningful relationships.
 If two names sound alike, their embedding vectors should point in similar directions;
@@ -528,12 +526,12 @@ print("\\nTraining complete.")`
     {
         id: "nm-emb-027b",
         type: "markdown",
-        content: `### Training Visualization\n\nThe loss curve shows how the contrastive objective (InfoNCE) decreases over training.\nA declining loss means the model is learning to push positive pairs (similar names)\ncloser together and negative pairs further apart in embedding space.`
+        content: `### Training Visualization\n\nThe shaded area below traces the InfoNCE loss across epochs. As the area\nshrinks, embedding vectors for similar names converge while dissimilar ones\nspread apart — the geometry of meaning taking shape.`
     },
     {
         id: "nm-emb-027c",
         type: "code",
-        content: `from pynote_ui.oplot import line\n\nline(loss_history, x="epoch", y="loss",\n     stroke="#8b5cf6", stroke_width=2,\n     title="InfoNCE Loss During Training",\n     x_label="Epoch", y_label="Loss",\n     grid="both")`
+        content: `import pynote_ui\n\npynote_ui.oplot.area(\n    loss_history, x="epoch", y="loss",\n    fill="#8b5cf6", opacity=0.5,\n    height=300,\n    title="InfoNCE Loss During Training"\n)`
     },
     {
         id: "nm-emb-028",
@@ -582,12 +580,12 @@ print(f"Average random pair similarity:   {avg_rand:.3f}")`
     {
         id: "nm-emb-029b",
         type: "markdown",
-        content: `### Similarity Distribution\n\nThe bar chart below compares cosine similarities for positive pairs (similar names)\nvs. random pairs (dissimilar names). A well-trained embedding model should show\nclear separation: positive pairs clustered near 1.0, random pairs near 0.0.`
+        content: `### Similarity Heatmap\n\nThe heatmap below shows pairwise cosine similarity between names. Bright cells\nmean high similarity. Similar-sounding name pairs (anna/anne, john/jon) should\nform warm clusters, while unrelated names should appear cool. This is the\ncanonical way to inspect an embedding space — it reveals structure that\nindividual numbers can't.`
     },
     {
         id: "nm-emb-029c",
         type: "code",
-        content: `from pynote_ui.oplot import bar\n\nsim_data = []\nfor (n1, n2), sim in zip(positive_pairs, pos_sims):\n    sim_data.append({"pair": f"{n1}/{n2}", "similarity": sim, "type": "Positive"})\nfor (n1, n2), sim in zip(random_pairs, rand_sims):\n    sim_data.append({"pair": f"{n1}/{n2}", "similarity": sim, "type": "Random"})\n\nbar(sim_data, x="pair", y="similarity", fill="type",\n    title="Cosine Similarity: Positive vs Random Pairs",\n    x_label="Name pair", y_label="Cosine similarity",\n    color_scheme="Observable10")`
+        content: `query_names_viz = [n for n, _ in positive_pairs] + [n for n, _ in random_pairs]\nquery_names_viz = list(dict.fromkeys(query_names_viz))  # dedupe, preserve order\n\nembs = {name: encode_sparse(encode_ngrams_sparse(name, vocab), W) for name in query_names_viz}\n\nheat_data = []\nfor n1 in query_names_viz:\n    for n2 in query_names_viz:\n        sim = cosine_similarity(embs[n1], embs[n2])\n        heat_data.append({"name_a": n1, "name_b": n2, "similarity": round(sim, 3)})\n\npynote_ui.oplot.heatmap(\n    heat_data,\n    x="name_b",\n    y="name_a",\n    fill="similarity",\n    height=400,\n    title="Embedding Similarity Matrix"\n)`
     },
     {
         id: "nm-emb-030",

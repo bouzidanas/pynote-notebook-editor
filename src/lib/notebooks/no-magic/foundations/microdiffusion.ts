@@ -484,24 +484,49 @@ print()`
     {
         id: "nm-dif-023b",
         type: "markdown",
-        content: `## Denoising Loss Curve
+        content: `## Denoising Loss
 
-The MSE between predicted and true noise. Because each training step samples
-a random point *and* a random timestep, the loss is inherently noisy — but
-the trend should be clearly downward.`
+MSE between predicted and true noise. Each step samples a random data point
+*and* a random timestep, so the loss is naturally noisy — but the envelope
+should shrink clearly.`
     },
     {
         id: "nm-dif-023c",
         type: "code",
         content: `import pynote_ui
 
-pynote_ui.oplot.line(
+pynote_ui.oplot.area(
     diff_loss_history,
     x="epoch",
     y="loss",
-    stroke="#a855f7",
-    height=340,
+    fill="#a855f7",
+    opacity=0.5,
+    height=320,
     title="Diffusion Denoising Loss (MSE)"
+)`
+    },
+    {
+        id: "nm-dif-023d",
+        type: "markdown",
+        content: `### Noise Schedule — Signal Retention (ᾱₜ)
+
+The area below shows how much original signal remains at each diffusion timestep.
+At t=0, ᾱ₀ ≈ 1 (almost pure data). By the last timestep, ᾱ_T ≈ 0 (almost pure
+noise). The model must learn to denoise at every point along this curve.`
+    },
+    {
+        id: "nm-dif-023e",
+        type: "code",
+        content: `schedule_data = [{"timestep": t, "alpha_bar": round(alpha_bars[t], 4)} for t in range(len(alpha_bars))]
+
+pynote_ui.oplot.area(
+    schedule_data,
+    x="timestep",
+    y="alpha_bar",
+    fill="#7c3aed",
+    opacity=0.6,
+    height=280,
+    title="Noise Schedule — Signal Retention (ᾱₜ) over Timesteps"
 )`
     },
     {

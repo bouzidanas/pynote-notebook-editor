@@ -540,24 +540,27 @@ climbs as each kernel converges toward an edge detector matching its assigned cl
         type: "code",
         content: `import pynote_ui
 
-pynote_ui.oplot.line(
-    train_stats,
-    x="epoch",
-    y="loss",
-    stroke="#10b981",
-    height=300,
-    title="Training Loss per Epoch"
+pynote_ui.fplot.Chart(
+    type="line",
+    data={
+        "labels": [str(d["epoch"]) for d in train_stats],
+        "datasets": [{"name": "Loss", "values": [d["loss"] for d in train_stats]}]
+    },
+    title="Training Loss per Epoch",
+    height=260,
+    colors=["#10b981"]
 )`
     },
     {
         id: "nm-conv-017d",
         type: "code",
-        content: `pynote_ui.oplot.line(
+        content: `pynote_ui.oplot.area(
     train_stats,
     x="epoch",
     y="accuracy",
-    stroke="#3b82f6",
-    height=300,
+    fill="#3b82f6",
+    opacity=0.4,
+    height=280,
     title="Training Accuracy (%) per Epoch"
 )`
     },
@@ -653,27 +656,32 @@ print(f"\\nTotal runtime: {time.time() - start_time:.1f}s")`
     {
         id: "nm-conv-021b",
         type: "markdown",
-        content: `### Per-Class Accuracy
+        content: `### Confusion Matrix
 
-The bar chart below shows how well the CNN distinguishes each pattern type.
-Diagonal and cross patterns are often harder because they share spatial
-characteristics with horizontal and vertical lines.`
+The heatmap below shows which classes the CNN confuses with each other.
+Bright cells on the diagonal mean correct predictions. Off-diagonal bright
+cells reveal systematic misclassifications — typically between diagonal and
+cross patterns that share spatial characteristics.`
     },
     {
         id: "nm-conv-021c",
         type: "code",
-        content: `acc_data = []
-for c in range(NUM_CLASSES):
-    acc = class_correct[c] / class_total[c] * 100 if class_total[c] > 0 else 0
-    acc_data.append({"class": CLASS_NAMES[c], "accuracy": round(acc, 1)})
+        content: `heat_data = []
+for true_idx in range(NUM_CLASSES):
+    for pred_idx in range(NUM_CLASSES):
+        heat_data.append({
+            "true_class": CLASS_NAMES[true_idx],
+            "predicted": CLASS_NAMES[pred_idx],
+            "count": confusion[true_idx][pred_idx]
+        })
 
-pynote_ui.oplot.bar(
-    acc_data,
-    x="class",
-    y="accuracy",
-    fill="#6366f1",
-    height=300,
-    title="Per-Class Test Accuracy (%)"
+pynote_ui.oplot.heatmap(
+    heat_data,
+    x="predicted",
+    y="true_class",
+    fill="count",
+    height=350,
+    title="Confusion Matrix (rows = true, columns = predicted)"
 )`
     },
     {

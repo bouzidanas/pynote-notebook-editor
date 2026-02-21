@@ -654,23 +654,47 @@ pynote_ui.oplot.line(
         type: "markdown",
         content: `### Learning Rate Schedule: Warmup + Cosine Decay
 
-The warmup phase linearly ramps the learning rate from 0 to peak over the first
-20 steps, then cosine decay smoothly anneals it back to 0. This prevents
-divergence in early training (when the landscape is chaotic) and reduces
-overshooting near convergence (when the minimum is narrow).`
+The filled shape below shows the learning rate envelope. The warmup ramp prevents
+divergence in early training (when the landscape is chaotic), and cosine decay
+smoothly anneals the rate toward zero near convergence (when the minimum is
+narrow and overshooting is costly).`
     },
     {
         id: "nm-opt-031e",
         type: "code",
         content: `schedule_data = [{"step": s + 1, "lr": round(cosine_schedule(s, NUM_STEPS), 6)} for s in range(NUM_STEPS) if s % 3 == 0]
 
-pynote_ui.oplot.line(
+pynote_ui.oplot.area(
     schedule_data,
     x="step",
     y="lr",
-    stroke="#f59e0b",
+    fill="#f59e0b",
+    opacity=0.5,
     height=280,
     title="Learning Rate Schedule (Warmup + Cosine Decay)"
+)`
+    },
+    {
+        id: "nm-opt-031f",
+        type: "markdown",
+        content: `### Final Loss Comparison
+
+A summary view: the bar heights below show where each optimizer ended up after the
+same number of steps. The gap between SGD and Adam illustrates why adaptive methods
+dominate modern deep learning.`
+    },
+    {
+        id: "nm-opt-031g",
+        type: "code",
+        content: `pynote_ui.fplot.Chart(
+    type="bar",
+    data={
+        "labels": [name for name, _, _ in results],
+        "datasets": [{"name": "Final Loss", "values": [round(lh[-1], 4) for _, lh, _ in results]}]
+    },
+    title="Final Loss by Optimizer",
+    height=280,
+    colors=["#6366f1"]
 )`
     },
     {

@@ -674,6 +674,28 @@ pynote_ui.oplot.scatter(
 )`
     },
     {
+        id: "nm-gan-028d",
+        type: "markdown",
+        content: `### Generator Density
+
+The hexbin below shows *where* the generator concentrates its probability mass.
+Bright hexagons indicate dense regions. In a well-trained GAN, the density pattern
+should mirror the spiral shape of the training data. If you see a single bright
+cluster, that's mode collapse — the generator found one point that fools D and
+stopped exploring.`
+    },
+    {
+        id: "nm-gan-028e",
+        type: "code",
+        content: `pynote_ui.oplot.hexbin(
+    [{"x": round(p[0], 4), "y": round(p[1], 4)} for p in generated_points],
+    x="x",
+    y="y",
+    height=400,
+    title="Generated Point Density (Hexbin)"
+)`
+    },
+    {
         id: "nm-gan-029",
         type: "markdown",
         content: `## Discriminator Equilibrium Check`

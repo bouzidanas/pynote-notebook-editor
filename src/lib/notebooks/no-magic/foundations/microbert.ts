@@ -471,21 +471,25 @@ print(f"\\nTraining complete. Final loss: {loss.data:.4f}")`
         type: "markdown",
         content: `## MLM Training Loss
 
-Because only ~25% of tokens are masked per step, each step provides fewer gradient
-signals than GPT’s next-token objective. The loss curve tends to be noisier as a result.`
+Because only ~25% of tokens are masked per step, each update carries fewer gradient
+signals than GPT's next-token objective. The scatter below shows each sampled loss
+value — the inherent noisiness of MLM training is visible in the point cloud, but
+the downward trend is clear.`
     },
     {
         id: "nm-bert-020c",
         type: "code",
         content: `import pynote_ui
 
-pynote_ui.oplot.line(
+pynote_ui.oplot.scatter(
     loss_history,
     x="step",
     y="loss",
-    stroke="#ec4899",
+    fill="#ec4899",
+    r=2.5,
+    opacity=0.6,
     height=340,
-    title="BERT MLM Training Loss"
+    title="BERT MLM Training Loss (per-step samples)"
 )`
     },
     {
