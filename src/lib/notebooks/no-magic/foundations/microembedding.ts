@@ -10,15 +10,35 @@ export const microEmbeddingCells: CellData[] = [
 
 <br />
         
-# Micro Embedding
+# Contrastive Learning (InfoNCE) Embeddings
 
 How meaning becomes geometry — training vectors where distance equals similarity,
 using only character n-grams and contrastive loss.
 
-Contrastive embedding learning (InfoNCE loss) transforms sparse high-dimensional
-character n-gram features into dense low-dimensional vectors where cosine similarity
-reflects semantic similarity. Inspired by SimCLR and sentence-transformers, but
-simplified to a linear projection without the deep network machinery.
+Breaking this down further:
+
+An **embedding** is a dense vector (a list of numbers) that represents some input —
+a word, a name, a sentence — in a way that preserves meaningful relationships.
+If two names sound alike, their embedding vectors should point in similar directions;
+if they're unrelated, the vectors should be far apart.
+
+**Contrastive learning** is how we train these embeddings without any labels.
+The idea: take an input (the **anchor**), create a slightly modified version
+(the **positive** — e.g., a name with a character swapped), and treat all other
+inputs in the batch as **negatives**. The training objective (InfoNCE loss) pushes
+the anchor closer to its positive and further from the negatives in embedding space.
+
+**Character n-grams** are the features we start from. Instead of treating each
+character independently, we extract overlapping 2- and 3-character sequences
+(bigrams and trigrams). "anna" → \`["^a", "an", "nn", "na", "a$", "^an", "ann", "nna", "na$"]\`.
+Names that share n-grams end up with similar feature vectors before any learning happens.
+
+The full pipeline: **n-gram features → linear projection → L2 normalization → contrastive loss**.
+The linear projection is the only learned component — a single matrix \`W\` that maps
+sparse n-gram counts to dense embedding vectors. No deep network needed.
+
+> Inspired by SimCLR (Chen et al., 2020) and sentence-transformers, simplified to a
+> linear projection without the deep network machinery.
 
 **Reference:** \`01-foundations/microembedding.py\` — no-magic collection
 
@@ -343,7 +363,10 @@ def infonce_loss_and_grads(
 
 Production systems use Adam with learning rate warmup. SGD is sufficient here
 because the model is a single linear layer — there's no depth to cause gradient
-scale issues across layers.`
+scale issues across layers.
+
+> The implementation below also collects per-epoch loss for the training
+> visualization that follows.`
     },
     {
         id: "nm-emb-022",
@@ -355,9 +378,10 @@ scale issues across layers.`
     num_epochs: int,
     batch_size: int,
     learning_rate: float,
-) -> None:
-    """Train embedding model with SGD."""
+) -> list[dict]:
+    """Train embedding model with SGD. Returns per-epoch loss history."""
     vocab_size = len(vocab)
+    loss_history: list[dict] = []
 
     for epoch in range(num_epochs):
         epoch_names = names[:]
@@ -428,8 +452,11 @@ scale issues across layers.`
                         W[i][j] -= scale * grad_W[i][j]
 
         avg_loss = epoch_loss / max(num_batches, 1)
+        loss_history.append({"epoch": epoch + 1, "loss": avg_loss})
         if (epoch + 1) % 5 == 0 or epoch == 0:
-            print(f"  epoch {epoch + 1:>3}/{num_epochs}  loss={avg_loss:.4f}")`
+            print(f"  epoch {epoch + 1:>3}/{num_epochs}  loss={avg_loss:.4f}")
+
+    return loss_history`
     },
     {
         id: "nm-emb-023",
@@ -495,8 +522,18 @@ print(f"Model: linear projection ({EMBEDDING_DIM} x {len(vocab)} = {num_params:,
         id: "nm-emb-027",
         type: "code",
         content: `print(f"Training (epochs={NUM_EPOCHS}, batch={BATCH_SIZE}, temp={TEMPERATURE})...")
-train(train_names, vocab, W, NUM_EPOCHS, BATCH_SIZE, LEARNING_RATE)
+loss_history = train(train_names, vocab, W, NUM_EPOCHS, BATCH_SIZE, LEARNING_RATE)
 print("\\nTraining complete.")`
+    },
+    {
+        id: "nm-emb-027b",
+        type: "markdown",
+        content: `### Training Visualization\n\nThe loss curve shows how the contrastive objective (InfoNCE) decreases over training.\nA declining loss means the model is learning to push positive pairs (similar names)\ncloser together and negative pairs further apart in embedding space.`
+    },
+    {
+        id: "nm-emb-027c",
+        type: "code",
+        content: `from pynote_ui.oplot import line\n\nline(loss_history, x="epoch", y="loss",\n     stroke="#8b5cf6", stroke_width=2,\n     title="InfoNCE Loss During Training",\n     x_label="Epoch", y_label="Loss",\n     grid="both")`
     },
     {
         id: "nm-emb-028",
@@ -543,6 +580,16 @@ print(f"\\nAverage positive pair similarity: {avg_pos:.3f}")
 print(f"Average random pair similarity:   {avg_rand:.3f}")`
     },
     {
+        id: "nm-emb-029b",
+        type: "markdown",
+        content: `### Similarity Distribution\n\nThe bar chart below compares cosine similarities for positive pairs (similar names)\nvs. random pairs (dissimilar names). A well-trained embedding model should show\nclear separation: positive pairs clustered near 1.0, random pairs near 0.0.`
+    },
+    {
+        id: "nm-emb-029c",
+        type: "code",
+        content: `from pynote_ui.oplot import bar\n\nsim_data = []\nfor (n1, n2), sim in zip(positive_pairs, pos_sims):\n    sim_data.append({"pair": f"{n1}/{n2}", "similarity": sim, "type": "Positive"})\nfor (n1, n2), sim in zip(random_pairs, rand_sims):\n    sim_data.append({"pair": f"{n1}/{n2}", "similarity": sim, "type": "Random"})\n\nbar(sim_data, x="pair", y="similarity", fill="type",\n    title="Cosine Similarity: Positive vs Random Pairs",\n    x_label="Name pair", y_label="Cosine similarity",\n    color_scheme="Observable10")`
+    },
+    {
         id: "nm-emb-030",
         type: "markdown",
         content: `### Nearest Neighbor Retrieval
@@ -559,5 +606,10 @@ for query in query_names:
     neighbors = find_nearest_neighbors(query, search_pool, vocab, W, k=5)
     neighbor_str = ", ".join(f"{n} ({s:.2f})" for n, s in neighbors)
     print(f"  {query:<12} -> {neighbor_str}")`
+    },
+    {
+        id: "nm-emb-footer",
+        type: "markdown",
+        content: `[Autoregressive Transformer (GPT) →](?open=nm_microgpt)`
     },
 ];

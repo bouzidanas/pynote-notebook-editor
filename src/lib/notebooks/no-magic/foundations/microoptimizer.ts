@@ -10,17 +10,32 @@ export const microOptimizerCells: CellData[] = [
 
 <br />
         
-# Micro Optimizer
+# Optimizer Comparison
 
-Why Adam converges when SGD stalls — momentum, adaptive learning rates, and the geometry of
-loss landscapes, demonstrated head-to-head.
+Why Adam converges when SGD stalls — momentum, adaptive learning rates, and the
+geometry of **loss landscapes**, demonstrated head-to-head on the same model.
 
-This script trains identical character bigram models with SGD, Momentum, RMSProp, and Adam
-to show why adaptive methods dominate. Extension: learning rate warmup + cosine decay
-(Loshchilov & Hutter, 2016).
+Every neural network is trained by gradient descent: compute the gradient of the
+loss with respect to each parameter, then nudge each parameter in the direction
+that reduces loss. The **learning rate** controls how big a step you take.
+
+Vanilla SGD applies the same step size to every parameter. This fails in practice
+because different parameters live in regions of the loss landscape with very
+different curvatures — a step size that’s just right for one parameter can
+overshoot another.
+
+**Momentum** adds a velocity term: instead of stepping purely in the current
+gradient direction, the optimizer accumulates an exponential moving average of
+past gradients. This smooths noisy gradients and carries the optimizer through
+flat regions (saddle points) where vanilla SGD stalls.
+
+**Adaptive learning rates** (RMSProp, Adam) go further: they maintain a
+per-parameter running average of squared gradients. Parameters that have
+consistently large gradients get smaller effective learning rates, while
+parameters with small gradients get larger ones. Adam combines momentum *and*
+adaptive rates with bias correction, which is why it dominates in practice.
 
 **Reference:** \`01-foundations/microoptimizer.py\` — no-magic collection
-(Adam optimizer from Kingma & Ba, 2015)
 
 ---`
     },
@@ -606,6 +621,59 @@ for name, loss_history, elapsed in results:
 print("=" * 76)`
     },
     {
+        id: "nm-opt-031b",
+        type: "markdown",
+        content: `## Loss Curves
+
+All five optimizers on the same chart. Adaptive methods (RMSProp, Adam) converge
+faster because they scale each parameter’s update by its gradient history, while
+SGD applies a uniform step size that can’t adapt to different curvatures.`
+    },
+    {
+        id: "nm-opt-031c",
+        type: "code",
+        content: `import pynote_ui
+
+combined = []
+for name, loss_history, elapsed in results:
+    for step, loss in enumerate(loss_history):
+        if step % 5 == 0:
+            combined.append({"step": step + 1, "loss": round(loss, 4), "optimizer": name})
+
+pynote_ui.oplot.line(
+    combined,
+    x="step",
+    y="loss",
+    stroke="optimizer",
+    height=400,
+    title="Training Loss — All Optimizers"
+)`
+    },
+    {
+        id: "nm-opt-031d",
+        type: "markdown",
+        content: `### Learning Rate Schedule: Warmup + Cosine Decay
+
+The warmup phase linearly ramps the learning rate from 0 to peak over the first
+20 steps, then cosine decay smoothly anneals it back to 0. This prevents
+divergence in early training (when the landscape is chaotic) and reduces
+overshooting near convergence (when the minimum is narrow).`
+    },
+    {
+        id: "nm-opt-031e",
+        type: "code",
+        content: `schedule_data = [{"step": s + 1, "lr": round(cosine_schedule(s, NUM_STEPS), 6)} for s in range(NUM_STEPS) if s % 3 == 0]
+
+pynote_ui.oplot.line(
+    schedule_data,
+    x="step",
+    y="lr",
+    stroke="#f59e0b",
+    height=280,
+    title="Learning Rate Schedule (Warmup + Cosine Decay)"
+)`
+    },
+    {
         id: "nm-opt-032",
         type: "markdown",
         content: `## Key Observations
@@ -669,5 +737,12 @@ for sample_idx in range(10):
         generated.append(unique_chars[token_id])
 
     print(f"  {sample_idx + 1:>2}. {''.join(generated)}")`
+    },
+    {
+        id: "nm-opt-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Retrieval-Augmented Generation](?open=nm_microrag) \u00b7 [Generative Adversarial Network \u2192](?open=nm_microgan)`
     },
 ];

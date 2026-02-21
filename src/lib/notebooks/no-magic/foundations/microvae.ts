@@ -10,18 +10,29 @@ export const microVAECells: CellData[] = [
 
 <br />
         
-# Micro VAE
+# Variational Autoencoder (VAE)
 
-How to learn a compressed, generative representation of data — the reparameterization
-trick demystified, in pure Python with zero dependencies.
+How to learn a compressed, generative representation of data — the
+**reparameterization trick** demystified, in pure Python with zero dependencies.
 
-Production VAEs use convolutional encoders/decoders for images. This MLP on 2D data
-demonstrates the same principles (ELBO, reparameterization, latent interpolation)
-at 1% of the complexity. The algorithm is identical — only the encoder/decoder
-architecture changes when scaling to pixels.
+A VAE has two halves:
+- The **encoder** compresses input data into a low-dimensional **latent space**,
+  outputting a mean μ and log-variance log(σ²) that define a Gaussian distribution.
+- The **decoder** takes a sample from that distribution and reconstructs the
+  original input.
+
+Training optimizes the **ELBO** (Evidence Lower Bound), which balances two goals:
+1. **Reconstruction loss** — the decoder should faithfully reconstruct the input.
+2. **KL divergence** — the encoder’s distribution q(z|x) should stay close to
+   a standard normal prior p(z) = N(0, I). This forces the latent space to be
+   smooth and continuous, so random samples from N(0, I) decode into plausible data.
+
+The core innovation is the **reparameterization trick**: instead of sampling
+z ~ N(μ, σ²) directly (which blocks gradient flow), we sample ε ~ N(0, 1)
+and compute z = μ + σ·ε. Gradients now flow through μ and σ (deterministic
+network outputs) while randomness is external to the computation graph.
 
 **Reference:** \`01-foundations/microvae.py\` — no-magic collection
-(Kingma & Welling, "Auto-Encoding Variational Bayes", 2013)
 
 ---`
     },
@@ -388,6 +399,8 @@ m_dec_b2, v_dec_b2 = init_moments_like(dec_b2), init_moments_like(dec_b2)`
 print(f"{'Epoch':<8} {'Total Loss':<12} {'Recon Loss':<12} {'KL Loss':<12}")
 print("-" * 48)
 
+vae_loss_history = []
+
 for epoch in range(NUM_EPOCHS):
     random.shuffle(data)
 
@@ -443,7 +456,45 @@ for epoch in range(NUM_EPOCHS):
     if (epoch + 1) % 100 == 0 or epoch == 0:
         print(f"{epoch + 1:<8} {epoch_total_loss:<12.4f} {epoch_recon_loss:<12.4f} {epoch_kl_loss:<12.4f}")
 
+    if epoch % 10 == 0:
+        vae_loss_history.append({
+            "epoch": epoch + 1,
+            "total": round(epoch_total_loss, 4),
+            "recon": round(epoch_recon_loss, 4),
+            "kl": round(epoch_kl_loss, 4)
+        })
+
 print("\\nTraining complete\\n")`
+    },
+    {
+        id: "nm-vae-021b",
+        type: "markdown",
+        content: `## Loss Components
+
+The three curves show the ELBO decomposition. Early in training, reconstruction
+loss dominates as the decoder learns to map latent codes back to data. The KL
+term grows as the encoder starts producing non-trivial distributions, then
+stabilizes as the latent space organizes.`
+    },
+    {
+        id: "nm-vae-021c",
+        type: "code",
+        content: `import pynote_ui
+
+combined = []
+for d in vae_loss_history:
+    combined.append({"epoch": d["epoch"], "loss": d["total"], "component": "Total"})
+    combined.append({"epoch": d["epoch"], "loss": d["recon"], "component": "Reconstruction"})
+    combined.append({"epoch": d["epoch"], "loss": d["kl"], "component": "KL Divergence"})
+
+pynote_ui.oplot.line(
+    combined,
+    x="epoch",
+    y="loss",
+    stroke="component",
+    height=380,
+    title="VAE Training Loss — ELBO Decomposition"
+)`
     },
     {
         id: "nm-vae-022",
@@ -509,6 +560,37 @@ for i, point in enumerate(generated_points):
     print(f"  {i + 1}. {[round(v, 3) for v in point]}")`
     },
     {
+        id: "nm-vae-025b",
+        type: "markdown",
+        content: `### Training vs Generated Distribution
+
+The scatter plot compares the original training data (mixture of 4 Gaussians)
+with 200 points sampled from the VAE’s prior. If the latent space is well
+organized, generated points should cluster around the same four modes.`
+    },
+    {
+        id: "nm-vae-025c",
+        type: "code",
+        content: `gen_samples = []
+for _ in range(200):
+    z_sample = [random.gauss(0, 1) for _ in range(LATENT_DIM)]
+    _, x_gen = decoder_forward(z_sample, dec_w1, dec_b1, dec_w2, dec_b2)
+    gen_samples.append(x_gen)
+
+scatter_data = [{"x": round(p[0], 3), "y": round(p[1], 3), "source": "Training"} for p in data[:200]]
+scatter_data += [{"x": round(p[0], 3), "y": round(p[1], 3), "source": "Generated"} for p in gen_samples]
+
+pynote_ui.oplot.scatter(
+    scatter_data,
+    x="x",
+    y="y",
+    fill="source",
+    r=3,
+    height=400,
+    title="Training Data vs VAE Samples"
+)`
+    },
+    {
         id: "nm-vae-026",
         type: "markdown",
         content: `## Inference: Reconstruction Quality
@@ -538,5 +620,12 @@ for i in range(5):
 
 print()
 print("VAE training and inference complete.")`
+    },
+    {
+        id: "nm-vae-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Denoising Diffusion](?open=nm_microdiffusion) \u00b7 [Back to No-Magic Index](?open=no-magic)`
     },
 ];

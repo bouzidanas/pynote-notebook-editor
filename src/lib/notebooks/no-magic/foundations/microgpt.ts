@@ -10,10 +10,29 @@ export const microGPTCells: CellData[] = [
 
 <br />
         
-# Micro GPT
+# Autoregressive Transformer (GPT)
 
 The autoregressive language model from first principles: GPT learns to predict the next
 character in a sequence using nothing but matrix multiplication, attention, and gradient descent.
+
+Breaking this down further:
+
+**Autoregressive** means the model generates one token at a time, left to right.
+Each prediction is conditioned on all previous tokens. To generate "hello", it
+predicts \`h\`, then \`e\` given \`h\`, then \`l\` given \`he\`, and so on.
+This left-to-right constraint is enforced by **causal masking** — each position
+can only attend to itself and earlier positions, never future ones.
+
+**Attention** is the mechanism that lets the model decide which previous tokens
+matter for predicting the next one. For each position, it computes a **query**
+("what am I looking for?"), compares it against **keys** from all visible positions
+("what do I contain?"), and uses the resulting scores to weight **values**
+("what information do I carry?"). This is the \`Q · Kᵀ / √d\` operation.
+
+**Multi-head attention** runs several independent attention computations in parallel,
+each with its own Q/K/V projections. Different heads can learn to attend to
+different types of relationships (e.g., one head tracks nearby characters,
+another tracks repeated patterns).
 
 This implementation follows the GPT-2 architecture (Radford et al., 2019) with pedagogical
 simplifications: RMSNorm instead of LayerNorm, ReLU instead of GELU, no bias terms.
@@ -419,7 +438,10 @@ weight. Bias correction compensates for the zero-initialization of \`m\` and \`v
 which would otherwise suppress early updates.
 
 **Linear learning rate decay** (\`lr_t = lr₀ · (1 − t/T)\`) prevents overshooting as
-the loss landscape sharpens near the optimum.`
+the loss landscape sharpens near the optimum.
+
+> The implementation below also collects per-step loss for the training visualization
+> that follows.`
     },
     {
         id: "nm-gpt-024",
@@ -427,6 +449,8 @@ the loss landscape sharpens near the optimum.`
         content: `# Adam optimizer state: per-parameter momentum and variance
 m = [0.0] * len(param_list)
 v = [0.0] * len(param_list)
+
+loss_history = []
 
 print("Training...")
 for step in range(NUM_STEPS):
@@ -469,10 +493,22 @@ for step in range(NUM_STEPS):
         param.data -= lr_t * m_hat / (v_hat ** 0.5 + EPS_ADAM)
         param.grad = 0.0
 
+    loss_history.append({"step": step + 1, "loss": loss.data})
+
     if (step + 1) % 100 == 0 or step == 0:
         print(f"  step {step + 1:>4}/{NUM_STEPS:>4} | loss: {loss.data:.4f}")
 
 print(f"\\nTraining complete. Final loss: {loss.data:.4f}")`
+    },
+    {
+        id: "nm-gpt-024b",
+        type: "markdown",
+        content: `### Training Visualization\n\nThe loss curve shows how the model improves at next-token prediction over training.\nA declining cross-entropy loss means the model assigns increasingly higher probability\nto the correct next character — it's learning the statistical patterns of names.`
+    },
+    {
+        id: "nm-gpt-024c",
+        type: "code",
+        content: `from pynote_ui.oplot import line\n\nline(loss_history, x="step", y="loss",\n     stroke="#f59e0b", stroke_width=2,\n     title="GPT Training Loss (Cross-Entropy)",\n     x_label="Training step", y_label="Loss",\n     grid="both")`
     },
     {
         id: "nm-gpt-025",
@@ -515,5 +551,10 @@ for sample_idx in range(NUM_SAMPLES):
         generated.append(unique_chars[token_id])
 
     print(f"  {sample_idx + 1:>2}. {''.join(generated)}")`
+    },
+    {
+        id: "nm-gpt-footer",
+        type: "markdown",
+        content: `[Vanilla RNN vs. GRU →](?open=nm_micrornn)`
     },
 ];

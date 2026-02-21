@@ -10,14 +10,31 @@ export const microRNNCells: CellData[] = [
 
 <br />
         
-# Micro RNN
+# Vanilla RNN vs. GRU
 
-Before attention conquered everything — how sequences were modeled with recurrence,
-and why gating was the breakthrough that made RNNs actually work.
+Before attention conquered everything — sequences were modeled with **recurrence**:
+processing tokens one at a time, threading a **hidden state** from step to step as
+the network's running memory of everything it has seen so far.
 
-Vanilla RNN dates to the 1980s (Rumelhart et al.). GRU (Gated Recurrent Unit) was
-introduced by Cho et al. (2014). This implementation demonstrates both side-by-side
-on the same character-level language modeling task to show why gating matters.
+The concept is elegant — at each timestep the network takes two inputs (the current
+token and the previous hidden state) and produces two outputs (a prediction and a new
+hidden state). In theory, the hidden state can carry information arbitrarily far into
+the future.
+
+In practice, training breaks down because of the **vanishing gradient problem**.
+During backpropagation, the gradient must flow backward through every timestep.
+At each step it gets multiplied by the same weight matrix W_hh — when the spectral
+radius of W_hh is less than 1, gradients shrink exponentially. After 10–20 steps
+they are effectively zero, so the network can never learn long-range dependencies.
+
+**Gating** is the fix. Instead of always overwriting the hidden state, a gated
+architecture like GRU (or LSTM) learns *when* to update it. The **update gate** z_t
+outputs a value in [0, 1]: when z_t ≈ 0 the hidden state is simply copied forward
+unchanged, creating a "gradient highway" where ∂h_t/∂h_{t−1} = 1. This prevents
+the exponential shrinkage that kills vanilla RNNs.
+
+This notebook trains both a vanilla RNN and a GRU side-by-side on the same
+character-level name-generation task so you can see the difference directly.
 
 **Reference:** \`01-foundations/micrornn.py\` — no-magic collection
 
@@ -349,8 +366,8 @@ uniform norms due to gradient highways through the gates.`
     forward_fn,
     params: dict,
     model_name: str
-) -> tuple[float, list[float]]:
-    """Train an RNN model and track gradient norms."""
+) -> tuple[float, list[float], list[dict]]:
+    """Train an RNN model, track gradient norms, and return loss history."""
     BOS = len(unique_chars)
     VOCAB_SIZE_LOCAL = len(unique_chars) + 1
 
@@ -367,6 +384,7 @@ uniform norms due to gradient highways through the gates.`
     print(f"Parameters: {len(param_list):,}")
 
     final_loss_value = 0.0
+    loss_history = []
 
     for step in range(NUM_STEPS):
         doc = docs[step % len(docs)]
@@ -392,6 +410,9 @@ uniform norms due to gradient highways through the gates.`
             param.grad = 0.0
 
         final_loss_value = loss.data
+
+        if step % 10 == 0:
+            loss_history.append({"step": step + 1, "loss": round(loss.data, 4)})
 
         if (step + 1) % 200 == 0 or step == 0:
             print(f"  step {step + 1:>4}/{NUM_STEPS} | loss: {loss.data:.4f}")
@@ -441,7 +462,7 @@ uniform norms due to gradient highways through the gates.`
     print(f"Gradient norm ratio (first/last): {ratio:.6f}")
     print(f"  (< 0.01 = severe vanishing, > 0.1 = gradient highway active)\\n")
 
-    return final_loss_value, gradient_norms`
+    return final_loss_value, gradient_norms, loss_history`
     },
     {
         id: "nm-rnn-021",
@@ -520,7 +541,7 @@ print(f"Vocabulary size: {VOCAB_SIZE} (characters + BOS token)")`
         id: "nm-rnn-026",
         type: "code",
         content: `vanilla_params = init_vanilla_rnn_params()
-vanilla_loss, vanilla_grad_norms = train_rnn(
+vanilla_loss, vanilla_grad_norms, vanilla_history = train_rnn(
     docs, unique_chars, vanilla_rnn_forward, vanilla_params, "Vanilla RNN"
 )`
     },
@@ -533,8 +554,34 @@ vanilla_loss, vanilla_grad_norms = train_rnn(
         id: "nm-rnn-028",
         type: "code",
         content: `gru_params = init_gru_params()
-gru_loss, gru_grad_norms = train_rnn(
+gru_loss, gru_grad_norms, gru_history = train_rnn(
     docs, unique_chars, gru_forward, gru_params, "GRU"
+)`
+    },
+    {
+        id: "nm-rnn-028b",
+        type: "markdown",
+        content: `## Training Loss: Vanilla RNN vs GRU
+
+Both models see the same data in the same order. The chart below overlays their
+loss curves so you can compare convergence speed — the GRU's gating mechanism
+typically leads to faster, more stable descent.`
+    },
+    {
+        id: "nm-rnn-028c",
+        type: "code",
+        content: `import pynote_ui
+
+combined = [{"step": d["step"], "loss": d["loss"], "model": "Vanilla RNN"} for d in vanilla_history]
+combined += [{"step": d["step"], "loss": d["loss"], "model": "GRU"} for d in gru_history]
+
+pynote_ui.oplot.line(
+    combined,
+    x="step",
+    y="loss",
+    stroke="model",
+    height=340,
+    title="Training Loss — Vanilla RNN vs GRU"
 )`
     },
     {
@@ -564,6 +611,31 @@ gru_ratio = gru_grad_norms[0] / gru_grad_norms[-1] if gru_grad_norms[-1] > 1e-10
 print(f"{'Gradient Norm Ratio':<30} | {vanilla_ratio:<15.6f} | {gru_ratio:<15.6f}")
 print(f"{'(first/last, higher=better)':<30} |                 |                ")
 print("-" * 70)`
+    },
+    {
+        id: "nm-rnn-030b",
+        type: "markdown",
+        content: `### Gradient Norm Visualization
+
+The chart below shows ‖∂L/∂hₜ‖ at each timestep. For the vanilla RNN, norms
+decay exponentially as you move further from the loss (earlier timesteps).
+For the GRU, the gating mechanism keeps norms more uniform — evidence of
+the gradient highway in action.`
+    },
+    {
+        id: "nm-rnn-030c",
+        type: "code",
+        content: `grad_data = [{"timestep": t, "norm": round(n, 6), "model": "Vanilla RNN"} for t, n in enumerate(vanilla_grad_norms)]
+grad_data += [{"timestep": t, "norm": round(n, 6), "model": "GRU"} for t, n in enumerate(gru_grad_norms)]
+
+pynote_ui.oplot.line(
+    grad_data,
+    x="timestep",
+    y="norm",
+    stroke="model",
+    height=340,
+    title="Gradient Norm ‖∂L/∂hₜ‖ per Timestep"
+)`
     },
     {
         id: "nm-rnn-031",
@@ -600,5 +672,12 @@ gru_samples = generate_names(
   length between any two positions.
 - **Today:** RNNs are largely historical, but the gating principle (learned routing of
   gradients) lives on in modern architectures like state-space models.`
+    },
+    {
+        id: "nm-rnn-footer",
+        type: "markdown",
+        content: `---
+
+[← Autoregressive Transformer (GPT)](?open=nm_microgpt) · [Convolutional Neural Network →](?open=nm_microconv)`
     },
 ];

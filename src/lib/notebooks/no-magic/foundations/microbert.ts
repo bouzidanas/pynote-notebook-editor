@@ -10,15 +10,27 @@ export const microBERTCells: CellData[] = [
 
 <br />
         
-# Micro BERT
+# Bidirectional Transformer (BERT)
 
-The other half of the transformer — how BERT learns bidirectional representations by
-predicting masked tokens, and why encoders complement decoders.
+The other half of the transformer — how BERT learns representations by
+predicting **masked** tokens, and why this simple change transforms a text
+generator into a text *understander*.
 
-Devlin et al., *"BERT: Pre-training of Deep Bidirectional Transformers for Language
-Understanding"* (2018). Architecture mirrors microgpt (N_EMBD=16, N_HEAD=4, N_LAYER=1)
-with one critical difference: **no causal mask**. Every token attends to every other
-token, enabling the model to use BOTH left and right context when predicting masked positions.
+**Bidirectional attention** is the key idea. In GPT, each token can only
+attend to tokens that came before it (causal masking). In BERT, every token
+attends to every other token — left context *and* right context. This means
+when BERT processes the word "bank" it can use both "river" (left) and
+"fishing" (right) to decide which meaning is intended.
+
+**Masked Language Modeling (MLM)** is how BERT is trained. A fraction of input
+tokens are randomly replaced with a special **[MASK]** token, and the model
+must predict the original token from the surrounding context. Because the
+masked token could be anywhere, the model is forced to build useful
+representations for *every* position — not just the last one.
+
+The trade-off: BERT can’t generate text left-to-right the way GPT can. It
+needs a fixed input with specific [MASK] positions — it’s a "fill-in-the-blank"
+model, not a "continue-the-sentence" model.
 
 **Reference:** \`01-foundations/microbert.py\` — no-magic collection
 
@@ -408,7 +420,7 @@ v_adam = [0.0] * len(param_list)
 
 print("\\nTraining BERT (masked language modeling)...")
 print("=" * 60)
-
+loss_history = []
 for step in range(NUM_STEPS):
     doc = docs[step % len(docs)]
     original_tokens = [BOS] + [unique_chars.index(ch) for ch in doc] + [BOS]
@@ -449,7 +461,32 @@ for step in range(NUM_STEPS):
         print(f"  step {step + 1:>4}/{NUM_STEPS:>4} | loss: {loss.data:.4f}"
               f" | masked {len(masked_positions)}/{seq_len} tokens")
 
+    if step % 10 == 0:
+        loss_history.append({"step": step + 1, "loss": round(loss.data, 4)})
+
 print(f"\\nTraining complete. Final loss: {loss.data:.4f}")`
+    },
+    {
+        id: "nm-bert-020b",
+        type: "markdown",
+        content: `## MLM Training Loss
+
+Because only ~25% of tokens are masked per step, each step provides fewer gradient
+signals than GPT’s next-token objective. The loss curve tends to be noisier as a result.`
+    },
+    {
+        id: "nm-bert-020c",
+        type: "code",
+        content: `import pynote_ui
+
+pynote_ui.oplot.line(
+    loss_history,
+    x="step",
+    y="loss",
+    stroke="#ec4899",
+    height=340,
+    title="BERT MLM Training Loss"
+)`
     },
     {
         id: "nm-bert-021",
@@ -580,5 +617,12 @@ same projections, same MLP — but removing the causal constraint transforms a
 text generator into a text understander. This is why modern systems often use BOTH:
 an encoder (BERT-like) for understanding and a decoder (GPT-like) for generation
 (e.g., T5, the original Transformer).`
+    },
+    {
+        id: "nm-bert-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Convolutional Neural Network](?open=nm_microconv) \u00b7 [Retrieval-Augmented Generation \u2192](?open=nm_microrag)`
     },
 ];

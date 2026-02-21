@@ -10,14 +10,31 @@ export const microConvCells: CellData[] = [
 
 <br />
         
-# Micro Conv
+# Convolutional Neural Network
 
-How a sliding kernel extracts spatial features — the convolution operation, pooling, and
-feature maps that powered computer vision before transformers.
+How a sliding **kernel** extracts spatial features — and why this single idea
+powered computer vision for two decades before transformers arrived.
 
-Convolutional Neural Networks (LeCun et al., 1998) applied to pattern recognition. This
-implementation builds a minimal CNN from scratch using scalar autograd, demonstrating how
-learned kernels become edge detectors and how pooling provides translation invariance.
+A **convolution** is a small weight matrix (e.g. 3×3) that slides across the
+image one position at a time. At each position it computes a dot product
+between its weights and the image patch underneath, producing a single number.
+The full grid of these numbers is called a **feature map** — each element
+tells you "how strongly does this patch match the kernel's pattern?"
+
+After training, kernels converge to recognizable patterns: horizontal edge
+detectors, vertical edge detectors, diagonal detectors, and so on. Stacking
+multiple conv layers lets the network compose low-level edges into textures,
+textures into parts, parts into objects.
+
+**Weight sharing** is what makes convolution practical. A fully-connected layer
+over an 8×8 image would need 64 weights per output neuron. A 3×3 kernel has
+only 9 weights, yet it runs at every spatial position — dramatically fewer
+parameters and the built-in assumption that a feature can appear anywhere.
+
+**Pooling** downsamples the feature map (e.g. taking the max in each 2×2 window),
+which serves two purposes: it reduces dimensions (4× fewer values) and adds
+**translation invariance** — if a feature shifts by one pixel within the pool
+window, the output is unchanged.
 
 **Reference:** \`01-foundations/microconv.py\` — no-magic collection
 
@@ -464,8 +481,7 @@ m_state = [0.0] * len(param_list)
 v_state = [0.0] * len(param_list)
 adam_t = 0
 
-print("\\nTraining...")
-
+print("\\nTraining...")train_stats = []
 for epoch in range(NUM_EPOCHS):
     combined = list(zip(train_images, train_labels))
     random.shuffle(combined)
@@ -507,8 +523,43 @@ for epoch in range(NUM_EPOCHS):
     elapsed = time.time() - start_time
     print(f"  epoch {epoch + 1:>2}/{NUM_EPOCHS} | loss: {avg_loss:.4f} | "
           f"train acc: {accuracy:.1f}% | time: {elapsed:.1f}s")
+    train_stats.append({"epoch": epoch + 1, "loss": round(avg_loss, 4), "accuracy": round(accuracy, 1)})
 
 print(f"\\nTraining complete ({time.time() - start_time:.1f}s)")`
+    },
+    {
+        id: "nm-conv-017b",
+        type: "markdown",
+        content: `## Training Curves
+
+Loss decreases as the kernels learn to distinguish line patterns, while accuracy
+climbs as each kernel converges toward an edge detector matching its assigned class.`
+    },
+    {
+        id: "nm-conv-017c",
+        type: "code",
+        content: `import pynote_ui
+
+pynote_ui.oplot.line(
+    train_stats,
+    x="epoch",
+    y="loss",
+    stroke="#10b981",
+    height=300,
+    title="Training Loss per Epoch"
+)`
+    },
+    {
+        id: "nm-conv-017d",
+        type: "code",
+        content: `pynote_ui.oplot.line(
+    train_stats,
+    x="epoch",
+    y="accuracy",
+    stroke="#3b82f6",
+    height=300,
+    title="Training Accuracy (%) per Epoch"
+)`
     },
     {
         id: "nm-conv-018",
@@ -598,5 +649,38 @@ for i in range(min(8, len(test_images))):
           f"pred={CLASS_NAMES[predicted]:>10} | {prob_str}")
 
 print(f"\\nTotal runtime: {time.time() - start_time:.1f}s")`
+    },
+    {
+        id: "nm-conv-021b",
+        type: "markdown",
+        content: `### Per-Class Accuracy
+
+The bar chart below shows how well the CNN distinguishes each pattern type.
+Diagonal and cross patterns are often harder because they share spatial
+characteristics with horizontal and vertical lines.`
+    },
+    {
+        id: "nm-conv-021c",
+        type: "code",
+        content: `acc_data = []
+for c in range(NUM_CLASSES):
+    acc = class_correct[c] / class_total[c] * 100 if class_total[c] > 0 else 0
+    acc_data.append({"class": CLASS_NAMES[c], "accuracy": round(acc, 1)})
+
+pynote_ui.oplot.bar(
+    acc_data,
+    x="class",
+    y="accuracy",
+    fill="#6366f1",
+    height=300,
+    title="Per-Class Test Accuracy (%)"
+)`
+    },
+    {
+        id: "nm-conv-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Vanilla RNN vs. GRU](?open=nm_micrornn) \u00b7 [Bidirectional Transformer (BERT) \u2192](?open=nm_microbert)`
     },
 ];

@@ -10,17 +10,31 @@ export const microDiffusionCells: CellData[] = [
 
 <br />
         
-# Micro Diffusion
+# Denoising Diffusion (DDPM)
 
-How images emerge from noise — the denoising diffusion algorithm behind Stable Diffusion,
-demonstrated on a 2D spiral. Train a model to predict noise, then iteratively remove it to
-generate new samples from pure randomness.
+How images emerge from noise — the denoising diffusion algorithm behind
+Stable Diffusion, trained on a 2D spiral so you can see every step.
 
-This 2D implementation preserves the exact DDPM algorithm used in Stable Diffusion,
-scaled down from billion-param U-Nets on images to ~1000-param MLPs on point clouds.
+Diffusion models work in two phases:
+
+**Forward process (adding noise):** start with real data and gradually add
+Gaussian noise over $T$ timesteps until the data becomes pure noise. The
+**noise schedule** (a sequence of $\\beta_t$ values) controls how much noise
+is added at each step. A closed-form shortcut lets us jump from clean data
+to any noise level in one operation.
+
+**Reverse process (removing noise):** train a neural network to predict
+the noise that was added at each timestep. At generation time, start from
+pure random noise and iteratively subtract the predicted noise for $T$ steps.
+Each step removes a little noise, and after $T$ rounds a structured sample
+emerges from the randomness.
+
+The training objective is beautifully simple: sample a random data point,
+add random noise at a random timestep, predict the noise, and minimize
+MSE between predicted and true noise. The model learns to **denoise** at
+every noise level simultaneously.
 
 **Reference:** \`01-foundations/microdiffusion.py\` — no-magic collection
-(Ho et al., "Denoising Diffusion Probabilistic Models", 2020)
 
 ---`
     },
@@ -338,8 +352,9 @@ Gaussian) than the data (complex spiral structure).`
         type: "code",
         content: `def train(data, model, betas, alphas, alpha_bars,
           sqrt_alpha_bars, sqrt_one_minus_alpha_bars, num_epochs, lr):
-    """Train the denoising model to predict noise."""
+    """Train the denoising model to predict noise. Returns loss history."""
     print(f"Training for {num_epochs} epochs...")
+    loss_history = []
 
     for epoch in range(num_epochs):
         x0 = random.choice(data)
@@ -358,8 +373,13 @@ Gaussian) than the data (complex spiral structure).`
 
         model.backward_and_update(grad_loss, lr)
 
+        if epoch % 50 == 0:
+            loss_history.append({"epoch": epoch + 1, "loss": round(loss, 6)})
+
         if (epoch + 1) % 500 == 0 or epoch == 0:
-            print(f"  Epoch {epoch + 1:>5}/{num_epochs}  Loss: {loss:.6f}")`
+            print(f"  Epoch {epoch + 1:>5}/{num_epochs}  Loss: {loss:.6f}")
+
+    return loss_history`
     },
     {
         id: "nm-dif-017",
@@ -458,8 +478,31 @@ print()`
     {
         id: "nm-dif-023",
         type: "code",
-        content: `train(data, model, betas, alphas, alpha_bars, sqrt_alpha_bars,
+        content: `diff_loss_history = train(data, model, betas, alphas, alpha_bars, sqrt_alpha_bars,
       sqrt_one_minus_alpha_bars, NUM_EPOCHS, LEARNING_RATE)`
+    },
+    {
+        id: "nm-dif-023b",
+        type: "markdown",
+        content: `## Denoising Loss Curve
+
+The MSE between predicted and true noise. Because each training step samples
+a random point *and* a random timestep, the loss is inherently noisy — but
+the trend should be clearly downward.`
+    },
+    {
+        id: "nm-dif-023c",
+        type: "code",
+        content: `import pynote_ui
+
+pynote_ui.oplot.line(
+    diff_loss_history,
+    x="epoch",
+    y="loss",
+    stroke="#a855f7",
+    height=340,
+    title="Diffusion Denoising Loss (MSE)"
+)`
     },
     {
         id: "nm-dif-024",
@@ -506,6 +549,31 @@ else:
     print("PARTIAL: Generated distribution differs from training (may need more epochs).")`
     },
     {
+        id: "nm-dif-025b",
+        type: "markdown",
+        content: `### Training vs Generated Distribution
+
+The scatter plot overlays the original spiral training data with points
+sampled from the diffusion model. A well-trained model should reproduce
+the spiral structure.`
+    },
+    {
+        id: "nm-dif-025c",
+        type: "code",
+        content: `scatter_data = [{"x": round(p[0], 4), "y": round(p[1], 4), "source": "Training"} for p in data[:300]]
+scatter_data += [{"x": round(p[0], 4), "y": round(p[1], 4), "source": "Generated"} for p in generated[:300]]
+
+pynote_ui.oplot.scatter(
+    scatter_data,
+    x="x",
+    y="y",
+    fill="source",
+    r=3,
+    height=400,
+    title="Training vs Generated Spiral"
+)`
+    },
+    {
         id: "nm-dif-026",
         type: "markdown",
         content: `## Summary
@@ -523,5 +591,12 @@ else:
 
 The algorithm is identical. The scale is different.
 This is how all modern image generation models work.`
+    },
+    {
+        id: "nm-dif-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Generative Adversarial Network](?open=nm_microgan) \u00b7 [Variational Autoencoder \u2192](?open=nm_microvae)`
     },
 ];

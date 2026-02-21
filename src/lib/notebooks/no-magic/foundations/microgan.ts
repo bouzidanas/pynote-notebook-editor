@@ -10,15 +10,30 @@ export const microGANCells: CellData[] = [
 
 <br />
         
-# Micro GAN
+# Generative Adversarial Network
 
-Two networks at war — how a generator learns to fool a discriminator, and why the
-equilibrium is so fragile.
+Two networks at war — how a **generator** learns to fool a **discriminator**,
+and why the equilibrium is so fragile.
 
-This 2D implementation preserves the exact minimax game from Goodfellow et al.,
-"Generative Adversarial Nets" (2014), scaled down from deep convolutional networks on
-images to ~500-param MLPs on point clouds. Completes the "generative trilogy": diffusion
-denoises, VAE decodes from latent, GAN fools a critic.
+The **generator** G takes random noise and transforms it into data (here, 2D
+points). The **discriminator** D takes a data point and outputs a probability
+that it came from the real dataset rather than G. Training alternates:
+
+1. **Train D** — show it real data (label: 1) and G’s fakes (label: 0).
+   D learns to tell them apart.
+2. **Train G** — generate fakes and pass them through D. G’s loss is
+   \`-log(D(G(z)))\` — it wants D to classify its fakes as real.
+
+This is the **minimax game**. If both networks improve at comparable rates they
+reach **Nash equilibrium**: D outputs 0.5 for everything because it genuinely
+can’t distinguish real from fake.
+
+In practice, GANs are notoriously unstable. The most common failure is **mode
+collapse** — the generator discovers one point that fools D and stops exploring
+the rest of the distribution. All generated samples cluster in one spot.
+
+This notebook trains G and D on a 2D spiral point cloud so you can visualize
+the generated distribution directly.
 
 **Reference:** \`01-foundations/microgan.py\` — no-magic collection
 
@@ -484,6 +499,7 @@ to keep D ahead of G. We use 1:1 for simplicity.`
 print()
 
 collapse_detected_at = -1
+loss_history = []
 
 for step in range(NUM_STEPS):
 
@@ -521,6 +537,9 @@ for step in range(NUM_STEPS):
     # Clear stale D gradients from G's backward pass
     opt_disc.zero_grad()
 
+    if step % 5 == 0:
+        loss_history.append({"step": step + 1, "d_loss": round(d_loss.data, 4), "g_loss": round(g_loss.data, 4)})
+
     # --- Diagnostics ---
     if (step + 1) % 300 == 0 or step == 0:
         mean_d_real = sum(s.data for s in d_real_scores) / len(d_real_scores)
@@ -539,6 +558,35 @@ for step in range(NUM_STEPS):
 
 print()
 print("Training complete.")`
+    },
+    {
+        id: "nm-gan-026b",
+        type: "markdown",
+        content: `## Adversarial Loss Curves
+
+The discriminator and generator losses should roughly track each other.
+If D’s loss drops to near zero while G’s rises, the discriminator is winning
+and the generator isn’t learning. Near equilibrium, both losses hover around
+log(2) ≈ 0.693.`
+    },
+    {
+        id: "nm-gan-026c",
+        type: "code",
+        content: `import pynote_ui
+
+combined = []
+for d in loss_history:
+    combined.append({"step": d["step"], "loss": d["d_loss"], "network": "Discriminator"})
+    combined.append({"step": d["step"], "loss": d["g_loss"], "network": "Generator"})
+
+pynote_ui.oplot.line(
+    combined,
+    x="step",
+    y="loss",
+    stroke="network",
+    height=340,
+    title="Adversarial Training — D vs G Loss"
+)`
     },
     {
         id: "nm-gan-027",
@@ -601,6 +649,31 @@ else:
         print("  hyperparameters, initialization, and training duration.")`
     },
     {
+        id: "nm-gan-028b",
+        type: "markdown",
+        content: `### Real vs Generated Distribution
+
+The scatter plot below overlays the real spiral training data (scaled to [-1, 1])
+with the generator’s output. A well-trained generator should reproduce the spiral
+structure; mode collapse shows up as a tight cluster.`
+    },
+    {
+        id: "nm-gan-028c",
+        type: "code",
+        content: `scatter_data = [{"x": round(p[0], 4), "y": round(p[1], 4), "source": "Real"} for p in scaled_data[:200]]
+scatter_data += [{"x": round(p[0], 4), "y": round(p[1], 4), "source": "Generated"} for p in generated_points]
+
+pynote_ui.oplot.scatter(
+    scatter_data,
+    x="x",
+    y="y",
+    fill="source",
+    r=3,
+    height=400,
+    title="Real vs Generated Points"
+)`
+    },
+    {
         id: "nm-gan-029",
         type: "markdown",
         content: `## Discriminator Equilibrium Check`
@@ -647,5 +720,12 @@ elif mean_d_fake_final > 0.8:
 - ~500-param MLPs → millions of parameters with convolutions
 - Vanilla minimax → Wasserstein loss, spectral normalization, progressive growing, style mixing, truncation trick
 - The adversarial game is identical. The networks are bigger.`
+    },
+    {
+        id: "nm-gan-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Optimizer Comparison](?open=nm_microoptimizer) \u00b7 [Denoising Diffusion \u2192](?open=nm_microdiffusion)`
     },
 ];

@@ -10,13 +10,29 @@ export const microRAGCells: CellData[] = [
 
 <br />
         
-# Micro RAG
+# Retrieval-Augmented Generation (RAG)
 
-How retrieval augments generation — the simplest system that actually works, with BM25
-search and a character-level MLP in pure Python.
+How **retrieval** augments generation — the simplest system that actually works,
+with BM25 search and a character-level MLP in pure Python.
 
-RAG architecture inspired by *"Retrieval-Augmented Generation for Knowledge-Intensive
-NLP Tasks"* (Lewis et al., 2020), BM25 scoring from Robertson and Zaragoza (2009).
+Large language models store facts in their weights (**parametric knowledge**).
+This works well until you need up-to-date information, domain-specific data,
+or verifiable sources. RAG solves this by adding a **non-parametric** component:
+a searchable **knowledge base** of documents that the model can consult at
+inference time.
+
+The RAG pipeline has two stages:
+1. **Retrieve** — given a query, find the most relevant documents from the
+   knowledge base. This notebook uses **BM25**, a term-frequency scoring
+   algorithm from information retrieval that balances word frequency with
+   document length normalization.
+2. **Generate** — concatenate the query with the retrieved documents and feed
+   the combined text to a language model. This **context injection** pattern
+   lets the generator condition on retrieved facts rather than relying
+   solely on memorized weights.
+
+The generator here is a character-level MLP — intentionally minimal to keep
+the focus on the retrieval mechanism and the with-vs-without comparison.
 
 **Reference:** \`01-foundations/microrag.py\` — no-magic collection
 
@@ -404,8 +420,9 @@ Training process:
         id: "nm-rag-014",
         type: "code",
         content: `def train_rag(documents, bm25, mlp, num_epochs, learning_rate):
-    """Train the MLP on (query, context, answer) triples."""
+    """Train the MLP on (query, context, answer) triples. Returns loss history."""
     print("Training RAG model...\\n")
+    loss_history = []
 
     for epoch in range(num_epochs):
         epoch_loss = 0.0
@@ -443,10 +460,12 @@ Training process:
                 input_text += target[i]
 
         avg_loss = epoch_loss / num_samples if num_samples > 0 else 0.0
+        loss_history.append({"epoch": epoch + 1, "loss": round(avg_loss, 4)})
         if (epoch + 1) % 50 == 0:
             print(f"Epoch {epoch + 1}/{num_epochs}  Loss: {avg_loss:.4f}")
 
-    print()`
+    print()
+    return loss_history`
     },
     {
         id: "nm-rag-015",
@@ -543,7 +562,30 @@ total_params = (len(mlp.W1) * len(mlp.W1[0]) + len(mlp.b1) +
 print(f"\\nInitialized MLP: {input_dim} -> {HIDDEN_DIM} -> {VOCAB_SIZE}")
 print(f"Total parameters: {total_params:,}\\n")
 
-train_rag(documents, bm25, mlp, NUM_EPOCHS, LEARNING_RATE)`
+rag_history = train_rag(documents, bm25, mlp, NUM_EPOCHS, LEARNING_RATE)`
+    },
+    {
+        id: "nm-rag-022b",
+        type: "markdown",
+        content: `## RAG Training Loss
+
+The loss measures how well the MLP predicts the next character given the query
+concatenated with retrieved context. Because the knowledge base is small and
+the patterns are templated, loss should decrease steadily.`
+    },
+    {
+        id: "nm-rag-022c",
+        type: "code",
+        content: `import pynote_ui
+
+pynote_ui.oplot.line(
+    rag_history,
+    x="epoch",
+    y="loss",
+    stroke="#f97316",
+    height=340,
+    title="RAG Training Loss"
+)`
     },
     {
         id: "nm-rag-023",
@@ -561,5 +603,12 @@ train_rag(documents, bm25, mlp, NUM_EPOCHS, LEARNING_RATE)`
 ]
 demo_retrieval_comparison(demo_queries, documents, bm25, mlp)
 print("RAG demonstration complete.")`
+    },
+    {
+        id: "nm-rag-footer",
+        type: "markdown",
+        content: `---
+
+[\u2190 Bidirectional Transformer (BERT)](?open=nm_microbert) \u00b7 [Optimizer Comparison \u2192](?open=nm_microoptimizer)`
     },
 ];
