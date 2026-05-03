@@ -4,19 +4,21 @@
 import { TUTORIAL_CONFIG, type TutorialType } from "./tutorials";
 import { NO_MAGIC_CONFIG, type NoMagicType } from "./no-magic";
 import { TESTING_CONFIG, type TestingType } from "./testing";
+import { CODING_PREP_CONFIG, type CodingPrepType } from "./coding-interview-prep";
 import type { NotebookConfig } from "./types";
 
 // Re-export shared types for external consumers
 export type { NotebookConfig } from "./types";
 
 // Unified type for all built-in notebooks
-export type BuiltinNotebookType = TutorialType | NoMagicType | TestingType;
+export type BuiltinNotebookType = TutorialType | NoMagicType | TestingType | CodingPrepType;
 
 // Unified configuration record — merges all sub-index configs
 const BUILTIN_NOTEBOOK_CONFIG: Record<BuiltinNotebookType, NotebookConfig> = {
     ...TUTORIAL_CONFIG,
     ...NO_MAGIC_CONFIG,
     ...TESTING_CONFIG,
+    ...CODING_PREP_CONFIG,
 };
 
 // Check if a string is a valid built-in notebook type

@@ -46,6 +46,12 @@ export interface CellData {
   metadata?: {
     pynote?: {
       codeview?: CellCodeVisibility;
+      // When notebook-level autorun is false, cells with autorun=true still
+      // execute on session start. Ignored when notebook-level autorun is true.
+      autorun?: boolean;
+      // Custom placeholder text shown when this cell's code is hidden.
+      // Overrides the notebook-level placeholder.
+      placeholder?: string;
     };
   };
   outputs?: {
@@ -109,6 +115,13 @@ export interface NotebookState {
   executionQueue: string[]; // List of cell IDs waiting to run
   sidebarAlignment: "top" | "center" | "bottom";
   showTrailingAddButtons: boolean;
+  // Notebook-level autorun preference loaded from document metadata.
+  // undefined = use global behavior, false = opt out of autorun-all on session start
+  // (cell-level autorun still applies when this is false).
+  notebookAutorun?: boolean;
+  // Notebook-level placeholder text for hidden code cells.
+  // undefined = use the built-in default text.
+  codeHiddenPlaceholder?: string;
   // Reactive execution mode state (Marimo-style DAG)
   cellDependencies: Map<string, CellDependencyInfo>;
   dependenciesStale: boolean; // True when switching to reactive mode, need to analyze all cells
@@ -227,6 +240,8 @@ const [store, setStore] = createStore<NotebookState>({
   executionQueue: [],
   sidebarAlignment: "top",
   showTrailingAddButtons: APP_SHOW_TRAILING_ADD_BUTTONS,
+  notebookAutorun: undefined,
+  codeHiddenPlaceholder: undefined,
   // Reactive execution mode (Marimo-style DAG)
   cellDependencies: new Map(),
   dependenciesStale: false
@@ -515,6 +530,43 @@ export const actions = {
     if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
+  },
+
+  // Insert a new markdown cell at `index` with the given initial content.
+  // Unlike `addCell`, this does NOT change the active cell or the editing
+  // state of any other cell — useful when the new cell is created as a
+  // side-effect of an in-progress edit (e.g. splitting a cell), so the
+  // original editor keeps focus and its cursor.
+  insertMarkdownCell: (index: number, content: string): string => {
+    const id = crypto.randomUUID();
+    const previousActive = store.activeCellId;
+
+    setStore("cells", produce((cells) => {
+      cells.splice(index, 0, {
+        id,
+        type: "markdown",
+        content,
+        isEditing: false,
+      });
+    }));
+
+    // Record as a single undoable unit: add empty cell, then set its content.
+    actions.beginBatch();
+    addToHistory(`a|${index}|markdown|${id}`);
+    if (content.length > 0) {
+      addToHistory(`u|${id}|${escapeContent("")}|${escapeContent(content)}`);
+    }
+    actions.endBatch();
+
+    // Defensive: ensure we did not steal active selection.
+    if (previousActive && store.activeCellId !== previousActive) {
+      setStore("activeCellId", previousActive);
+    }
+
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
+    return id;
   },
 
   undo: () => {
@@ -1021,7 +1073,17 @@ export const actions = {
     }
   },
 
-  loadNotebook: (cells: CellData[], filename: string, history?: HistoryEntry[], historyIndex?: number, activeCellId?: string | null, executionMode?: ExecutionMode, showTrailingAddButtons?: boolean) => {
+  loadNotebook: (
+    cells: CellData[],
+    filename: string,
+    history?: HistoryEntry[],
+    historyIndex?: number,
+    activeCellId?: string | null,
+    executionMode?: ExecutionMode,
+    showTrailingAddButtons?: boolean,
+    notebookAutorun?: boolean,
+    codeHiddenPlaceholder?: string,
+  ) => {
     setStore({
       cells,
       filename,
@@ -1031,6 +1093,8 @@ export const actions = {
       // Use document's execution mode if provided, otherwise use app default
       executionMode: executionMode || APP_DEFAULT_EXECUTION_MODE,
       showTrailingAddButtons: showTrailingAddButtons ?? APP_SHOW_TRAILING_ADD_BUTTONS,
+      notebookAutorun,
+      codeHiddenPlaceholder,
       // Reset reactive mode state when loading a new notebook
       cellDependencies: new Map(),
       dependenciesStale: executionMode === "reactive" // Need to analyze if loading in reactive mode

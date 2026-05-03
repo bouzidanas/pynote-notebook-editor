@@ -786,6 +786,8 @@ const Notebook: Component = () => {
       activeCellId: notebookStore.activeCellId,
       executionMode: notebookStore.executionMode, // Persist session execution mode
       showTrailingAddButtons: notebookStore.showTrailingAddButtons, // Persist trailing add buttons setting
+      notebookAutorun: notebookStore.notebookAutorun, // Persist notebook-level autorun preference
+      codeHiddenPlaceholder: notebookStore.codeHiddenPlaceholder, // Persist hidden-code placeholder
       theme: sessionHasTheme() ? { ...currentTheme } : undefined,
       codeVisibility: getSessionState(), // Persist code visibility settings & cell overrides
       // Preserve original document metadata so it survives page refresh
@@ -838,7 +840,9 @@ const Notebook: Component = () => {
           typeof data.historyIndex === "number" ? data.historyIndex : undefined,
           data.activeCellId,
           sessionExecutionMode,
-          typeof data.showTrailingAddButtons === "boolean" ? data.showTrailingAddButtons : undefined
+          typeof data.showTrailingAddButtons === "boolean" ? data.showTrailingAddButtons : undefined,
+          typeof data.notebookAutorun === "boolean" ? data.notebookAutorun : undefined,
+          typeof data.codeHiddenPlaceholder === "string" ? data.codeHiddenPlaceholder : undefined,
         );
         
         // Load theme if session has one
@@ -901,23 +905,33 @@ const Notebook: Component = () => {
 
       // Load app theme for new session
       updateTheme(loadAppTheme());
-      
-      const { cells, filename, codeview, showTrailingAddButtons } = getBuiltinNotebook(builtinType);
-      
+
+      const { cells, filename, codeview, showTrailingAddButtons, autorun, codeHiddenPlaceholder, executionMode: builtinExecMode } = getBuiltinNotebook(builtinType);
+
       // Reset user override flag for fresh notebook load
       resetUserOverride();
-      
+
       // Apply notebook-specific code visibility settings if present (respects loadMetadataOnDocumentLoad flag)
       if (codeview && shouldLoadMetadataSettings()) {
         applyDocumentSettings(codeview);
       }
-      
-      actions.loadNotebook([...cells], filename, [], undefined, undefined, undefined, showTrailingAddButtons);
+
+      actions.loadNotebook(
+        [...cells],
+        filename,
+        [],
+        undefined,
+        undefined,
+        builtinExecMode,
+        showTrailingAddButtons,
+        autorun,
+        codeHiddenPlaceholder,
+      );
       autosaveNotebook();
-      
+
       // Apply theme from ?theme= param if present (overrides app theme)
       applyThemeParam(themeParam);
-      
+
       // Mark as new session for auto-run
       pendingAutoRun = true;
       return;
@@ -951,23 +965,33 @@ const Notebook: Component = () => {
             // ID exists but data is gone (expired/deleted)
             if (builtinType) {
                  // Built-in notebook link with invalid/expired session -> Reload
-                 const { cells, filename, codeview, showTrailingAddButtons } = getBuiltinNotebook(builtinType);
-                 
+                 const { cells, filename, codeview, showTrailingAddButtons, autorun, codeHiddenPlaceholder, executionMode: builtinExecMode } = getBuiltinNotebook(builtinType);
+
                  // Reset user override flag for fresh notebook load
                  resetUserOverride();
-                 
+
                  // Apply notebook-specific code visibility settings if present
                  if (codeview) {
                    setVisibilitySettings(codeview, false); // false = not a user change
                  }
-                 
-                 actions.loadNotebook([...cells], filename, [], undefined, undefined, undefined, showTrailingAddButtons);
+
+                 actions.loadNotebook(
+                   [...cells],
+                   filename,
+                   [],
+                   undefined,
+                   undefined,
+                   builtinExecMode,
+                   showTrailingAddButtons,
+                   autorun,
+                   codeHiddenPlaceholder,
+                 );
             } else {
                  // Normal link with invalid/expired session -> New Notebook
                  actions.loadNotebook([...defaultCells], "Untitled.ipynb", []);
             }
              autosaveNotebook();
-             
+
             // Mark for auto-run (data was gone/expired)
             pendingAutoRun = true;
         }
@@ -978,11 +1002,27 @@ const Notebook: Component = () => {
     applyThemeParam(themeParam);
   });
 
-  // Auto-run all cells when kernel becomes ready on a NEW session
+  // Auto-run cells when kernel becomes ready on a NEW session.
+  // Three layers of control:
+  //  1. Global: shouldAutoRunOnNewSession() — app-wide opt-out
+  //  2. Notebook: notebookStore.notebookAutorun === false disables run-all
+  //     for this notebook (loaded from document/built-in metadata)
+  //  3. Cell: when notebook autorun is false, cells with metadata.pynote.autorun
+  //     === true still execute on session start. (Cell-level autorun is
+  //     ignored when notebook-level autorun is true — they would run anyway.)
   createEffect(() => {
     if (pendingAutoRun && kernel.status === "ready" && shouldAutoRunOnNewSession()) {
       pendingAutoRun = false;
-      runAll();
+      if (notebookStore.notebookAutorun === false) {
+        const optInCells = notebookStore.cells.filter(
+          c => c.type === "code" && c.metadata?.pynote?.autorun === true
+        );
+        for (const cell of optInCells) {
+          runCell(cell.id);
+        }
+      } else {
+        runAll();
+      }
     }
   });
 
@@ -1041,25 +1081,30 @@ const Notebook: Component = () => {
   // Build notebook JSON for saving
   const buildNotebookJson = () => {
     return {
-      cells: notebookStore.cells.map(c => ({
-        cell_type: c.type,
-        source: (() => {
-          // Preserve trailing newline state (don't add unwanted trailing newlines)
-          if (!c.content) return [''];
-          const hasTrailing = c.content.endsWith('\n');
-          const lines = c.content.split('\n');
-          if (hasTrailing) lines.pop(); // Remove empty artifact from split
-          return lines.map((l, i) => l + (i < lines.length - 1 || hasTrailing ? '\n' : ''));
-        })(),
-        outputs: [], 
-        // Include cell metadata if cell has codeview settings
-        // Cell-level metadata is always saved when present (set via cell-scoped visibility dialog)
-        metadata: c.metadata?.pynote?.codeview ? {
-          pynote: {
-            codeview: c.metadata.pynote.codeview
-          }
-        } : {}
-      })),
+      cells: notebookStore.cells.map(c => {
+        const py = c.metadata?.pynote;
+        const hasPy = !!(py && (py.codeview || py.autorun !== undefined || py.placeholder !== undefined));
+        return {
+          cell_type: c.type,
+          source: (() => {
+            // Preserve trailing newline state (don't add unwanted trailing newlines)
+            if (!c.content) return [''];
+            const hasTrailing = c.content.endsWith('\n');
+            const lines = c.content.split('\n');
+            if (hasTrailing) lines.pop(); // Remove empty artifact from split
+            return lines.map((l, i) => l + (i < lines.length - 1 || hasTrailing ? '\n' : ''));
+          })(),
+          outputs: [],
+          // Include cell metadata if cell has any pynote settings
+          metadata: hasPy ? {
+            pynote: {
+              ...(py!.codeview ? { codeview: py!.codeview } : {}),
+              ...(py!.autorun !== undefined ? { autorun: py!.autorun } : {}),
+              ...(py!.placeholder !== undefined ? { placeholder: py!.placeholder } : {}),
+            }
+          } : {}
+        };
+      }),
       metadata: {
         kernelspec: {
           display_name: "Python 3 (Pyodide)",
@@ -1074,6 +1119,10 @@ const Notebook: Component = () => {
           history: notebookStore.history,
           // Always save execution mode to document metadata
           executionMode: notebookStore.executionMode,
+          // Notebook-level autorun preference (only saved when explicitly set)
+          ...(notebookStore.notebookAutorun !== undefined ? { autorun: notebookStore.notebookAutorun } : {}),
+          // Notebook-level placeholder text for hidden code cells
+          ...(notebookStore.codeHiddenPlaceholder !== undefined ? { codeHiddenPlaceholder: notebookStore.codeHiddenPlaceholder } : {}),
           // saveToExport ON  → write current UI state (user explicitly wants to overwrite)
           // saveToExport OFF + doc had metadata → preserve original document metadata
           ...(codeVisibility.saveToExport ? {
@@ -1191,18 +1240,24 @@ const Notebook: Component = () => {
       const nb = JSON.parse(content);
       if (nb.cells && Array.isArray(nb.cells)) {
         const newCells = nb.cells.map((c: any) => {
-          // Extract cell-level metadata for code visibility
-          const cellCodeview = c.metadata?.pynote?.codeview;
+          // Extract cell-level pynote metadata
+          const pyMeta = c.metadata?.pynote;
+          const cellCodeview = pyMeta?.codeview;
+          const cellAutorun = typeof pyMeta?.autorun === "boolean" ? pyMeta.autorun : undefined;
+          const cellPlaceholder = typeof pyMeta?.placeholder === "string" ? pyMeta.placeholder : undefined;
+          const hasPyMeta = cellCodeview || cellAutorun !== undefined || cellPlaceholder !== undefined;
           return {
             id: crypto.randomUUID(),
             type: c.cell_type === "code" || c.cell_type === "markdown" ? c.cell_type : "markdown",
             content: Array.isArray(c.source) ? c.source.join("") : (c.source || ""),
             isEditing: false,
-            // Preserve cell metadata if it exists
-            ...(cellCodeview ? {
+            // Preserve cell metadata if any pynote field exists
+            ...(hasPyMeta ? {
               metadata: {
                 pynote: {
-                  codeview: cellCodeview
+                  ...(cellCodeview ? { codeview: cellCodeview } : {}),
+                  ...(cellAutorun !== undefined ? { autorun: cellAutorun } : {}),
+                  ...(cellPlaceholder !== undefined ? { placeholder: cellPlaceholder } : {}),
                 }
               }
             } : {})
@@ -1258,6 +1313,16 @@ const Notebook: Component = () => {
         const docShowTrailingAddButtons = typeof nb.metadata?.PyNote?.showTrailingAddButtons === "boolean"
           ? nb.metadata.PyNote.showTrailingAddButtons
           : undefined; // Will use app default if not specified
+
+        // Extract notebook-level autorun preference
+        const docNotebookAutorun = typeof nb.metadata?.PyNote?.autorun === "boolean"
+          ? nb.metadata.PyNote.autorun
+          : undefined;
+
+        // Extract notebook-level placeholder text for hidden code cells
+        const docCodeHiddenPlaceholder = typeof nb.metadata?.PyNote?.codeHiddenPlaceholder === "string"
+          ? nb.metadata.PyNote.codeHiddenPlaceholder
+          : undefined;
         
         // Store the file handle for later saving (only if opened via File System Access API)
         fileHandle = handle;
@@ -1283,7 +1348,9 @@ const Notebook: Component = () => {
             history.length - 1,
             null,
             docExecutionMode || APP_DEFAULT_EXECUTION_MODE,
-            docShowTrailingAddButtons
+            docShowTrailingAddButtons,
+            docNotebookAutorun,
+            docCodeHiddenPlaceholder,
           );
           
           // Update URL without reload
@@ -1311,6 +1378,8 @@ const Notebook: Component = () => {
           activeCellId: null,
           executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
           showTrailingAddButtons: docShowTrailingAddButtons, // Document's trailing add buttons setting
+          notebookAutorun: docNotebookAutorun,
+          codeHiddenPlaceholder: docCodeHiddenPlaceholder,
           theme: themeData || undefined,
           codeVisibility: documentVisibilityState || undefined,
           // Preserve original document metadata for re-save

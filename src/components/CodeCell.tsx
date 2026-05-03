@@ -58,6 +58,13 @@ const CodeCell: Component<CodeCellProps> = (props) => {
     return !v.showCode && !hasAnyOutput();
   });
 
+  // Resolve the placeholder text shown when code is hidden.
+  // Priority: cell-level metadata → notebook-level → built-in default.
+  const hiddenPlaceholder = () =>
+    props.cell.metadata?.pynote?.placeholder
+      ?? notebookStore.codeHiddenPlaceholder
+      ?? "Code is hidden — cell will still execute";
+
   // Calculate if the cell should be completely hidden in presentation mode   v 
   // Conditions:
   // 1. Code is hidden and no output (showHiddenMessage is true)
@@ -155,7 +162,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         {/* Hidden code message */}
         <Show when={showHiddenMessage()}>
           <div class="text-secondary/40 italic text-sm py-4 px-3 text-center">
-            Code is hidden — cell will still execute
+            {hiddenPlaceholder()}
           </div>
         </Show>
 
