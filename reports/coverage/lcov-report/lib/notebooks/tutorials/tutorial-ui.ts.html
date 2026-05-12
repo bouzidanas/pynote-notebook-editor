@@ -1,0 +1,1207 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for lib/notebooks/tutorials/tutorial-ui.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">lib/notebooks/tutorials</a> tutorial-ui.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { CellData } from "../../store";
+&nbsp;
+export const tutorialUICells: CellData[] = <span class="cstat-no" title="statement not covered" >[</span>
+    // Table of contents (with modified "you are here")
+    {
+        id: "toc-header",
+        type: "markdown",
+        content: `# 📚 PyNote Tutorial Series
+&nbsp;
+Welcome! This tutorial is split into focused sections. Click any link below to navigate.
+&nbsp;
+&lt;br /&gt;
+&nbsp;
+| Section | Description |
+|---------|-------------|
+| **[Quick Start](?open=tutorial)** | The basics: kernel, cells, outputs, markdown |
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Components, colors, sizes, and states |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layout, sizing, borders, and display functions |
+| **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
+| **[Interactive UI (Legacy)](?open=tutorial_ui)** | Original combined UI tutorial *(you are here)* |
+| **[Charts &amp; Plotting](?open=tutorial_charts)** | Observable Plot, uPlot TimeSeries, and Frappe Charts |
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
+| **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
+&nbsp;
+&lt;br /&gt;
+&nbsp;
+---`
+    },
+&nbsp;
+    // ============================================================================
+    // INTERACTIVE UI
+    // ============================================================================
+    {
+        id: "tut-ui-intro",
+        type: "markdown",
+        content: "# Interactive UI with `pynote_ui`\n\nThe built-in `pynote_ui` package lets you create reactive widgets. This tutorial covers sliders, text displays, layout groups, and how to output UI elements anywhere in your code."
+    },
+&nbsp;
+    // --- Section: Basic Widgets ---
+    {
+        id: "tut-ui-basic",
+        type: "markdown",
+        content: "## Basic Widgets: Slider &amp; Text\n\nChange the slider below to update the text in real-time."
+    },
+    {
+        id: "tut-demo-ui",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Group\n\n# Define widgets\nsquare_slider = Slider(min=0, max=20, value=5, label=\"Square this number\")\nsquare_output = Text(content=\"Result: 25\")\n\n# Define interaction\ndef square_update(data):\n    val = int(data['value'])\n    square_output.content = f\"Result: {val**2}\"\n\nsquare_slider.on_update(square_update)\nGroup([square_slider, square_output])"
+    },
+&nbsp;
+    // --- Section: Size Presets ---
+    {
+        id: "tut-ui-sizes",
+        type: "markdown",
+        content: "## Size Presets\n\nAll components support a `size` parameter with presets: `\"xs\"`, `\"sm\"`, `\"md\"` (default), `\"lg\"`, `\"xl\"`. This affects padding, font sizes, and for Slider, the track and thumb sizes.\n\nUse the Select below to see how different sizes look on Slider and Text:"
+    },
+    {
+        id: "tut-demo-sizes",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Select, Group\n\n# Components with dynamic size - start at 'md'\nsize_slider = Slider(value=50, label=\"Sample Slider\", size=\"md\", grow=1)\nsize_text = Text(content=\"Sample Text Display\", size=\"md\", grow=1)\n\n# Size selector with placeholder\nsize_select = Select(\n    choices=[\"xs\", \"sm\", \"md\", \"lg\", \"xl\"],\n    placeholder=\"Choose a size\",\n    color=\"primary\"\n)\n\n# Status text\ncurrent_size = Text(content=\"Select a size to update all components\", size=\"sm\")\n\ndef on_size_change(data):\n    new_size = data['value']\n    current_size.content = f\"Current size: {new_size}\"\n    # Update all components dynamically\n    size_slider.size = new_size\n    size_text.size = new_size\n    size_select.size = new_size\n\nsize_select.on_update(on_size_change)\n\nGroup([\n    Group([Text(content=\"Select size:\", size=\"sm\"), size_select], layout=\"row\", align=\"center\"),\n    size_slider,\n    size_text,\n    current_size\n], layout=\"col\", label=\"Size Presets Demo\", border=True, gap=2)"
+    },
+    {
+        id: "tut-ui-sizes-examples",
+        type: "markdown",
+        content: "### Size Comparison\n\nHere's a visual comparison of all size presets:"
+    },
+    {
+        id: "tut-demo-sizes-all",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Group\n\n# Show all size presets side by side\nGroup([\n    Group([\n        Text(content=\"XS\", size=\"xs\"),\n        Slider(value=25, label=\"Extra Small\", size=\"xs\", grow=1)\n    ], layout=\"row\", align=\"center\"),\n    Group([\n        Text(content=\"SM\", size=\"sm\"),\n        Slider(value=40, label=\"Small\", size=\"sm\", grow=1)\n    ], layout=\"row\", align=\"center\"),\n    Group([\n        Text(content=\"MD\", size=\"md\"),\n        Slider(value=55, label=\"Medium (default)\", size=\"md\", grow=1)\n    ], layout=\"row\", align=\"center\"),\n    Group([\n        Text(content=\"LG\", size=\"lg\"),\n        Slider(value=70, label=\"Large\", size=\"lg\", grow=1)\n    ], layout=\"row\", align=\"center\"),\n    Group([\n        Text(content=\"XL\", size=\"xl\"),\n        Slider(value=85, label=\"Extra Large\", size=\"xl\", grow=1)\n    ], layout=\"row\", align=\"center\"),\n], layout=\"col\", label=\"All Sizes\", border=True, gap=1)"
+    },
+&nbsp;
+    // --- Section: Component Layout ---
+    {
+        id: "tut-ui-layout",
+        type: "markdown",
+        content: "## Grouping &amp; Layout\n\nUse `Group` to arrange components in rows or columns. Groups can be **nested** to create complex layouts!\n\n**Understanding `grow` vs `width`/`height`:**\n- `grow` controls sizing along the **container's direction** (horizontal in a row, vertical in a column)\n- `width`/`height` controls the **perpendicular direction**\n\nIn this example, the sliders use `grow=1` to share the row equally, while the text uses `width=\"100%\"` to stretch across the column."
+    },
+    {
+        id: "tut-demo-layout",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Group\n\n# Create some widgets\ncalc_a = Slider(value=30, label=\"A\", grow=1)\ncalc_b = Slider(value=70, label=\"B\", grow=1)\ncalc_result = Text(content=\"A + B = 100\", width=\"100%\", align_h=\"center\")\n\ndef calc_update(data):\n    calc_result.content = f\"A + B = {int(calc_a.value + calc_b.value)}\"\ncalc_a.on_update(calc_update)\ncalc_b.on_update(calc_update)\n\n# Nested Groups: row of sliders inside a column\nGroup([\n    Group([calc_a, calc_b], layout=\"row\"),\n    calc_result\n], layout=\"col\", label=\"Calculator\", border=True)"
+    },
+&nbsp;
+    // --- Section: Flex Distribution ---
+    {
+        id: "tut-ui-flex",
+        type: "markdown",
+        content: "## Space Sharing with `grow`\n\nBy default, components take their **natural size** (just enough space for their content). Use the `grow` argument to make them expand and share available space:\n\n- **No `grow`** (default): Component takes only the space it needs\n- **`grow=1`**: Component expands to fill available space\n- **`grow=2`**, **`grow=3`**, etc.: Component takes proportionally more space than others with lower grow values"
+    },
+    {
+        id: "tut-demo-flex",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Group\n\n# Default: natural sizing (each takes only the space it needs)\nprint(\"Natural sizing (default):\")\nGroup([\n    Slider(value=30, label=\"A\"),\n    Slider(value=70, label=\"B\")\n], layout=\"row\", border=True)"
+    },
+    {
+        id: "tut-demo-flex2",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Group\n\n# Equal distribution: both grow=1 means 50/50 split\nprint(\"Equal distribution (grow=1):\")\nGroup([\n    Slider(value=30, label=\"A\", grow=1),\n    Slider(value=70, label=\"B\", grow=1)\n], layout=\"row\", border=True)"
+    },
+    {
+        id: "tut-demo-flex3",
+        type: "code",
+        content: "from pynote_ui import Slider, Group\n\n# Weighted distribution: 1:2 ratio\nprint(\"1:2 ratio:\")\nGroup([\n    Slider(value=30, label=\"Small\", grow=1),\n    Slider(value=70, label=\"Large\", grow=2)  # Takes 2x the space\n], layout=\"row\", border=True)"
+    },
+&nbsp;
+    // --- Section: Dimension Control ---
+    {
+        id: "tut-ui-dimensions",
+        type: "markdown",
+        content: "## Controlling Dimensions\n\nComponents accept `width`, `height`, and `force_dimensions` parameters. Numbers are treated as pixels, strings are used as-is (e.g., `\"50%\"`, `\"10rem\"`).\n\n- **Default behavior**: `width`/`height` set **minimum** dimensions (component can grow)\n- **`force_dimensions=True`**: Sets **exact** dimensions (component is fixed)"
+    },
+    {
+        id: "tut-demo-dimensions",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, Group\n\n# Fixed width sliders in a row\nGroup([\n    Slider(value=25, label=\"Fixed 200px\", width=200, force_dimensions=True),\n    Slider(value=75, label=\"Fixed 150px\", width=150, force_dimensions=True),\n], layout=\"row\", label=\"Fixed Width Components\", border=True)"
+    },
+&nbsp;
+    // --- Section: Display Function ---
+    {
+        id: "tut-ui-display",
+        type: "markdown",
+        content: "## Displaying UI Anywhere\n\nBy default, UI elements only appear when they're the **last expression** in a cell. The `display()` function lets you render UI elements **at any point** during execution.\n\n**Signature:** `display(*elements, inline=False, gap=1)`\n- `inline=False` (default): Each element on its own line\n- `inline=True`: Elements on the same line\n- `gap`: Spacing between elements (spaces if inline, blank lines if separate)"
+    },
+    {
+        id: "tut-demo-display",
+        type: "code",
+        content: "from pynote_ui import Slider, Text, display\n\nprint(\"Creating interactive widgets...\")\n\ndisplay_slider = Slider(value=50, min=0, max=100, label=\"Adjustable Value\", width=\"100%\")\ndisplay_output = Text(content=\"Value: 50\", width=\"100%\")\n\ndef display_change(data):\n    display_output.content = f\"Value: {int(data['value'])}\"\ndisplay_slider.on_update(display_change)\n\ndisplay(display_slider, display_output)\n\nprint(\"☝️ Try moving the slider - the text updates in real-time!\")"
+    },
+    {
+        id: "tut-ui-print",
+        type: "markdown",
+        content: "### Using `print()` with UI Elements\n\nFor convenience, you can also use Python's built-in `print()` function or f-strings to display widgets:"
+    },
+    {
+        id: "tut-demo-print",
+        type: "code",
+        content: "from pynote_ui import Slider, Text\n\nvolume = Slider(value=75, min=0, max=100, label=\"🔊 Volume\", width=\"100%\")\nvol_text = Text(content=\"75%\")\n\ndef update_vol(data):\n    vol_text.content = f\"{int(data['value'])}%\"\nvolume.on_update(update_vol)\n\n# F-strings work and maintain interactivity!\nprint(f\"Volume: {volume} Level: {vol_text}\")"
+    },
+&nbsp;
+    // --- Section: Print Markdown ---
+    {
+        id: "tut-ui-printmd",
+        type: "markdown",
+        content: "## Rich Output with `print_md()`\n\nThe `print_md()` function outputs **formatted markdown** that looks just like markdown cells. You can even embed interactive widgets using f-strings!"
+    },
+    {
+        id: "tut-demo-printmd",
+        type: "code",
+        content: "from pynote_ui import print_md, Slider, Text\n\nintensity_slider = Slider(value=50, min=0, max=100, label=\"Intensity\", width=\"100%\")\nintensity_text = Text(content=\"50%\", width=\"100%\")\nintensity_slider.on_update(lambda d: setattr(intensity_text, 'content', f\"{int(d['value'])}%\"))\n\nprint_md(f\"\"\"\n## Control Panel\n\nAdjust the **intensity** level:\n\n{intensity_slider}\n\nCurrent value: {intensity_text}\n\n---\n*Move the slider - the text updates in real-time!*\n\"\"\")"
+    },
+    {
+        id: "tut-ui-printmd-note",
+        type: "markdown",
+        content: "### A Note on Embedded Components\n\n`print_md()` handles its own content processing, so components embedded within markdown may appear differently compared to standalone components. This is because markdown content flows as inline/block text.\n\nPass `styled=False` for a monospace look that matches stdout instead of prose styling."
+    },
+&nbsp;
+    // --- Section: Cross-Cell Communication ---
+    {
+        id: "tut-ui-crosscell",
+        type: "markdown",
+        content: "## Cross-Cell Communication\n\nUI elements can communicate **across cells** as long as both cells have been executed. Since Python variables persist in memory, you can reference widgets created in earlier cells.\n\n**Run both cells below in order** — moving the slider in Cell 1 will update the text in Cell 2!"
+    },
+    {
+        id: "tut-demo-crosscell1",
+        type: "code",
+        content: "# Cell 1: Create the source slider\nfrom pynote_ui import Slider, display\n\ncross_slider = Slider(value=0, min=0, max=100, label=\"Source Slider\", width=\"100%\")\ndisplay(cross_slider)\nprint(\"☝️ This slider will control the text in the next cell\")"
+    },
+    {
+        id: "tut-demo-crosscell2",
+        type: "code",
+        content: "# Cell 2: Create a text that responds to the slider from Cell 1\nfrom pynote_ui import Text, display\n\ncross_text = Text(content=\"Waiting for slider...\", width=\"100%\")\n\n# Connect to the slider defined in Cell 1\ndef on_slider_change(data):\n    cross_text.content = f\"Received: {int(data['value'])} from Cell 1!\"\n\ncross_slider.on_update(on_slider_change)\ndisplay(cross_text)\nprint(\"☝️ Now move the slider above - this text updates!\")"
+    },
+&nbsp;
+    // --- Next Steps ---
+    {
+        id: "tut-ui-forms-intro",
+        type: "markdown",
+        content: "## Form Components\n\nPyNote includes a variety of interactive form components including buttons, inputs, selects, textareas, toggles, and checkboxes. All components support consistent sizing via `width`, `height`, `grow`, and `shrink` parameters."
+    },
+&nbsp;
+    // --- Button ---
+    {
+        id: "tut-ui-button",
+        type: "markdown",
+        content: "### Button\n\nButtons trigger actions when clicked. They support colors (`primary`, `secondary`, `accent`, `info`, `success`, `warning`, `error`), styles (`outline`, `dash`, `soft`, `ghost`, `link`), and sizes (`xs`, `sm`, `md`, `lg`, `xl`)."
+    },
+    {
+        id: "tut-demo-button",
+        type: "code",
+        content: "from pynote_ui import Button, Text, Group\n\n# Create counter components\ncount_text = Text(content=\"Count: 0\", grow=1)\ncount = 0\n\ndef increment(data):\n    global count\n    count += 1\n    count_text.content = f\"Count: {count}\"\n\ndef decrement(data):\n    global count\n    count -= 1\n    count_text.content = f\"Count: {count}\"\n\ndef reset(data):\n    global count\n    count = 0\n    count_text.content = f\"Count: {count}\"\n\ndec_btn = Button(label=\"-\", color=\"error\", style=\"outline\")\ninc_btn = Button(label=\"+\", color=\"success\", style=\"outline\")\nreset_btn = Button(label=\"Reset\", color=\"warning\", style=\"soft\")\n\ndec_btn.on_update(decrement)\ninc_btn.on_update(increment)\nreset_btn.on_update(reset)\n\nGroup([\n    Group([dec_btn, count_text, inc_btn], layout=\"row\", align=\"center\"),\n    reset_btn\n], layout=\"col\", label=\"Counter\", border=True)"
+    },
+&nbsp;
+    // --- Select ---
+    {
+        id: "tut-ui-select",
+        type: "markdown",
+        content: "### Select\n\nSelect dropdowns let users pick from a list of options. Options can be simple strings or `{label, value}` dicts for different display/stored values."
+    },
+    {
+        id: "tut-demo-select",
+        type: "code",
+        content: "from pynote_ui import Select, Text, Group\n\nlang_output = Text(content=\"Selected: None\")\n\nlang_select = Select(\n    choices=[\"Python\", \"JavaScript\", \"TypeScript\", \"Rust\", \"Go\"],\n    placeholder=\"Choose a language\",\n    color=\"primary\",\n    grow=1\n)\n\ndef on_lang_change(data):\n    lang_output.content = f\"Selected: {data['value']}\"\nlang_select.on_update(on_lang_change)\n\nGroup([lang_select, lang_output], layout=\"col\", label=\"Favorite Language\", border=True)"
+    },
+&nbsp;
+    // --- Input ---
+    {
+        id: "tut-ui-input",
+        type: "markdown",
+        content: "### Input\n\nText inputs for single-line text entry. Supports various input types: `text`, `password`, `email`, `number`, `search`, `tel`, `url`."
+    },
+    {
+        id: "tut-demo-input",
+        type: "code",
+        content: "from pynote_ui import Input, Text, Group\n\ngreet_output = Text(content=\"Hello, stranger!\")\n\nname_input = Input(\n    value=\"\",\n    placeholder=\"Enter your name\",\n    color=\"primary\",\n    grow=1\n)\n\ndef on_name_change(data):\n    name = data['value'].strip()\n    if name:\n        greet_output.content = f\"Hello, {name}!\"\n    else:\n        greet_output.content = \"Hello, stranger!\"\nname_input.on_update(on_name_change)\n\nGroup([name_input, greet_output], layout=\"col\", label=\"Greeting\", border=True)"
+    },
+&nbsp;
+    // --- Textarea ---
+    {
+        id: "tut-ui-textarea",
+        type: "markdown",
+        content: "### Textarea\n\nMulti-line text input. The `rows` parameter controls the visible height."
+    },
+    {
+        id: "tut-demo-textarea",
+        type: "code",
+        content: "from pynote_ui import Textarea, Text, Group\n\nchar_count = Text(content=\"Characters: 0\")\n\nnotes_area = Textarea(\n    value=\"\",\n    placeholder=\"Write your notes here...\",\n    rows=4,\n    color=\"secondary\",\n    grow=1\n)\n\ndef on_text_change(data):\n    char_count.content = f\"Characters: {len(data['value'])}\"\nnotes_area.on_update(on_text_change)\n\nGroup([notes_area, char_count], layout=\"col\", label=\"Notes\", border=True)"
+    },
+&nbsp;
+    // --- Toggle ---
+    {
+        id: "tut-ui-toggle",
+        type: "markdown",
+        content: "### Toggle\n\nSwitch-style toggles for on/off states. Access the state via `.checked` property."
+    },
+    {
+        id: "tut-demo-toggle",
+        type: "code",
+        content: "from pynote_ui import Toggle, Text, Group\n\nstatus_text = Text(content=\"Dark mode: OFF\")\n\ndark_toggle = Toggle(\n    checked=False,\n    label=\"Dark Mode\",\n    color=\"primary\"\n)\n\ndef on_toggle_change(data):\n    status = \"ON\" if data['checked'] else \"OFF\"\n    status_text.content = f\"Dark mode: {status}\"\ndark_toggle.on_update(on_toggle_change)\n\nGroup([dark_toggle, status_text], layout=\"col\", label=\"Settings\", border=True)"
+    },
+&nbsp;
+    // --- Checkbox ---
+    {
+        id: "tut-ui-checkbox",
+        type: "markdown",
+        content: "### Checkbox\n\nCheckboxes for boolean selections. Works like Toggle but with a checkbox appearance."
+    },
+    {
+        id: "tut-demo-checkbox",
+        type: "code",
+        content: "from pynote_ui import Checkbox, Text, Group\n\nterms_text = Text(content=\"Please agree to terms\")\n\nterms_check = Checkbox(\n    checked=False,\n    label=\"I agree to the terms\",\n    color=\"success\"\n)\n\ndef on_check_change(data):\n    if data['checked']:\n        terms_text.content = \"Thank you for agreeing!\"\n    else:\n        terms_text.content = \"Please agree to terms\"\nterms_check.on_update(on_check_change)\n\nGroup([terms_check, terms_text], layout=\"col\", label=\"Terms\", border=True)"
+    },
+&nbsp;
+    // --- Combined Form Example ---
+    {
+        id: "tut-ui-form-combined",
+        type: "markdown",
+        content: "### Building a Complete Form\n\nCombine all form components to build interactive interfaces:"
+    },
+    {
+        id: "tut-demo-form-combined",
+        type: "code",
+        content: "from pynote_ui import Input, Select, Textarea, Toggle, Checkbox, Button, Text, Group, display\n\n# Form fields\nname_field = Input(placeholder=\"Your name\", grow=1)\nemail_field = Input(placeholder=\"Email\", input_type=\"email\", grow=1)\nrole_select = Select(\n    choices=[\"Developer\", \"Designer\", \"Manager\", \"Other\"],\n    placeholder=\"Select role\",\n    grow=1\n)\nbio_area = Textarea(placeholder=\"Tell us about yourself...\", rows=3, grow=1)\nnewsletter_toggle = Toggle(label=\"Subscribe to newsletter\", color=\"primary\")\nterms_checkbox = Checkbox(label=\"I accept the terms of service\", color=\"success\")\nsubmit_btn = Button(label=\"Submit\", color=\"primary\", style=\"soft\", disabled=True)\nresult_text = Text(content=\"\")\n\n# Enable submit only when terms are checked\ndef on_terms_change(data):\n    submit_btn.disabled = not data['checked']\nterms_checkbox.on_update(on_terms_change)\n\n# Handle submit\ndef on_submit(data):\n    result_text.content = f\"Submitted: {name_field.value} ({email_field.value})\"\nsubmit_btn.on_update(on_submit)\n\n# Layout the form\nGroup([\n    Group([name_field, email_field], layout=\"row\"),\n    role_select,\n    bio_area,\n    newsletter_toggle,\n    terms_checkbox,\n    submit_btn,\n    result_text\n], layout=\"col\", label=\"Registration Form\", border=True, gap=2)"
+    },
+&nbsp;
+    // --- Border Styling ---
+    {
+        id: "tut-ui-borders",
+        type: "markdown",
+        content: "## Border Styling\n\nAll components support a `border` prop that accepts CSS border strings. You can remove borders entirely with `border=\"none\"` or apply custom styles like `border=\"3px solid red\"`."
+    },
+&nbsp;
+    // --- Borderless Example ---
+    {
+        id: "tut-ui-borders-none",
+        type: "markdown",
+        content: "### Borderless Components\n\nCreate a clean, minimal look by removing all borders:"
+    },
+    {
+        id: "tut-demo-borders-none",
+        type: "code",
+        content: `from pynote_ui import Button, Slider, Input, Select, Textarea, Toggle, Checkbox, Text, Group
+&nbsp;
+# All components with no borders (border=False for special cleanup)
+borderless_slider = Slider(value=50, label="Volume", border=False, grow=1)
+borderless_input = Input(value="No borders", placeholder="Type here...", border=False, grow=1)
+borderless_select = Select(
+    choices=["Option 1", "Option 2", "Option 3"],
+    value="Option 1",
+    border=False,
+    grow=1
+)
+borderless_textarea = Textarea(value="Minimalist design", rows=2, border=False, grow=1)
+borderless_toggle = Toggle(checked=True, label="Enable feature", border=False)
+borderless_checkbox = Checkbox(checked=False, label="I agree", border=False)
+borderless_button = Button(label="Click Me", color="primary", border=False)
+borderless_text = Text(content="Clean text display", border=False, width="100%", align_h="center")
+&nbsp;
+# Group them in a borderless container
+Group([
+    borderless_slider,
+    Group([borderless_input, borderless_select], layout="row"),
+    borderless_textarea,
+    Group([borderless_toggle, borderless_checkbox], layout="row"),
+    borderless_button,
+    borderless_text
+], layout="col", border=False, gap=3, padding=16)`
+    },
+&nbsp;
+    // --- Colored Borders Example ---
+    {
+        id: "tut-ui-borders-colored",
+        type: "markdown",
+        content: "### Custom Colored Borders\n\nAdd visual hierarchy and emphasis with custom border colors:"
+    },
+    {
+        id: "tut-demo-borders-colored",
+        type: "code",
+        content: `from pynote_ui import Button, Slider, Input, Select, Textarea, Toggle, Checkbox, Text, Group
+&nbsp;
+# Each component with a different colored border
+red_slider = Slider(value=75, label="Red Slider", border="3px solid #ef4444", grow=1)
+blue_input = Input(value="Blue input", placeholder="Type here...", border="2px solid #3b82f6", grow=1)
+green_select = Select(
+    choices=["Green", "Forest", "Lime"],
+    value="Green",
+    border="2px solid #22c55e",
+    grow=1
+)
+purple_textarea = Textarea(value="Purple textarea", rows=2, border="2px solid #a855f7", grow=1)
+orange_toggle = Toggle(checked=True, label="Orange toggle", border="2px solid #f97316")
+pink_checkbox = Checkbox(checked=False, label="Pink checkbox", border="2px solid #ec4899")
+yellow_button = Button(label="Yellow Button", border="3px solid #eab308")
+cyan_text = Text(content="Cyan text box", border="2px dashed #06b6d4", width="100%", align_h="center")
+&nbsp;
+# Group with indigo border
+Group([
+    red_slider,
+    Group([blue_input, green_select], layout="row"),
+    purple_textarea,
+    Group([orange_toggle, pink_checkbox], layout="row", align="center"),
+    yellow_button,
+    cyan_text
+], layout="col", border="3px solid #6366f1", label="Colorful Borders", gap=2)`
+    },
+&nbsp;
+    // --- Next Steps ---
+    {
+        id: "tut-ui-next",
+        type: "markdown",
+        content: `---
+&nbsp;
+&lt;br /&gt;
+&nbsp;
+## 🎉 Interactive UI Complete!
+&nbsp;
+You now know how to build reactive interfaces with \`pynote_ui\`. Continue your learning:
+&nbsp;
+&lt;br /&gt;
+&nbsp;
+| Next Tutorial | What You'll Learn |
+|---------------|-------------------|
+| **[Interactive UI Part 1](?open=tutorial_ui_part1)** | Updated tutorial with all components, colors, sizes, and states |
+| **[Interactive UI Part 2](?open=tutorial_ui_part2)** | Layout, sizing, borders, and display functions |
+| **[Interactive UI Part 3](?open=tutorial_ui_part3)** | Forms, file uploads, and advanced patterns |
+| **[Charts &amp; Plotting](?open=tutorial_charts)** | Create beautiful visualizations with Observable Plot, uPlot, and Frappe |
+| **[Reactive Execution](?open=tutorial_reactive)** | Automatic cell propagation based on dependencies |
+| **[API Reference](?open=tutorial_api)** | Complete reference for all \`pynote_ui\` components |
+&nbsp;
+&lt;br /&gt;
+&nbsp;
+Or go back to **[Quick Start](?open=tutorial)** to review the basics.`
+    }
+];
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-04-27T21:04:40.768Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    

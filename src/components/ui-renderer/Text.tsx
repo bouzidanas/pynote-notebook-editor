@@ -1,6 +1,25 @@
-import { type Component, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import { type Component, createSignal, createEffect, createMemo, onMount, onCleanup } from "solid-js";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { kernel } from "../../lib/pyodide";
 import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
+
+// Sanitization config - mirrors the conservative subset used by the app for
+// inline HTML output (no scripts, no event handlers).
+const TEXT_PURIFY_OPTIONS = {
+  ADD_ATTR: ["class", "style"],
+};
+
+// Render markdown to sanitized HTML. Synchronous (uses marked.parse with
+// async:false default) so it stays reactive in createMemo.
+const renderMarkdown = (src: string): string => {
+  try {
+    const html = marked.parse(src, { async: false }) as string;
+    return DOMPurify.sanitize(html, TEXT_PURIFY_OPTIONS);
+  } catch {
+    return DOMPurify.sanitize(src, TEXT_PURIFY_OPTIONS);
+  }
+};
 
 // Size presets for Text component - uses Tailwind's CSS variables
 const SIZE_PRESETS = {
@@ -27,6 +46,7 @@ interface TextProps {
     color?: string | null;  // Preset name (primary/secondary/accent/etc) or custom CSS color (#hex, rgb(), etc)
     background?: boolean | string | null;
     hidden?: boolean;
+    markdown?: boolean;
   };
 }
 
@@ -38,6 +58,10 @@ const Text: Component<TextProps> = (p) => {
   const content = () => allProps().content;
   const size = () => allProps().size ?? "md";
   const hidden = () => allProps().hidden ?? false;
+  const isMarkdown = () => allProps().markdown === true;
+
+  // Memoised sanitized HTML, only recomputed when content/markdown change.
+  const renderedHtml = createMemo(() => isMarkdown() ? renderMarkdown(content() ?? "") : "");
   
   // Get size preset (default to md)
   const sizeConfig = () => SIZE_PRESETS[size()];
@@ -111,17 +135,22 @@ const Text: Component<TextProps> = (p) => {
     }
     
     // Text alignment (only matters when width/height is set or grow is used)
-    // Use flexbox for alignment so it works with any sizing mode
-    styles.display = "flex";
-    
-    // Horizontal alignment
+    // For plain text we use flexbox for align_h/align_v. For markdown we
+    // skip flex (block layout) so block-level children stack vertically;
+    // alignment is handled via `text-align` instead.
     const alignH = allProps().align_h ?? "left";
-    styles["justify-content"] = alignH === "center" ? "center" : alignH === "right" ? "flex-end" : "flex-start";
-    
-    // Vertical alignment
     const alignV = allProps().align_v ?? "top";
-    styles["align-items"] = alignV === "center" ? "center" : alignV === "bottom" ? "flex-end" : "flex-start";
-    
+    if (isMarkdown()) {
+      styles.display = "block";
+      styles["text-align"] = alignH === "center" ? "center" : alignH === "right" ? "right" : "left";
+      // Vertical alignment is meaningful only when an explicit height is set;
+      // for markdown blocks, just leave default flow (top-aligned).
+    } else {
+      styles.display = "flex";
+      styles["justify-content"] = alignH === "center" ? "center" : alignH === "right" ? "flex-end" : "flex-start";
+      styles["align-items"] = alignV === "center" ? "center" : alignV === "bottom" ? "flex-end" : "flex-start";
+    }
+
     return styles;
   };
   
@@ -130,10 +159,11 @@ const Text: Component<TextProps> = (p) => {
 
   return (
     <div 
-      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}`}
+      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}${isMarkdown() ? " prose prose-sm max-w-none" : ""}`}
       style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), color: colorValue() }}
+      {...(isMarkdown() ? { innerHTML: renderedHtml() } : {})}
     >
-      {content()}
+      {isMarkdown() ? null : content()}
     </div>
   );
 };

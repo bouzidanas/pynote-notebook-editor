@@ -1,6 +1,6 @@
 import { type Component, onMount, onCleanup, createEffect /* , createSignal */ } from "solid-js";
 import { TextSelection } from "@milkdown/kit/prose/state"; // Standard state handling
-import { actions, type CellData } from "../lib/store";
+import { actions, notebookStore, type CellData } from "../lib/store";
 
 // Core Framework
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, schemaCtx } from "@milkdown/kit/core";
@@ -39,18 +39,19 @@ import { history } from "@milkdown/kit/plugin/history";
 import { clipboard } from "@milkdown/kit/plugin/clipboard";
 
 // Utilities & ProseMirror Bridge
-import { callCommand } from "@milkdown/kit/utils";
+import { callCommand, getMarkdown, replaceAll } from "@milkdown/kit/utils";
 import { lift, wrapIn, setBlockType } from "@milkdown/kit/prose/commands"; // Re-exported from kit
 import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"; // Import standard history commands
 import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
 // UI Components
-import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video, /* TextAlignCenter, TextAlignEnd, */ TextAlignStart } from "lucide-solid";
+import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Code, SquareCode, Image, Table, MoreHorizontal, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Trash, Plus, Delete, CaptionsIcon, Video, SquareSplitHorizontal, /* TextAlignCenter, TextAlignEnd, */ TextAlignStart } from "lucide-solid";
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
 import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
 import { captionMark, toggleCaptionCommand } from "../lib/captionPlugin";
 import { videoEmbed } from "../lib/videoEmbedPlugin";
+import { computeSplit, isSplitShortcut } from "../lib/markdownSplit";
 // import { textAlign } from "../lib/textAlignPlugin"; // disabled until alignment bug is fixed
 import clsx from "clsx";
 
@@ -185,6 +186,33 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         });
       })
       .catch((e) => console.error("Milkdown init error", e));
+
+    // Keyboard shortcut: Mod+Shift+Enter to split the current markdown cell
+    // at the cursor. Chosen because it is not used by the app or by Chrome /
+    // Firefox / Safari, and is a natural extension of the "Enter creates a
+    // new line / break" mental model. We only act when this editor's view
+    // has DOM focus so the shortcut is scoped to the cell being edited.
+    const handleSplitShortcut = (e: KeyboardEvent) => {
+      if (props.readOnly) return;
+      if (!isSplitShortcut(e)) return;
+      if (!editorInstance) return;
+      let hasFocus = false;
+      try {
+        editorInstance.action((ctx) => {
+          const view = ctx.get(editorViewCtx);
+          hasFocus = !!view && view.hasFocus();
+        });
+      } catch {
+        return;
+      }
+      if (!hasFocus) return;
+      e.preventDefault();
+      e.stopPropagation();
+      splitCell();
+    };
+    // Capture phase so we run before global handlers in Notebook.tsx.
+    window.addEventListener("keydown", handleSplitShortcut, true);
+    onCleanup(() => window.removeEventListener("keydown", handleSplitShortcut, true));
   });
 
   onCleanup(() => {
@@ -348,6 +376,75 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
     }
   };
 
+  const splitShortcutHint =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform)
+      ? "⌘⇧↵"
+      : "Ctrl+Shift+Enter";
+
+  // Split the current markdown cell into two cells at the cursor position.
+  // - The original editor (and its focus) is preserved; only its visible
+  //   content is trimmed in place. A single new sibling cell is inserted with
+  //   the "other half" via `actions.insertMarkdownCell`, which deliberately
+  //   does not steal active/edit state.
+  // - Cursor placement is "smart": whichever side has the closest
+  //   non-whitespace content keeps the cursor. Ties go to the end of the
+  //   first cell. The cursor never has to be re-focused because the original
+  //   editor is the one that retains focus in both branches.
+  // - Trailing newlines on the first half and leading newlines on the second
+  //   are stripped (the cell boundary already provides spacing).
+  const splitCell = () => {
+    if (props.readOnly || !editorInstance) return;
+
+    editorInstance.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      if (!view) return;
+      const { state } = view;
+      const cursorPos = state.selection.from;
+      const docSize = state.doc.content.size;
+
+      let beforeMd = "";
+      let afterMd = "";
+      try {
+        beforeMd = cursorPos > 0 ? getMarkdown({ from: 0, to: cursorPos })(ctx) : "";
+        afterMd = cursorPos < docSize ? getMarkdown({ from: cursorPos, to: docSize })(ctx) : "";
+      } catch (e) {
+        console.warn("Markdown split: failed to serialize halves", e);
+        return;
+      }
+
+      const { beforeContent, afterContent, focusFirst } = computeSplit(beforeMd, afterMd);
+
+      const idx = notebookStore.cells.findIndex((c) => c.id === props.cell.id);
+      if (idx === -1) return;
+
+      // The original cell keeps the half that should hold the cursor; the
+      // other half goes into a brand-new sibling cell. Order of operations:
+      //   1) Insert the sibling first so the new cell appears next to the
+      //      original at the right index regardless of which half stays.
+      //   2) Replace the live editor's content with the "kept" half. This
+      //      triggers the existing markdownUpdated listener which writes
+      //      back to the store and is captured by the in-flight edit
+      //      session for normal undo/redo on exit.
+      if (focusFirst) {
+        actions.insertMarkdownCell(idx + 1, afterContent);
+      } else {
+        actions.insertMarkdownCell(idx, beforeContent);
+      }
+
+      const keepContent = focusFirst ? beforeContent : afterContent;
+      try {
+        replaceAll(keepContent)(ctx);
+        const v = ctx.get(editorViewCtx);
+        const sel = focusFirst
+          ? TextSelection.atEnd(v.state.doc)
+          : TextSelection.atStart(v.state.doc);
+        v.dispatch(v.state.tr.setSelection(sel).scrollIntoView());
+      } catch (e) {
+        console.warn("Markdown split: failed to update kept half", e);
+      }
+    });
+  };
+
 // --- External Signal Handling ---
   createEffect(() => {
     const action = props.cell.editorAction;
@@ -433,7 +530,6 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         <div class="flex sm:hidden items-center">
              <Dropdown
                 compact
-                usePortal={true}
                 trigger={
                     <button class="btn-icon" title="More Formatting">
                         <MoreHorizontal size={16} />
@@ -505,6 +601,9 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                         <div class="flex items-center gap-2 text-primary"><Trash size={16} /> Delete Table</div>
                     </DropdownItem>
                 </DropdownNested>
+                <DropdownItem onClick={splitCell}>
+                    <div class="flex items-center gap-2"><SquareSplitHorizontal size={16} /> Split Cell</div>
+                </DropdownItem>
              </Dropdown>
         </div>
 
@@ -593,6 +692,10 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                     <div class="flex items-center gap-2 text-primary"><Trash size={16} /> Delete Table</div>
                 </DropdownItem>
             </Dropdown>
+            {/* Split Cell at Cursor */}
+            <button onClick={splitCell} class="btn-icon" title={`Split Cell at Cursor (${splitShortcutHint})`}>
+              <SquareSplitHorizontal size={16} />
+            </button>
             {/* More Menu (Desktop) */}
             <Dropdown
               compact

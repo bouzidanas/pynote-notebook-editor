@@ -21,6 +21,7 @@ interface GroupProps {
     overflow?: "visible" | "hidden" | "scroll" | "auto" | "scroll-x" | "scroll-y";
     force_dimensions?: boolean;
     hidden?: boolean;
+    wrap?: boolean;
   };
 }   
 
@@ -190,7 +191,8 @@ const Group: Component<GroupProps> = (p) => {
     // For row: items-stretch makes children fill vertical space (cross axis)
     // alignClass handles: row → justify (horizontal), col → items (horizontal)
     const verticalStretch = isRow ? "items-stretch" : "";
-    return `flex ${direction} ${gap} w-full ${verticalStretch} ${alignClass()}`;
+    const wrapClass = allProps().wrap ? "flex-wrap" : "";
+    return `flex ${direction} ${gap} w-full ${verticalStretch} ${wrapClass} ${alignClass()}`;
   };
 
   const content = (
