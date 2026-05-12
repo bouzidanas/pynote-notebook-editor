@@ -5,13 +5,7 @@ export const codingPrepSection1Cells: CellData[] = [
     {
         id: "cp1-h",
         type: "markdown",
-        content: `[← Back to Table of Contents](?open=coding-prep)
-
-# Section 1: Basic Python & Scripting
-
-*Part 1 of the Python Interview Prep series.*
-
----`,
+        content: `[← Back to Table of Contents](?open=coding-prep)`,
     },
     {
         id: "cp1-helper",
@@ -20,6 +14,22 @@ export const codingPrepSection1Cells: CellData[] = [
 from pynote_ui import Button, Group, Text
 from pynote_ui.oplot import Plot
 import time, copy, statistics
+import js
+from pyodide.ffi import create_proxy
+
+def _defer(fn, delay_ms=0):
+    """Schedule a Python callable to run on the worker's next macrotask.
+    Yields control to the worker event loop so queued UI interactions
+    (button clicks, etc.) get a chance to be processed before fn runs."""
+    proxy = None
+    def _wrapper(*_):
+        try:
+            fn()
+        finally:
+            if proxy is not None:
+                proxy.destroy()
+    proxy = create_proxy(_wrapper)
+    js.setTimeout(proxy, delay_ms)
 
 def _time_one(fn, args):
     """Measure one call's wall time in milliseconds.
@@ -39,9 +49,11 @@ def _time_one(fn, args):
     if elapsed <= 0:
         elapsed = 1e-9
     if elapsed < 0.005:
-        # Aim for ~50 ms total wall time, capped to a sensible loop count
-        target_total = 0.05
-        repeats = max(2, min(int(target_total / elapsed), 5000))
+        # Aim for ~30 ms total wall time, capped to a sensible loop count.
+        # (Was 50 ms; cut to keep perf-check responsive without harming
+        # measurement quality much - clock noise floor is ~1 ms in pyodide.)
+        target_total = 0.03
+        repeats = max(2, min(int(target_total / elapsed), 3000))
         copies = [copy.deepcopy(args) for _ in range(repeats)]
         t0 = time.perf_counter()
         for ai in copies:
@@ -54,6 +66,31 @@ def _time_one(fn, args):
     return elapsed * 1000.0
 
 
+def _short_repr(val, limit=80):
+    """Return a repr that is safely truncated for display."""
+    try:
+        r = repr(val)
+    except Exception:
+        r = "<unrepr-able value>"
+    if len(r) > limit:
+        r = r[:limit-3] + "..."
+    return r
+
+
+def _fmt_args(args):
+    """Format a tuple of args as a comma-separated argument list."""
+    if not isinstance(args, tuple):
+        args = (args,)
+    return ", ".join(_short_repr(a, 60) for a in args)
+
+
+# Status icons used inside the per-test buttons
+_ICON_PENDING = "\u25CB"   # hollow circle - not yet run
+_ICON_RUNNING = "\u22EF"   # midline ellipsis - currently running
+_ICON_PASS    = "\u2705"   # green check
+_ICON_FAIL    = "\u274C"   # red X
+
+
 def _check_solution(func_name, cases=None, edge_cases=None,
                     fast_impl=None, slow_impl=None, perf_inputs=None,
                     setup=None, custom_test=None,
@@ -62,110 +99,396 @@ def _check_solution(func_name, cases=None, edge_cases=None,
     """Build a Check Solution button bound to test specs.
 
     func_name: name of function (or class) looked up in globals()
-    cases: list of (args_tuple, expected, label) — main correctness tests
-    edge_cases: list of (args_tuple, expected, label) — edge cases
+    cases: list of (args_tuple, expected, label) - main correctness tests
+    edge_cases: list of (args_tuple, expected, label) - edge cases
     fast_impl, slow_impl: callables for benchmark comparison
     perf_inputs: list of args tuples used for fixed-input benchmark bar chart
     setup: callable run before tests (e.g., to populate filesystem)
     custom_test: callable(func) -> (pass_count, fail_count, rows)
-    pre_run: callable(func, args) -> args — transform args before each call
-    size_gen: callable(n: int) -> args_tuple — produces an input of size n
+    pre_run: callable(func, args) -> args - transform args before each call
+    size_gen: callable(n: int) -> args_tuple - produces an input of size n
               for the Big-O complexity scan
     sizes: list of int sizes to feed into size_gen for the complexity plot
     """
     cases = cases or []
     edge_cases = edge_cases or []
 
-    initial = [Text(content="Click to verify your solution.",
-                    color="info", border="info", size="sm")]
-    results = Group(initial, border=False, background=False)
+    # Header text - updates live as tests progress
+    head = Text(content="Click 'Check Solution' to run the tests below.",
+                color="info", border=False, size="lg")
+
+    # Single shared details panel - shown when user clicks a test button.
+    # Filled in via the _show closure defined below. Renders markdown so we
+    # can use bold headers + inline code spans for arg/expected values.
+    _DETAILS_PLACEHOLDER = "_(click a test to see details)_"
+    details_t = Text(content=_DETAILS_PLACEHOLDER, color="info",
+                     border=False, background=False,
+                     width="100%", align_h="left", hidden=True,
+                     markdown=True)
+
+    # Pre-create one button per declared case. The details panel is shared.
+    declared = []
+    case_buttons = []
+
+    def _make_btn(label):
+        return Button(
+            label=_ICON_PENDING + "  " + label,
+            color="neutral", style="ghost",
+            align_h="left",
+        )
+
+    for case_tuple in cases:
+        args, expected, label = case_tuple[0], case_tuple[1], case_tuple[2]
+        scenario = case_tuple[3] if len(case_tuple) > 3 else None
+        spec = {
+            "kind": "main", "label": label, "args": args, "expected": expected,
+            "btn": _make_btn(label),
+            "kind_label": "Main correctness case",
+            "scenario": scenario,
+            "procedure": "Calls " + func_name + "(" + _fmt_args(args) + ")",
+            "expected_str": "Expects: " + _short_repr(expected, 120),
+            "status_line": "Status: not yet run",
+            "color": "info",
+        }
+        declared.append(spec)
+        case_buttons.append(spec["btn"])
+    for case_tuple in edge_cases:
+        args, expected, label = case_tuple[0], case_tuple[1], case_tuple[2]
+        scenario = case_tuple[3] if len(case_tuple) > 3 else None
+        spec = {
+            "kind": "edge", "label": label, "args": args, "expected": expected,
+            "btn": _make_btn(label),
+            "kind_label": "Edge case",
+            "scenario": scenario,
+            "procedure": "Calls " + func_name + "(" + _fmt_args(args) + ")",
+            "expected_str": "Expects: " + _short_repr(expected, 120),
+            "status_line": "Status: not yet run",
+            "color": "info",
+        }
+        declared.append(spec)
+        case_buttons.append(spec["btn"])
+
+    # Test rows are hidden until the user clicks Check Solution.
+    cases_group = Group(case_buttons, layout="row", wrap=True, border=False,
+                        background=False, gap=1, hidden=True, align="start")
+    # Thin horizontal divider between the test buttons and details panel.
+    hrule = Group([], width="100%", height="1px",
+                  background="#ffffff22", border=False, hidden=True)
+    # Custom-test results aren't known until the callable runs, so we keep a
+    # placeholder Group whose children are filled in during the run.
+    custom_group = Group([], layout="row", wrap=True, border=False,
+                         background=False, gap=1, align="start")
+    perf_group   = Group([], layout="col", border=False, background=False,
+                        gap=1, align="start")
+    # Perf button is appended only if perf is configured. It's hidden until
+    # the correctness tests have completed successfully (no failures).
+    perf_btn = Button(label="Check Performance", color="primary", style="soft",
+                      size="lg", width="100%", background="#ffffff11",
+                      hidden=True, disabled=True)
+
+    container_children = [head, cases_group, hrule, details_t, custom_group, perf_btn, perf_group]
+    container = Group(container_children, layout="col",
+                      border=False, background=False, gap=1)
+
+    # Tracks every interactive button so the perf phase can disable them all
+    # while it runs (otherwise the worker is busy and clicks are ignored
+    # anyway, but greying them out makes the UX honest).
+    all_test_buttons = []
+
+    # Mutable counters captured by closures
+    counters = {"passed": 0, "failed": 0, "declared_total": len(declared),
+                "custom_total": 0, "started": False}
+
+    # Holds runtime state shared between _run_checks and _run_perf (e.g. the
+    # resolved user function). Populated each time tests run.
+    runtime = {"func": None}
+
+    # Currently selected test (whose details are shown). None means hidden.
+    selected = {"spec": None}
+
+    def _strip_prefix(text, prefix):
+        return text[len(prefix):] if text.startswith(prefix) else text
+
+    def _format_details(spec):
+        # Markdown layout:
+        #   ### Test label
+        #   <scenario paragraph>            (optional plain-English explanation)
+        #   - **Type:** Category
+        #   - **Procedure:** \`call(...)\`
+        #   - **Expects:** \`value\`
+        #   - **Status:** ...
+        title = "### " + spec["label"]
+        status_raw = _strip_prefix(spec["status_line"], "Status: ")
+        bullets = []
+        bullets.append("- **Type:** " + spec["kind_label"])
+        proc = spec["procedure"]
+        if proc.startswith("Calls "):
+            call_expr = _strip_prefix(proc, "Calls ")
+            bullets.append("- **Procedure:** \`" + call_expr + "\`")
+        else:
+            bullets.append("- " + _strip_prefix(proc, "Procedure: "))
+        if spec.get("expected_str"):
+            exp = _strip_prefix(spec["expected_str"], "Expects: ")
+            bullets.append("- **Expects:** \`" + exp + "\`")
+        bullets.append("- **Status:** " + status_raw)
+        parts = [title]
+        if spec.get("scenario"):
+            parts.append(spec["scenario"])
+        parts.append("\\n".join(bullets))
+        return "\\n\\n".join(parts)
+
+    def _show_details(spec):
+        prev = selected["spec"]
+        # Clicking the same button again reverts to the placeholder and clears highlight.
+        if prev is spec:
+            selected["spec"] = None
+            spec["btn"].options(background=False)
+            details_t.content = _DETAILS_PLACEHOLDER
+            details_t.options(color="info")
+            return
+        # Clear highlight from previously-selected button (if any).
+        if prev is not None:
+            prev["btn"].options(background=False)
+        selected["spec"] = spec
+        spec["btn"].options(background="#ffffff11")
+        details_t.content = _format_details(spec)
+        details_t.options(color=spec["color"])
+        details_t.show()
+
+    # Bind each declared button to the shared details panel.
+    for _spec in declared:
+        _spec["btn"].on_update(
+            lambda _=None, s=_spec: _show_details(s))
+
+    def _set_head(text, color):
+        head.content = text
+        head.options(color=color)
+
+    def _update_head():
+        c = counters
+        total = c["declared_total"] + c["custom_total"]
+        done = c["passed"] + c["failed"]
+        if total == 0:
+            _set_head("No tests defined", "info")
+        elif done < total and c["started"]:
+            if c["failed"] == 0:
+                _set_head(str(c["passed"]) + "/" + str(total) + " tests passed (running...)",
+                          "info")
+            else:
+                _set_head(str(c["passed"]) + " passed, " + str(c["failed"]) +
+                          " failed so far (running...)", "warning")
+        elif c["failed"] == 0:
+            _set_head("All " + str(total) + " tests passed!", "success")
+        elif c["passed"] == 0:
+            _set_head(str(c["failed"]) + "/" + str(total) + " tests failed", "error")
+        else:
+            _set_head(str(c["passed"]) + " passed, " + str(c["failed"]) +
+                      " failed (of " + str(total) + ")", "warning")
+
+    def _set_status(spec, status, *, actual=None, error=None):
+        btn = spec["btn"]
+        label = spec["label"]
+        if status == "pending":
+            btn.label = _ICON_PENDING + "  " + label
+            btn.options(color="neutral", style="ghost")
+            spec["status_line"] = "Status: not yet run"
+            spec["color"] = "info"
+        elif status == "running":
+            btn.label = _ICON_RUNNING + "  " + label
+            btn.options(color="info", style="ghost")
+            spec["status_line"] = "Status: running..."
+            spec["color"] = "info"
+        elif status == "pass":
+            btn.label = _ICON_PASS + "  " + label
+            btn.options(color="success", style="ghost")
+            spec["status_line"] = "Status: passed - output matches expected value."
+            spec["color"] = "success"
+        else:  # fail
+            btn.label = _ICON_FAIL + "  " + label
+            btn.options(color="error", style="ghost")
+            if error is not None:
+                spec["status_line"] = "Status: failed - raised " + error
+            else:
+                spec["status_line"] = ("Status: failed - expected " +
+                                       _short_repr(spec["expected"], 80) +
+                                       ", got " + _short_repr(actual, 80))
+            spec["color"] = "error"
+        # If this spec is currently displayed in the shared details panel,
+        # refresh it live so the user sees status transitions while it's open.
+        if selected["spec"] is spec:
+            details_t.content = _format_details(spec)
+            details_t.options(color=spec["color"])
 
     def run(_=None):
-        kids = []
+        run_btn.label = "Checking..."
+        run_btn.disabled = True
+        # Hide perf button & results from any previous run.
+        perf_btn.hide()
+        perf_btn.disabled = True
+        perf_group.send_update(children=[])
+        try:
+            _run_checks()
+        finally:
+            _finish_run()
+
+    def _finish_run():
+        run_btn.label = "Check Solution"
+        run_btn.disabled = False
+        # Show the Check Performance button only if perf is configured AND
+        # all correctness tests passed. Otherwise leave it hidden.
+        perf_available = (
+            (perf_inputs and fast_impl and slow_impl) or
+            (size_gen and sizes and fast_impl and slow_impl)
+        )
+        if perf_available and counters["failed"] == 0 and counters["started"]:
+            perf_btn.label = "Check Performance"
+            perf_btn.disabled = False
+            perf_btn.show()
+
+    def _set_buttons_disabled(flag):
+        """Grey out / re-enable every interactive button during perf."""
+        run_btn.disabled = flag
+        for b in all_test_buttons:
+            b.disabled = flag
+
+    def _run_checks():
+        # Hide test rows during reset so the user never sees them flash back
+        # to the "pending" state on a re-run. We only re-show them once the
+        # button is in the "Checking..." state and the per-row resets are done.
+        cases_group.hide()
+        hrule.hide()
+        # Hide the shared details panel and clear the selection (also clear
+        # any lingering highlight from the previously-selected test button).
+        if selected["spec"] is not None:
+            selected["spec"]["btn"].options(background=False)
+        selected["spec"] = None
+        details_t.hide()
+        # Reset the tracked-button list; rebuilt below as buttons are wired up.
+        all_test_buttons.clear()
+        for spec in declared:
+            all_test_buttons.append(spec["btn"])
+        # Clear any stale func reference from a previous run.
+        runtime["func"] = None
+        # Reset counters and per-case UI to "pending" before each run.
+        counters["passed"] = 0
+        counters["failed"] = 0
+        counters["custom_total"] = 0
+        counters["started"] = True
+        for spec in declared:
+            _set_status(spec, "pending")
+        custom_group.send_update(children=[])
+        perf_group.send_update(children=[])
+        cases_group.show()
+        hrule.show()
+        details_t.content = _DETAILS_PLACEHOLDER
+        details_t.options(color="info")
+        details_t.show()
+        _update_head()
+
         try:
             if setup:
                 setup()
         except Exception as e:
-            results.send_update(children=[
-                Text(content="Setup failed: " + str(e),
-                     color="error", border="error").to_json()
-            ])
+            _set_head("Setup failed: " + str(e), "error")
             return
 
         if func_name not in globals():
-            results.send_update(children=[
-                Text(content="Run the exercise cell above first to define \`" + func_name + "\`",
-                     color="warning", border="warning").to_json()
-            ])
+            _set_head("Run the exercise cell above first to define \`" + func_name + "\`",
+                      "warning")
             return
 
         func = globals()[func_name]
-        passed, failed = 0, 0
-        rows = []
-        all_cases = [(c, "main") for c in cases] + [(c, "edge") for c in edge_cases]
+        runtime["func"] = func
 
-        for case, kind in all_cases:
-            args, expected, label = case
+        # Run each declared case sequentially, updating its widget as we go.
+        for spec in declared:
+            _set_status(spec, "running")
             try:
-                fresh = copy.deepcopy(args)
+                fresh = copy.deepcopy(spec["args"])
                 actual = func(*fresh)
-                if actual == expected:
-                    passed += 1
-                    rows.append(("pass", kind, label, ""))
+                if actual == spec["expected"]:
+                    counters["passed"] += 1
+                    _set_status(spec, "pass")
                 else:
-                    failed += 1
-                    rows.append(("fail", kind, label,
-                                 "expected " + repr(expected) + ", got " + repr(actual)))
+                    counters["failed"] += 1
+                    _set_status(spec, "fail", actual=actual)
             except Exception as e:
-                failed += 1
-                rows.append(("fail", kind, label,
-                             "raised " + type(e).__name__ + ": " + str(e)))
+                counters["failed"] += 1
+                _set_status(spec, "fail",
+                            error=type(e).__name__ + ": " + str(e))
+            _update_head()
 
+        # Custom tests are opaque: run, then materialise one button per result.
         if custom_test:
             try:
                 p, f, extra = custom_test(func)
-                passed += p
-                failed += f
-                rows.extend(extra)
             except Exception as e:
-                failed += 1
-                rows.append(("fail", "custom", "custom test", "crashed: " + str(e)))
+                p, f = 0, 1
+                extra = [("fail", "custom", "custom test", "crashed: " + str(e))]
+            counters["passed"] += p
+            counters["failed"] += f
+            counters["custom_total"] = p + f
+            custom_buttons = []
+            for status, kind, label, detail_msg in extra:
+                if status == "pass":
+                    icon, color = _ICON_PASS, "success"
+                    status_line = "Status: passed" + (
+                        " - " + detail_msg if detail_msg else "")
+                else:
+                    icon, color = _ICON_FAIL, "error"
+                    status_line = "Status: failed" + (
+                        " - " + detail_msg if detail_msg else "")
+                cbtn = Button(label=icon + "  " + label, color=color,
+                              style="ghost", align_h="left")
+                cspec = {
+                    "kind": "custom", "label": label, "btn": cbtn,
+                    "kind_label": "Custom check (" + kind + ")",
+                    "procedure": ("Procedure: scenario-specific behavioural "
+                                  "check defined in this exercise's test cell."),
+                    "expected_str": "",
+                    "status_line": status_line,
+                    "color": color,
+                }
+                cbtn.on_update(lambda _=None, s=cspec: _show_details(s))
+                custom_buttons.append(cbtn)
+                all_test_buttons.append(cbtn)
+            custom_group.send_update(
+                children=[b.to_json() for b in custom_buttons])
+            _update_head()
 
-        total = passed + failed
-        if total == 0:
-            head_color = "info"
-            head_label = "No tests defined"
-        elif failed == 0:
-            head_color = "success"
-            head_label = "All " + str(total) + " tests passed!"
-        elif passed == 0:
-            head_color = "error"
-            head_label = str(failed) + "/" + str(total) + " tests failed"
-        else:
-            head_color = "warning"
-            head_label = str(passed) + "/" + str(total) + " tests passed"
+        # Perf is now triggered by the separate "Check Performance" button
+        # rendered after the correctness tests. _finish_run() (called from
+        # run()'s finally) decides whether to show it.
 
-        kids.append(Text(content=head_label, color=head_color, border=head_color, size="lg"))
-        for status, kind, label, detail in rows:
-            icon = "PASS" if status == "pass" else "FAIL"
-            color = "success" if status == "pass" else "error"
-            tag = "" if kind == "main" else " [" + kind + "]"
-            txt = "[" + icon + "] " + label + tag
-            if detail:
-                txt += " - " + detail
-            kids.append(Text(content=txt, color=color, border=color, size="sm"))
+    # ---- Perf phase: triggered by perf_btn click ----
+    def _run_perf(_=None):
+        func = runtime.get("func")
+        if func is None:
+            return
+        perf_btn.label = "Checking Performance..."
+        _set_buttons_disabled(True)
+        # Clear any prior perf output before re-running.
+        perf_group.send_update(children=[])
+        perf_kids = []
 
-        # Benchmark only when correctness passes
-        if perf_inputs and fast_impl and slow_impl and failed == 0:
-            def _bench(f, inputs):
-                times = []
-                for args in inputs:
-                    t = _time_one(f, args)
-                    if t is None:
-                        return None
-                    times.append(t)
-                return statistics.mean(times) if times else None
+        def _flush_perf():
+            if perf_kids:
+                perf_group.send_update(children=[k.to_json() for k in perf_kids])
+
+        def _finish_perf():
+            _set_buttons_disabled(False)
+            perf_btn.label = "Check Performance"
+
+        def _run_bench():
             try:
+                def _bench(f, inputs):
+                    times = []
+                    for args in inputs:
+                        t = _time_one(f, args)
+                        if t is None:
+                            return None
+                        times.append(t)
+                    return statistics.mean(times) if times else None
                 u = _bench(func, perf_inputs)
                 ff = _bench(fast_impl, perf_inputs)
                 ss = _bench(slow_impl, perf_inputs)
@@ -175,12 +498,16 @@ def _check_solution(func_name, cases=None, edge_cases=None,
                         {"impl": "Yours",    "ms": round(u, 4)},
                         {"impl": "Slow ref", "ms": round(ss, 4)},
                     ]
-                    kids.append(Text(content="Performance benchmark (average over " + str(len(perf_inputs)) + " inputs)",
-                                     color="info", border="info", size="sm"))
-                    kids.append(Plot(bench_data, x="impl", y="ms", mark="barY",
-                                     fill="impl",
-                                     title="Execution time (ms, lower is better)",
-                                     height=200))
+                    perf_kids.append(Text(
+                        content="Performance benchmark (average over " +
+                                str(len(perf_inputs)) + " inputs)",
+                        color="info", border=False, background=False,
+                        align_h="left"))
+                    perf_kids.append(Plot(bench_data, x="impl", y="ms", mark="barY",
+                                          fill="impl",
+                                          x_domain=["Fast ref", "Yours", "Slow ref"],
+                                          title="Execution time (ms, lower is better)",
+                                          height=200))
                     if u <= ff * 1.5:
                         v_color = "success"
                         v_text = "Your solution matches the fast reference"
@@ -190,12 +517,21 @@ def _check_solution(func_name, cases=None, edge_cases=None,
                     else:
                         v_color = "error"
                         v_text = "Comparable to the slow reference - try to optimize for better performance"
-                    kids.append(Text(content=v_text, color=v_color, border=v_color, size="sm"))
+                    perf_kids.append(Text(content=v_text, color=v_color,
+                                          border=False, background=False,
+                                          align_h="left"))
             except Exception as e:
-                kids.append(Text(content="Benchmark skipped: " + str(e), color="info", border="info", size="sm"))
+                perf_kids.append(Text(content="Benchmark skipped: " + str(e),
+                                      color="info", border=False, background=False,
+                                      align_h="left"))
+            _flush_perf()
+            # Yield before Big-O scan so queued clicks get processed.
+            if size_gen and sizes and fast_impl and slow_impl:
+                _defer(_run_bigo)
+            else:
+                _defer(_finish_perf)
 
-        # Big-O complexity scan: time vs input size
-        if size_gen and sizes and fast_impl and slow_impl and failed == 0:
+        def _run_bigo():
             try:
                 series = []
                 for n in sizes:
@@ -210,29 +546,37 @@ def _check_solution(func_name, cases=None, edge_cases=None,
                     if ts is not None:
                         series.append({"n": n, "ms": round(ts, 4), "impl": "Slow ref"})
                 if series:
-                    kids.append(Text(
+                    perf_kids.append(Text(
                         content="Big-O scaling: time vs input size n",
-                        color="info", border="info", size="sm"))
-                    kids.append(Plot(
-                        series,
-                        x="n", y="ms",
-                        mark="line",
-                        z="impl", stroke="impl",
-                        marker="dot",
+                        color="info", border=False, background=False,
+                        align_h="left"))
+                    perf_kids.append(Plot(
+                        series, x="n", y="ms", mark="line",
+                        z="impl", stroke="impl", marker="dot",
                         title="Execution time vs input size (lower is better, slope = complexity class)",
-                        x_label="input size n",
-                        y_label="time (ms)",
+                        x_label="input size n", y_label="time (ms)",
                         height=240,
                     ))
             except Exception as e:
-                kids.append(Text(content="Complexity scan skipped: " + str(e),
-                                 color="info", border="info", size="sm"))
+                perf_kids.append(Text(content="Complexity scan skipped: " + str(e),
+                                      color="info", border=False, background=False,
+                                      align_h="left"))
+            _flush_perf()
+            _defer(_finish_perf)
 
-        results.send_update(children=[k.to_json() for k in kids])
+        # Decide which perf chain to schedule.
+        if perf_inputs and fast_impl and slow_impl:
+            _defer(_run_bench)
+        elif size_gen and sizes and fast_impl and slow_impl:
+            _defer(_run_bigo)
+        else:
+            _defer(_finish_perf)
 
-    btn = Button(label="Check Solution", color="primary", style="soft")
-    btn.on_update(run)
-    return Group([btn, results], layout="col", border=False, background=False)
+    run_btn = Button(label="Check Solution", color="primary", style="soft", size="lg", width="100%", background="#ffffff11")
+    run_btn.on_update(run)
+    perf_btn.on_update(_run_perf)
+    return Group([run_btn, container], layout="col",
+                 border=False, background=False)
 `,
         metadata: {
             pynote: {
@@ -243,11 +587,20 @@ def _check_solution(func_name, cases=None, edge_cases=None,
         },
     },
     {
+        id: "cp1-h2",
+        type: "markdown",
+        content: `# Section 1: Basic Python & Scripting
+
+*Part 1 of the Python Interview Prep series.*
+
+---`,
+    },
+    {
         id: "cp1-c1",
         type: "markdown",
         content: `## 1.1 Strings, Lists & Tuples
 
-**Concept Overview**:
+#### Concept Overview
 
 **1. Mutability vs. Immutability**
 In Python, every variable is a reference to an object in memory. 
@@ -286,27 +639,199 @@ print(s)  # 'interview' (new string, not in-place)`,
     {
         id: "cp1-c3",
         type: "markdown",
+        content: `##### Type Conversions & Casting
+
+Most built-in types double as **constructors** — call them like a function to convert between types. This is essential for moving between mutable/immutable forms (e.g. swapping a \`Counter\` back to a \`dict\`, or a \`set\` back to a \`list\` to index it).
+
+| Constructor | Accepts | Result |
+|---|---|---|
+| \`list(iterable)\` | any iterable | mutable list |
+| \`tuple(iterable)\` | any iterable | immutable, hashable (if items are) |
+| \`set(iterable)\` | any iterable | mutable, unique items, unordered |
+| \`frozenset(iterable)\` | any iterable | immutable set, hashable |
+| \`dict(iterable_of_pairs)\` or \`dict(**kwargs)\` | pairs/mapping | mutable mapping |
+| \`str(obj)\` | any object | string representation |
+| \`int(x)\`, \`float(x)\` | str/number | numeric (raises \`ValueError\` on bad str) |
+| \`bool(x)\` | any | \`False\` for \`0\`, \`""\`, \`[]\`, \`{}\`, \`None\`; else \`True\` |
+
+**Common patterns interviewers expect you to know cold:**`,
+    },
+    {
+        id: "cp1-c4",
+        type: "code",
+        content: `from collections import Counter
+
+# String <-> list of chars
+list("hello")          # ['h', 'e', 'l', 'l', 'o']
+"".join(['h', 'i'])    # 'hi'  (join is the inverse of list(str))
+
+# List <-> set (deduplicate, then restore list type)
+list(set([1, 1, 2, 3, 3]))   # [1, 2, 3]  (order not guaranteed)
+
+# List <-> tuple (make hashable so it can be a dict key / set member)
+tuple([1, 2, 3])             # (1, 2, 3)
+list((1, 2, 3))              # [1, 2, 3]
+
+# Counter -> dict (Counter IS a dict subclass, but cast for clean output / type checks)
+dict(Counter("banana"))      # {'b': 1, 'a': 3, 'n': 2}
+
+# dict <-> list of (key, value) pairs
+list({"a": 1, "b": 2}.items())   # [('a', 1), ('b', 2)]
+dict([('a', 1), ('b', 2)])       # {'a': 1, 'b': 2}
+
+# Range -> list (range is lazy; cast to materialize)
+list(range(5))               # [0, 1, 2, 3, 4]
+
+print(list("hello"), list(set([1,1,2])), tuple([1,2,3]), dict(Counter("aab")))`,
+    },
+    {
+        id: "cp1-c5",
+        type: "markdown",
+        content: `##### Common Built-in Functions
+
+These are commonly used utility functions in Python. Mastering them pays off well beyond interviews: they show up in nearly every script, library, and production codebase.
+
+**Driving loops & iteration**
+You use these when *moving through* a sequence. They replace the manual \`for i in range(len(x))\` index-juggling pattern.
+
+| Function | Role |
+|---|---|
+| \`range(stop)\` / \`range(start, stop, step)\` | Generate a lazy sequence of integers to loop over |
+| \`enumerate(iterable, start=0)\` | Loop while tracking the index — \`for i, x in enumerate(...)\` |
+| \`zip(*iterables)\` | Loop over multiple sequences in lockstep; stops at shortest |
+| \`reversed(seq)\` | Iterate from the end without copying/slicing |
+
+*Example:*`,
+    },
+    {
+        id: "cp1-c6",
+        type: "code",
+        content: `nums = [3, 1, 4, 1, 5]
+
+# enumerate: index + value together
+for i, n in enumerate(nums):
+    if n == 5:
+        print("found 5 at index", i)
+
+# zip: pair items from two sequences
+keys = ["a", "b", "c"]
+vals = [1, 2, 3]
+for k, v in zip(keys, vals):
+    print(k, "->", v)
+
+# reversed: walk backwards without slicing a copy
+for n in reversed(nums):
+    print(n, end=" ")
+print()
+
+# range: counted loops and index ranges
+for i in range(0, 10, 2):
+    print(i, end=" ")`,
+    },
+    {
+        id: "cp1-c7",
+        type: "markdown",
+        content: `**Asking questions (predicates & comparisons)**
+You use these inside \`if\` statements, guards, and assertions. They answer a yes/no or "which one wins" question. Most short-circuit, so they're cheap.
+
+| Function | Role |
+|---|---|
+| \`len(x)\` | "How big is it?" — also used as a guard (\`if len(x) >= n\`) |
+| \`any(iterable)\` | "Is there *at least one* truthy item?" |
+| \`all(iterable)\` | "Are they *all* truthy?" |
+| \`min(iterable)\` / \`max(iterable)\` | "Which one is smallest/largest?" — supports \`key=\` |
+| \`abs(x)\` | "How far from zero?" — common in distance/diff checks |
+| \`isinstance(obj, type_or_tuple)\` | "Is this the right kind of thing?" — preferred over \`type(x) == ...\` |
+| \`type(obj)\` | Returns the object's class. Useful for introspection and error messages (\`type(x).__name__\`); for actual checks prefer \`isinstance\` |
+| \`hash(obj)\` | "Is this hashable?" — raises \`TypeError\` if not (rarely called directly) |
+
+*Example:*`,
+    },
+    {
+        id: "cp1-c8",
+        type: "code",
+        content: `nums = [3, 1, 4, 1, 5, 9, 2, 6]
+
+# any / all: boolean reductions in conditionals
+if any(n > 8 for n in nums):
+    print("contains a big one")
+if all(n > 0 for n in nums):
+    print("all positive")
+
+# min/max with key=: pick the "winner" by a custom rule
+words = ["pi", "tau", "phi"]
+print(max(words, key=len))           # 'tau' (longest)
+print(min(nums, key=lambda x: abs(x - 4)))  # closest to 4
+
+# isinstance: robust type guard at function boundaries
+def double(x):
+    if not isinstance(x, (int, float)):
+        raise TypeError("need a number")
+    return x * 2
+print(double(3.5))`,
+    },
+    {
+        id: "cp1-c9",
+        type: "markdown",
+        content: `**Reshaping, aggregating & transforming**
+You use these to *produce a new value* from a collection: a sum, a sorted copy, a filtered or mapped sequence. They're the workhorses of "process this data" steps.
+
+| Function | Role |
+|---|---|
+| \`sum(iterable, start=0)\` | Aggregate numbers into a total |
+| \`sorted(iterable, key=..., reverse=...)\` | Return a **new sorted list** ($O(n \\log n)$) |
+| \`map(func, iterable)\` | Lazily apply a function to every item (often replaceable by a comprehension) |
+| \`filter(func, iterable)\` | Lazily keep items where \`func(item)\` is truthy |
+
+> **Note on \`map\`/\`filter\`:** comprehensions (\`[f(x) for x in xs]\`, \`[x for x in xs if cond]\`) are usually clearer and equally fast. Reach for \`map\`/\`filter\` mainly when the function already exists by name.
+
+*Example:*`,
+    },
+    {
+        id: "cp1-c10",
+        type: "code",
+        content: `nums = [3, 1, 4, 1, 5, 9, 2, 6]
+
+# sum: aggregate
+print(sum(nums))                          # 31
+print(sum(n * n for n in nums))           # sum of squares
+
+# sorted: non-destructive sort with custom key
+print(sorted([-5, 3, -1, 4], key=abs))    # [-1, 3, 4, -5]
+print(sorted(nums, reverse=True))         # [9, 6, 5, 4, 3, 2, 1, 1]
+
+# map / filter: point-free transforms
+print(list(map(str, nums)))               # ['3', '1', '4', ...]
+print(list(filter(lambda n: n % 2 == 0, nums)))  # [4, 2, 6]
+
+# Comprehension equivalents (usually preferred for readability):
+print([str(n) for n in nums])
+print([n for n in nums if n % 2 == 0])`,
+    },
+    {
+        id: "cp1-c11",
+        type: "markdown",
         content: `**2. List Comprehensions**
 A list comprehension is a concise and highly optimized way to construct lists. It operates under the hood in C, making it fundamentally faster than a standard \`for\` loop combined with \`.append()\`.
 *Syntax*: \`[expression for item in iterable if condition]\`
 *Example:*`,
     },
     {
-        id: "cp1-c4",
+        id: "cp1-c12",
         type: "code",
         content: `# Create a list of the squares of even numbers from 0 to 9
 squares = [x**2 for x in range(10) if x % 2 == 0]
 print(squares)  # [0, 4, 16, 36, 64]`,
     },
     {
-        id: "cp1-c5",
+        id: "cp1-c13",
         type: "markdown",
         content: `**3. Generators vs list comprehensions**
 While a list comprehension generates the *entire sequence* and loads it into memory eagerly, a **generator expression** evaluates *lazily*. It suspends its state and yields one item at a time only when requested. This is crucial when dealing with massive datasets (e.g., millions of records) to prevent Out-Of-Memory (OOM) errors. Generator comprehensions use parentheses \`()\`.
 *Example:*`,
     },
     {
-        id: "cp1-c6",
+        id: "cp1-c14",
         type: "code",
         content: `import sys
 # Eager: Generates 1,000,000 numbers in memory right now.
@@ -321,16 +846,18 @@ print(next(gen_comp)) # 0
 print(next(gen_comp)) # 1`,
     },
     {
-        id: "cp1-c7",
+        id: "cp1-c15",
         type: "markdown",
         content: `**4. Tuples & Slicing**
 Tuples are generally used for fixed-size configurations or returning multiple variables from a function. Because tuples are immutable, they are *hashable* (assuming their contents are also immutable), which means they can be used as Dictionary Keys!
 Slicing \`[start:stop:step]\` creates a shallow copy of a sequence. \`my_array[::-1]\` reverses it!
 
+#### Exercises
+
 **Exercise 1 (5-10 min)**: Write a function that takes a list of words and returns a new list containing only the words that have at least \`n\` characters.`,
     },
     {
-        id: "cp1-c8",
+        id: "cp1-c16",
         type: "code",
         content: `from typing import List
 
@@ -339,7 +866,7 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
     pass`,
     },
     {
-        id: "cp1-c9",
+        id: "cp1-c17",
         type: "code",
         content: `from typing import List
 
@@ -359,15 +886,26 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
         content: `_check_solution(
     "filter_words",
     cases=[
-        (([], 3), [], "empty list returns empty"),
-        ((["hello", "world", "a", "bc"], 3), ["hello", "world"], "min_length 3"),
-        ((["a", "bb", "ccc", "dddd"], 2), ["bb", "ccc", "dddd"], "min_length 2"),
-        ((["python", "is", "fun"], 1), ["python", "is", "fun"], "min_length 1 keeps all"),
+        (([], 3), [], "Empty word list",
+         'Pass an empty list with \`min_length=3\`. With no words to inspect, the result must be an empty list regardless of the threshold.'),
+        ((["hello", "world", "a", "bc"], 3), ["hello", "world"],
+         "Keep words at least 3 characters long",
+         'Set \`min_length=3\` so the threshold is 3. Only "hello" (len 5) and "world" (len 5) qualify; "a" (len 1) and "bc" (len 2) are filtered out.'),
+        ((["a", "bb", "ccc", "dddd"], 2), ["bb", "ccc", "dddd"],
+         "Lower threshold of 2 characters",
+         'Set \`min_length=2\`. The single-character "a" is dropped; "bb", "ccc", "dddd" all meet the threshold and are kept in their original order.'),
+        ((["python", "is", "fun"], 1), ["python", "is", "fun"],
+         "Threshold of 1 keeps every non-empty word",
+         'Set \`min_length=1\` so every non-empty word qualifies. The output is identical to the input list.'),
     ],
     edge_cases=[
-        ((["abc"], 5), [], "single short word"),
-        ((["", "a", "abc"], 1), ["a", "abc"], "ignores empty strings"),
-        ((["same", "same", "same"], 4), ["same", "same", "same"], "duplicates preserved"),
+        ((["abc"], 5), [], "Threshold larger than every input word",
+         'Set \`min_length=5\` while the only word is just 3 characters long. No word passes the check, so the result is an empty list.'),
+        ((["", "a", "abc"], 1), ["a", "abc"], "Empty strings are filtered out",
+         'Set \`min_length=1\`. The empty string has length 0 so it is dropped; "a" and "abc" both meet the threshold.'),
+        ((["same", "same", "same"], 4), ["same", "same", "same"],
+         "Duplicate words are preserved",
+         'All three inputs are exactly 4 characters (= \`min_length\`). Duplicates should be returned in the same order, not deduplicated.'),
     ],
     fast_impl=lambda words, n: [w for w in words if len(w) >= n],
     slow_impl=(lambda words, n: [w for w in words if sum(1 for _ in w) >= n]),
@@ -387,12 +925,12 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
         },
     },
     {
-        id: "cp1-c10",
+        id: "cp1-c18",
         type: "markdown",
         content: `**Exercise 2 (5-10 min)**: Write a function that returns the reverse of a given string.`,
     },
     {
-        id: "cp1-c11",
+        id: "cp1-c19",
         type: "code",
         content: `def reverse_string(s: str) -> str:
     # TODO: Implement
@@ -403,7 +941,7 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
 # Example: reverse_string("") -> ""`,
     },
     {
-        id: "cp1-c12",
+        id: "cp1-c20",
         type: "code",
         content: `def reverse_string(s: str) -> str:
     # Time: O(n) | Space: O(n) for both approaches
@@ -426,15 +964,22 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
         content: `_check_solution(
     "reverse_string",
     cases=[
-        (("hello",), "olleh", "basic"),
-        (("Python",), "nohtyP", "with capital"),
-        (("",), "", "empty string"),
-        (("a",), "a", "single character"),
-        (("racecar",), "racecar", "palindrome"),
+        (("hello",), "olleh", "Basic lowercase word",
+         'Pass an ordinary lowercase word. The characters should appear in reverse order in the returned string.'),
+        (("Python",), "nohtyP", "Mixed-case word",
+         'Pass a word with a capital letter. Capitalization must be preserved on the original characters even though their positions are reversed.'),
+        (("",), "", "Empty string",
+         'Pass an empty string. There are no characters to reverse, so the function should return an empty string.'),
+        (("a",), "a", "Single character",
+         'Pass a one-character string. A single character is its own reverse.'),
+        (("racecar",), "racecar", "Palindrome",
+         'Pass a palindrome. The reversed string equals the original, so output should match input exactly.'),
     ],
     edge_cases=[
-        (("ab",), "ba", "two chars"),
-        (("12345",), "54321", "digits"),
+        (("ab",), "ba", "Two characters swap",
+         'Pass a 2-character string. The two characters simply swap positions.'),
+        (("12345",), "54321", "Digit string",
+         'Pass a string of digits. Non-alphabetic characters must reverse the same way as letters.'),
     ],
     fast_impl=(lambda s: s[::-1]),
     slow_impl=(lambda s: __import__("functools").reduce(lambda a, c: c + a, s, "")),
@@ -451,11 +996,11 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
         },
     },
     {
-        id: "cp1-c13",
+        id: "cp1-c21",
         type: "markdown",
         content: `## 1.2 Dictionaries & Sets
 
-**Concept Overview**:
+#### Concept Overview
 
 **1. Hash Tables & Lookups**
 Python's \`dict\` and \`set\` are implemented relying on Hash Tables. When you insert a key into a dictionary, Python runs a mathematical hash function \`hash(key)\` to determine strictly where in memory the data should be stored (a bucket index). 
@@ -469,7 +1014,7 @@ A \`set\` is effectively a dictionary containing just keys. Sets enforce mathema
 *Example:*`,
     },
     {
-        id: "cp1-c14",
+        id: "cp1-c22",
         type: "code",
         content: `fruits_A = {"Apple", "Banana", "Cherry"}
 fruits_B = {"Cherry", "Mango"}
@@ -478,7 +1023,7 @@ print(fruits_A | fruits_B) # Union: {'Apple', 'Banana', 'Cherry', 'Mango'}
 print(fruits_A & fruits_B) # Intersection: {'Cherry'}`,
     },
     {
-        id: "cp1-c15",
+        id: "cp1-c23",
         type: "markdown",
         content: `**4. The \`collections\` Module**
 Python offers advanced variants of dictionaries tailored to specific use-cases:
@@ -488,7 +1033,7 @@ Python offers advanced variants of dictionaries tailored to specific use-cases:
 *Example:*`,
     },
     {
-        id: "cp1-c16",
+        id: "cp1-c24",
         type: "code",
         content: `from collections import Counter, defaultdict
 
@@ -504,12 +1049,76 @@ c = Counter("banana")
 print(c)  # Counter({'a': 3, 'n': 2, 'b': 1})`,
     },
     {
-        id: "cp1-c17",
+        id: "cp1-c25",
         type: "markdown",
-        content: `**Exercise 1 (5-10 min)**: Given a sentence (a string of words separated by spaces), determine and return the frequency of each word. Ignore case/punctuation for simplicity.`,
+        content: `##### Common Dict & Set Operations
+
+The methods you'll reach for in nearly every dict/set problem:
+
+**Dicts**
+| Operation | Notes |
+|---|---|
+| \`d[key]\` | Lookup; raises \`KeyError\` if missing |
+| \`d.get(key, default)\` | Lookup with fallback — never raises |
+| \`d.setdefault(key, default)\` | Insert default if missing, return current value |
+| \`d.keys()\`, \`d.values()\`, \`d.items()\` | View objects (live, iterable) |
+| \`d.update(other)\` | Merge another dict in-place |
+| \`d.pop(key, default)\` | Remove and return; default avoids \`KeyError\` |
+| \`key in d\` | Membership test — $O(1)$ |
+| \`{**d1, **d2}\` or \`d1 \\| d2\` (3.9+) | Merge into a new dict |
+
+**Sets**
+| Operation | Notes |
+|---|---|
+| \`s.add(x)\` / \`s.remove(x)\` / \`s.discard(x)\` | \`remove\` raises if missing; \`discard\` doesn't |
+| \`s1 \\| s2\` / \`.union\` | Union |
+| \`s1 & s2\` / \`.intersection\` | Intersection |
+| \`s1 - s2\` / \`.difference\` | In s1 but not s2 |
+| \`s1 ^ s2\` / \`.symmetric_difference\` | In exactly one |
+| \`s1 <= s2\` / \`.issubset\` | Subset test |
+| \`x in s\` | Membership — $O(1)$ |
+
+*Example:*`,
     },
     {
-        id: "cp1-c18",
+        id: "cp1-c26",
+        type: "code",
+        content: `# Dict patterns
+d = {"a": 1, "b": 2}
+print(d.get("c", 0))           # 0  (no KeyError)
+d.setdefault("c", []).append(1)  # initializes 'c' to [] then appends
+print(d)                       # {'a': 1, 'b': 2, 'c': [1]}
+
+# Iterate over key/value pairs
+for k, v in {"x": 10, "y": 20}.items():
+    print(k, "->", v)
+
+# Merge dicts
+print({"a": 1} | {"b": 2})     # {'a': 1, 'b': 2}  (Python 3.9+)
+
+# Set patterns
+a = {1, 2, 3}
+b = {3, 4, 5}
+print(a | b)                   # {1, 2, 3, 4, 5}
+print(a & b)                   # {3}
+print(a - b)                   # {1, 2}
+print(a ^ b)                   # {1, 2, 4, 5}
+
+# Build a set from any iterable (deduplicate)
+print(set("mississippi"))      # {'m', 'i', 's', 'p'}
+
+# Set comprehension
+print({x * x for x in range(5)})  # {0, 1, 4, 9, 16}`,
+    },
+    {
+        id: "cp1-c27",
+        type: "markdown",
+        content: `#### Exercises
+
+**Exercise 1 (5-10 min)**: Given a sentence (a string of words separated by spaces), determine and return the frequency of each word. Ignore case/punctuation for simplicity.`,
+    },
+    {
+        id: "cp1-c28",
         type: "code",
         content: `from typing import Dict
 
@@ -518,7 +1127,7 @@ def count_words(sentence: str) -> Dict[str, int]:
     pass`,
     },
     {
-        id: "cp1-c19",
+        id: "cp1-c29",
         type: "code",
         content: `from typing import Dict
 from collections import Counter
@@ -545,14 +1154,21 @@ def count_words(sentence: str) -> Dict[str, int]:
         content: `_check_solution(
     "count_words",
     cases=[
-        (("the cat sat on the mat",), {"the": 2, "cat": 1, "sat": 1, "on": 1, "mat": 1}, "basic count"),
-        (("hello hello hello",), {"hello": 3}, "single word repeated"),
-        (("a b c a b a",), {"a": 3, "b": 2, "c": 1}, "mixed counts"),
+        (("the cat sat on the mat",), {"the": 2, "cat": 1, "sat": 1, "on": 1, "mat": 1},
+         "Sentence with one repeated word",
+         'Pass a sentence where "the" appears twice and the rest appear once. The returned dict maps each unique word to its frequency.'),
+        (("hello hello hello",), {"hello": 3}, "Same word repeated",
+         'All three tokens are the word "hello". The dict should have one key with count 3.'),
+        (("a b c a b a",), {"a": 3, "b": 2, "c": 1}, "Three words with different frequencies",
+         'Three distinct words appear with counts 3, 2, and 1. Each gets its own entry in the dict.'),
     ],
     edge_cases=[
-        (("",), {}, "empty string"),
-        (("Hello hello HELLO",), {"hello": 3}, "case-insensitive (lowercased)"),
-        (("one",), {"one": 1}, "single word"),
+        (("",), {}, "Empty string",
+         'Pass an empty string. There are no words to count, so the function should return an empty dict.'),
+        (("Hello hello HELLO",), {"hello": 3}, "Case-insensitive counting",
+         'Pass three differently-cased copies of the same word. The function should normalize to lowercase before counting, producing a single entry \`"hello": 3\`.'),
+        (("one",), {"one": 1}, "Single word",
+         'Pass a single word with no spaces. The result is a dict with that one word mapped to 1.'),
     ],
     fast_impl=(lambda s: dict(__import__("collections").Counter(s.lower().split()))),
     slow_impl=(lambda s: {w: s.lower().split().count(w) for w in s.lower().split()}),
@@ -569,12 +1185,12 @@ def count_words(sentence: str) -> Dict[str, int]:
         },
     },
     {
-        id: "cp1-c20",
+        id: "cp1-c30",
         type: "markdown",
         content: `**Exercise 2 (5-10 min)**: Given two lists of integers, return a list containing their intersection (common elements) without duplicates.`,
     },
     {
-        id: "cp1-c21",
+        id: "cp1-c31",
         type: "code",
         content: `from typing import List
 
@@ -587,7 +1203,7 @@ def list_intersection(list1: List[int], list2: List[int]) -> List[int]:
 # Example: list_intersection([1, 1, 2], [1, 1, 3]) -> [1]`,
     },
     {
-        id: "cp1-c22",
+        id: "cp1-c32",
         type: "code",
         content: `from typing import List
 
@@ -608,15 +1224,22 @@ def list_intersection(list1: List[int], list2: List[int]) -> List[int]:
         content: `_check_solution(
     "list_intersection",
     cases=[
-        (([1, 2, 3, 4], [3, 4, 5, 6]), [3, 4], "basic overlap"),
-        (([1, 1, 2], [1, 1, 3]), [1], "dedupes duplicates"),
-        (([1, 2, 3], [1, 2, 3]), [1, 2, 3], "identical lists"),
+        (([1, 2, 3, 4], [3, 4, 5, 6]), [3, 4], "Two lists with partial overlap",
+         'Pass two lists that share \`3\` and \`4\`. The result should contain exactly the common elements.'),
+        (([1, 1, 2], [1, 1, 3]), [1], "Duplicates are removed from the result",
+         '\`1\` appears twice in each input list, but the intersection should list it only once: results contain no duplicates.'),
+        (([1, 2, 3], [1, 2, 3]), [1, 2, 3], "Identical lists",
+         'When both inputs are the same list, every element is shared, so the intersection equals that list (deduplicated).'),
     ],
     edge_cases=[
-        (([1, 2], [3, 4]), [], "no overlap"),
-        (([], [1, 2]), [], "empty first"),
-        (([1, 2], []), [], "empty second"),
-        (([], []), [], "both empty"),
+        (([1, 2], [3, 4]), [], "No common elements",
+         'The two lists are disjoint (no shared values), so the intersection is empty.'),
+        (([], [1, 2]), [], "First list is empty",
+         'The first list is empty, so it shares nothing with the second; the result is an empty list.'),
+        (([1, 2], []), [], "Second list is empty",
+         'The second list is empty, so it shares nothing with the first; the result is an empty list.'),
+        (([], []), [], "Both lists empty",
+         'Both inputs are empty, so there is trivially no overlap.'),
     ],
     fast_impl=(lambda a, b: list(set(a) & set(b))),
     slow_impl=(lambda a, b: list({x for x in a if x in b})),
@@ -642,11 +1265,11 @@ def list_intersection(list1: List[int], list2: List[int]) -> List[int]:
         },
     },
     {
-        id: "cp1-c23",
+        id: "cp1-c33",
         type: "markdown",
         content: `## 1.3 Hash Tables & Hashability
 
-**Concept Overview**:
+#### Concept Overview
 
 **1. What Does "Hashable" Mean?**
 An object is **hashable** if it meets two strict requirements:
@@ -656,7 +1279,7 @@ An object is **hashable** if it meets two strict requirements:
 **Critical Rule:** If two objects are "equal" (\`a == b\`), they **must** have the same hash value.`,
     },
     {
-        id: "cp1-c24",
+        id: "cp1-c34",
         type: "code",
         content: `# Hashable objects return consistent integers
 print(hash("hello"))    # Same number every time
@@ -667,7 +1290,7 @@ print(hash(42))         # Integers are hashable
 # hash([1, 2, 3])  # TypeError: unhashable type: 'list'`,
     },
     {
-        id: "cp1-c25",
+        id: "cp1-c35",
         type: "markdown",
         content: `**2. How Hash Tables Work Internally**
 A Dictionary is essentially a giant array (a list of slots). When you provide a key:
@@ -686,7 +1309,7 @@ Here's the fundamental conflict that makes mutable objects unhashable:
 | Hash stays same despite mutation | Two keys that are no longer equal would have the same hash, breaking key differentiation |`,
     },
     {
-        id: "cp1-c26",
+        id: "cp1-c36",
         type: "code",
         content: `# This is why lists can't be dict keys:
 my_list = [1, 2, 3]
@@ -701,13 +1324,13 @@ my_dict = {my_tuple: "value"}
 print("Tuple as key works:", my_dict)`,
     },
     {
-        id: "cp1-c27",
+        id: "cp1-c37",
         type: "markdown",
         content: `**4. The "Immutable ≠ Hashable" Nuance**
 Not all immutable objects are hashable!`,
     },
     {
-        id: "cp1-c28",
+        id: "cp1-c38",
         type: "code",
         content: `# A tuple containing only immutables: hashable
 t1 = (1, 2, 3)
@@ -721,7 +1344,7 @@ except TypeError as e:
     print("hash(t2):", e)`,
     },
     {
-        id: "cp1-c29",
+        id: "cp1-c39",
         type: "markdown",
         content: `**Why?** The list inside can change, which would change the "identity" of the tuple. **To be hashable, the entire chain of data must be unchangeable.**
 
@@ -739,7 +1362,7 @@ Because tuples are hashable, they can act as **composite keys** — a single key
 When building a game, map, or grid-based system, a single integer can't identify a position — you need an \`(x, y)\` pair. Using a tuple as the dictionary key lets you instantly look up what exists at any coordinate in $O(1)$ time.`,
     },
     {
-        id: "cp1-c30",
+        id: "cp1-c40",
         type: "code",
         content: `# Coordinate lookup in a game grid
 grid = {}
@@ -748,13 +1371,13 @@ grid[(5, 10)] = "treasure"
 print(grid[(5, 10)])  # "treasure" — O(1) lookup!`,
     },
     {
-        id: "cp1-c31",
+        id: "cp1-c41",
         type: "markdown",
         content: `**Caching Function Results (Memoization):**
 If a function takes multiple arguments and is expensive to compute, you can cache its result in a dictionary keyed by the tuple of its arguments. On subsequent calls with the same inputs, you skip the computation entirely and return the cached result.`,
     },
     {
-        id: "cp1-c32",
+        id: "cp1-c42",
         type: "code",
         content: `cache = {}
 def expensive_compute(x, y, z):
@@ -768,13 +1391,13 @@ print(expensive_compute(2, 3, 2))  # cached this time — instant
 print("cache =", cache)`,
     },
     {
-        id: "cp1-c33",
+        id: "cp1-c43",
         type: "markdown",
         content: `**Database-Style Composite IDs:**
 When you need to link data to an entity identified by multiple fields, a tuple key is safer and cleaner than concatenating strings (e.g., \`"John_Doe_1990"\`) to create a unique ID.`,
     },
     {
-        id: "cp1-c34",
+        id: "cp1-c44",
         type: "code",
         content: `records = {}
 records[("Alice", "Smith", "1990-01-15")] = {"department": "Engineering"}
@@ -782,29 +1405,31 @@ records[("Bob", "Jones", "1985-07-22")] = {"department": "Marketing"}
 print(records[("Alice", "Smith", "1990-01-15")])`,
     },
     {
-        id: "cp1-c35",
+        id: "cp1-c45",
         type: "markdown",
         content: `**Deduplication of Groups:**
 If you have a list of paired entries and want to find only the unique ones, converting them to tuples and adding them to a \`set\` lets the hash table automatically discard duplicates.`,
     },
     {
-        id: "cp1-c36",
+        id: "cp1-c46",
         type: "code",
         content: `trips = [("NYC", "LDN"), ("LDN", "NYC"), ("NYC", "LDN")]
 unique_trips = set(trips)
 print(unique_trips)  # 2 unique pairs — duplicate ('NYC','LDN') was removed`,
     },
     {
-        id: "cp1-c37",
+        id: "cp1-c47",
         type: "markdown",
         content: `**Summary of Benefits:**
 - **Integrity**: Using a tuple guarantees the key cannot change while it's sitting in the dictionary.
 - **Speed**: Looking up a hashed tuple in a dictionary takes $O(1)$ time regardless of how many millions of items are stored.
 
+#### Exercises
+
 **Exercise 1 (10-15 min)**: Write a function that takes a list of coordinate pairs (each pair is a list \`[x, y]\`) and returns the count of unique coordinates. Use a set with tuple conversion for $O(n)$ deduplication.`,
     },
     {
-        id: "cp1-c38",
+        id: "cp1-c48",
         type: "code",
         content: `from typing import List
 
@@ -817,7 +1442,7 @@ def count_unique_coordinates(coords: List[List[int]]) -> int:
 # Example: count_unique_coordinates([[5, 5]]) -> 1`,
     },
     {
-        id: "cp1-c39",
+        id: "cp1-c49",
         type: "code",
         content: `from typing import List
 
@@ -846,15 +1471,22 @@ def count_unique_coordinates(coords: List[List[int]]) -> int:
         content: `_check_solution(
     "count_unique_coordinates",
     cases=[
-        (([[0, 0], [1, 2], [0, 0], [3, 4], [1, 2]],), 3, "basic dedup"),
-        (([],), 0, "empty list"),
-        (([[5, 5]],), 1, "single point"),
-        (([[1, 1], [2, 2], [3, 3]],), 3, "all unique"),
+        (([[0, 0], [1, 2], [0, 0], [3, 4], [1, 2]],), 3, "Five points with two duplicates",
+         'Pass five points where \`[0,0]\` and \`[1,2]\` each appear twice. Only three points are unique, so the count should be 3.'),
+        (([],), 0, "Empty point list",
+         'Pass an empty list of coordinates. With no points to count, the result is 0.'),
+        (([[5, 5]],), 1, "Single point",
+         'Pass a list with a single coordinate. There is exactly one unique point.'),
+        (([[1, 1], [2, 2], [3, 3]],), 3, "Three distinct points",
+         'Pass three coordinates that are all different. Every point is unique, so the count equals the list length.'),
     ],
     edge_cases=[
-        (([[0, 0], [0, 0], [0, 0]],), 1, "all duplicates"),
-        (([[0, 1], [1, 0]],), 2, "order matters in tuple"),
-        (([[-1, -1], [-1, -1], [1, 1]],), 2, "negative coordinates"),
+        (([[0, 0], [0, 0], [0, 0]],), 1, "All points identical",
+         'All three coordinates are the same point \`[0,0]\`, so they collapse to a single unique entry.'),
+        (([[0, 1], [1, 0]],), 2, "Coordinate order matters",
+         '\`[0,1]\` and \`[1,0]\` are different points because the order of x and y is significant. Both should count as unique.'),
+        (([[-1, -1], [-1, -1], [1, 1]],), 2, "Negative coordinates",
+         'Negative numbers are valid coordinates. \`[-1,-1]\` repeats and collapses, leaving 2 unique points.'),
     ],
     fast_impl=(lambda coords: len({(c[0], c[1]) for c in coords})),
     slow_impl=(lambda coords: len({tuple(c) for c in coords})),
@@ -874,11 +1506,25 @@ def count_unique_coordinates(coords: List[List[int]]) -> int:
         },
     },
     {
-        id: "cp1-c40",
+        id: "cp1-c50",
         type: "markdown",
         content: `## 1.4 File I/O, Scripting & Automation
 
-**Concept Overview**:
+#### Concept Overview
+
+##### The \`open()\` Built-in
+Nearly every file operation starts with the \`open(path, mode)\` built-in. It returns a **file object** that supports reading, writing, and iteration, and is itself a context manager (so it pairs naturally with \`with\`).
+
+| Mode | Meaning |
+|------|---------|
+| \`"r"\` | Read text (default); fails if file is missing |
+| \`"w"\` | Write text; **truncates** existing file or creates new |
+| \`"a"\` | Append text; creates file if missing |
+| \`"x"\` | Exclusive create; fails if file already exists |
+| \`"b"\` suffix | Binary mode (e.g. \`"rb"\`, \`"wb"\`) |
+| \`"+"\` suffix | Read **and** write (e.g. \`"r+"\`) |
+
+Useful methods on the returned file object: \`.read()\`, \`.readline()\`, \`.readlines()\`, \`.write(s)\`, \`.writelines(iter)\`, \`.close()\`. Iterating the file object yields one line at a time (the memory-efficient pattern shown below).
 
 **1. Context Managers (\`with\` statement)**
 Whenever your application interacts with external systems (like Hard Drive Files, Databases, Network sockets), an Operating System connection/file descriptor opens. If you do not close this connection, you introduce resource leaks.
@@ -887,7 +1533,7 @@ Using the \`with\` statement utilizes a Context Manager which magically guarante
 *Example:*`,
     },
     {
-        id: "cp1-c41",
+        id: "cp1-c51",
         type: "code",
         content: `# Setup: create a small file so the example is runnable
 with open("data.json", "w") as f:
@@ -899,7 +1545,7 @@ with open("data.json", "r") as file:
 print(content)`,
     },
     {
-        id: "cp1-c42",
+        id: "cp1-c52",
         type: "markdown",
         content: `**2. Processing Large Files Memory-Efficiently**
 Calling \`file.read()\` or \`file.readlines()\` on a 15GB Text file will allocate 15GB of RAM immediately and crash standard machines. Using a standard \`for\` loop over the file object treats the file uniquely as a streaming iterator. Python manages the stream natively, dumping line $N$ out of RAM before pulling line $N+1$.
@@ -907,7 +1553,7 @@ Calling \`file.read()\` or \`file.readlines()\` on a 15GB Text file will allocat
 *Example:*`,
     },
     {
-        id: "cp1-c43",
+        id: "cp1-c53",
         type: "code",
         content: `# Setup: write a tiny log file so the example is runnable
 with open("demo.log", "w") as f:
@@ -923,7 +1569,7 @@ with open("demo.log", "r") as file:
             print("Found an error:", line.strip())`,
     },
     {
-        id: "cp1-c44",
+        id: "cp1-c54",
         type: "markdown",
         content: `**3. Scripting Basics: \`json\` and \`subprocess\`**
 Python tooling scripts frequently deal with data parsers and triggering shell actions:
@@ -931,10 +1577,12 @@ Python tooling scripts frequently deal with data parsers and triggering shell ac
 - \`json.dumps(dict_data)\`: Format a Python dict directly into a JSON formatted string.
 - \`subprocess\`: A robust standard library replacement to the old \`os.system\`. Use \`subprocess.run(["cmd", "arg"])\` to execute standard terminal apps natively from Python.
 
+#### Exercises
+
 **Exercise 1 (10-15 min)**: Given a path to a potentially large log file, return the count of lines that contain the substring \`"ERROR"\`. Ensure your solution handles large scale efficiently.`,
     },
     {
-        id: "cp1-c45",
+        id: "cp1-c55",
         type: "code",
         content: `def count_errors_in_file(filepath: str) -> int:
     # TODO: Implement
@@ -944,7 +1592,7 @@ Python tooling scripts frequently deal with data parsers and triggering shell ac
 # Hint: Open the file and count lines that contain the word "ERROR"`,
     },
     {
-        id: "cp1-c46",
+        id: "cp1-c56",
         type: "code",
         content: `def count_errors_in_file(filepath: str) -> int:
     # Time: O(n) where n = number of lines | Space: O(1) — streaming, constant memory!
@@ -976,7 +1624,8 @@ Python tooling scripts frequently deal with data parsers and triggering shell ac
 _check_solution(
     "count_errors_in_file",
     cases=[
-        (("test_app.log",), 3, "3 ERROR lines in seeded log"),
+        (("test_app.log",), 3, "Counts ERROR lines in seeded log",
+         'The setup writes \`test_app.log\` with 5 lines, 3 of which begin with "ERROR". The function should open that file and return 3.'),
     ],
     edge_cases=[],
     setup=_setup_logfile,
@@ -993,12 +1642,12 @@ _check_solution(
         },
     },
     {
-        id: "cp1-c47",
+        id: "cp1-c57",
         type: "markdown",
         content: `**Exercise 2 (10-15 min)**: Write a function to parse a multi-line CSV formatted string into a list of dictionaries. Assume the first row is always headers.`,
     },
     {
-        id: "cp1-c48",
+        id: "cp1-c58",
         type: "code",
         content: `from typing import List, Dict
 
@@ -1010,7 +1659,7 @@ def parse_csv_string(csv_data: str) -> List[Dict[str, str]]:
 # "name,age,city\\nAlice,30,New York\\nBob,25,LA"`,
     },
     {
-        id: "cp1-c49",
+        id: "cp1-c59",
         type: "code",
         content: `from typing import List, Dict
 
@@ -1044,11 +1693,14 @@ def parse_csv_string(csv_data: str) -> List[Dict[str, str]]:
         (("name,age,city\\nAlice,30,New York\\nBob,25,LA",),
          [{"name": "Alice", "age": "30", "city": "New York"},
           {"name": "Bob", "age": "25", "city": "LA"}],
-         "basic CSV"),
-        (("a,b\\n1,2",), [{"a": "1", "b": "2"}], "single data row"),
+         "Header row plus two data rows",
+         'Pass a CSV string where the first line "name,age,city" defines the dict keys; the next two lines become two row dicts that map each header to its column value.'),
+        (("a,b\\n1,2",), [{"a": "1", "b": "2"}], "Header row plus a single data row",
+         'Pass a CSV with headers "a,b" and one data row "1,2". The result is a list containing one dict {"a": "1", "b": "2"}.'),
     ],
     edge_cases=[
-        (("a,b,c",), [], "headers only, no rows"),
+        (("a,b,c",), [], "Headers but no data rows",
+         'Pass a CSV that only contains the header line. There are no data rows to parse, so the result is an empty list.'),
     ],
     fast_impl=(lambda s: (
         lambda lines: ([dict(zip(lines[0].split(","), row.split(","))) for row in lines[1:]] if len(lines) > 1 else [])
@@ -1069,12 +1721,12 @@ def parse_csv_string(csv_data: str) -> List[Dict[str, str]]:
         },
     },
     {
-        id: "cp1-c50",
+        id: "cp1-c60",
         type: "markdown",
         content: `**Exercise 3 (5-10 min)**: Write a function that creates a subdirectory named \`"web_assets"\` in the current directory, then creates the following six files inside it: \`"0_45_67.html"\`, \`"12_99_3.html"\`, \`"index.html"\`, \`"style.css"\`, \`"config.json"\`, and \`"app.js"\`.`,
     },
     {
-        id: "cp1-c51",
+        id: "cp1-c61",
         type: "code",
         content: `import os
 
@@ -1089,7 +1741,7 @@ def create_web_assets():
 #   └── images/`,
     },
     {
-        id: "cp1-c52",
+        id: "cp1-c62",
         type: "code",
         content: `import os
 
@@ -1151,12 +1803,12 @@ _check_solution(
         },
     },
     {
-        id: "cp1-c53",
+        id: "cp1-c63",
         type: "markdown",
         content: `**Exercise 4 (5-10 min)**: Write a function that grabs all the files in the \`"web_assets"\` subdirectory. Filter to only files ending in \`.html\`, sort them alphabetically by filename, and return the sorted list. Finally, print the sorted filenames.`,
     },
     {
-        id: "cp1-c54",
+        id: "cp1-c64",
         type: "code",
         content: `from typing import List
 
@@ -1168,7 +1820,7 @@ def get_html_files() -> List[str]:
 #          -> ["index.html", "pages/about.html"] (or similar paths)`,
     },
     {
-        id: "cp1-c55",
+        id: "cp1-c65",
         type: "code",
         content: `from typing import List
 import os
@@ -1206,7 +1858,8 @@ def _setup_html_files():
 _check_solution(
     "get_html_files",
     cases=[
-        ((), ["0_45_67.html", "12_99_3.html", "index.html"], "returns sorted .html files"),
+        ((), ["0_45_67.html", "12_99_3.html", "index.html"], "Returns sorted .html files",
+         'The setup creates 6 files in \`web_assets/\` (3 HTML, 3 non-HTML). The function should return only the 3 \`.html\` files, sorted alphabetically by filename.'),
     ],
     setup=_setup_html_files,
     fast_impl=(lambda: sorted(f for f in os.listdir("web_assets") if f.endswith(".html"))),
@@ -1222,290 +1875,17 @@ _check_solution(
         },
     },
     {
-        id: "cp1-c56",
-        type: "markdown",
-        content: `## 1.5 Testing in Python
-
-**Concept Overview**:
-
-**1. Why Write Tests?**
-Testing ensures your code behaves as expected, catches regressions when refactoring, and serves as living documentation. In interviews, demonstrating familiarity with testing shows engineering maturity.
-
-**2. The \`unittest\` Module (Built-in)**
-Python's standard library includes \`unittest\`, inspired by Java's JUnit. Tests are organized into classes that inherit from \`unittest.TestCase\`.
-
-*Example:*`,
-    },
-    {
-        id: "cp1-c57",
-        type: "code",
-        content: `import unittest
-
-def add(a, b):
-    return a + b
-
-class TestAddFunction(unittest.TestCase):
-    def test_add_positive_numbers(self):
-        self.assertEqual(add(2, 3), 5)
-
-    def test_add_negative_numbers(self):
-        self.assertEqual(add(-1, -1), -2)
-
-    def test_add_zero(self):
-        self.assertEqual(add(0, 5), 5)
-
-# Run inside the notebook
-unittest.main(argv=[""], exit=False, verbosity=2)`,
-    },
-    {
-        id: "cp1-c58",
-        type: "markdown",
-        content: `**3. \`pytest\` (Industry Standard)**
-\`pytest\` is the most popular Python testing framework. It's simpler, more powerful, and requires less boilerplate than \`unittest\`. Tests are plain functions starting with \`test_\`.
-
-*Example:*`,
-    },
-    {
-        id: "cp1-c59",
-        type: "code",
-        content: `# Pytest-style tests are plain functions starting with test_.
-# In a real project: \`pytest test_math.py\`. Here we just call them directly.
-
-def add(a, b):
-    return a + b
-
-def test_add_positive():
-    assert add(2, 3) == 5
-
-def test_add_negative():
-    assert add(-1, -1) == -2
-
-test_add_positive()
-test_add_negative()
-print("All tests passed!")`,
-    },
-    {
-        id: "cp1-c60",
-        type: "markdown",
-        content: `**4. Key Testing Concepts**
-- **Assertions**: \`assert condition, "error message"\` — raises \`AssertionError\` if condition is False.
-- **Fixtures**: Reusable setup/teardown logic. In \`pytest\`, use \`@pytest.fixture\`.
-- **Mocking**: Replace real objects with controlled fakes using \`unittest.mock.patch()\`.
-- **Test Coverage**: Measure what percentage of code is exercised by tests (\`pytest-cov\`).
-
-*Fixture Example (pytest):*`,
-    },
-    {
-        id: "cp1-c61",
-        type: "code",
-        content: `# Pytest fixtures aren't available without a pytest runner, but the
-# pattern is just dependency injection — we simulate it with a helper.
-
-def sample_list():
-    return [1, 2, 3, 4, 5]
-
-def test_list_length():
-    assert len(sample_list()) == 5
-
-def test_list_sum():
-    assert sum(sample_list()) == 15
-
-test_list_length()
-test_list_sum()
-print("Both fixture-based tests passed!")`,
-    },
-    {
-        id: "cp1-c62",
-        type: "markdown",
-        content: `**5. Mocking External Dependencies**
-When testing code that calls APIs, databases, or file systems, you mock those dependencies to isolate your unit under test.
-
-*Example:*`,
-    },
-    {
-        id: "cp1-c63",
-        type: "code",
-        content: `from unittest.mock import patch, MagicMock
-
-# A mocked module providing a fake API client
-class FakeApi:
-    def get(self, path):
-        raise RuntimeError("real API would be called here")
-
-external_api = FakeApi()
-
-def fetch_user_data(user_id):
-    response = external_api.get(f"/users/{user_id}")
-    return response.json()
-
-# Patch the external API just for the duration of the test
-with patch.object(external_api, "get") as mock_get:
-    mock_get.return_value.json.return_value = {"name": "Alice"}
-    result = fetch_user_data(123)
-    print("Result:", result)
-    mock_get.assert_called_once_with("/users/123")
-    print("Mock was called with the expected path.")`,
-    },
-    {
-        id: "cp1-c64",
-        type: "markdown",
-        content: `**Exercise 1 (10-15 min)**: Write a test function using \`pytest\` style (plain \`assert\`) that tests a \`is_palindrome(s)\` function. Include at least 3 test cases covering: a valid palindrome, a non-palindrome, and an edge case (empty string or single character).`,
-    },
-    {
-        id: "cp1-c65",
-        type: "code",
-        content: `def is_palindrome(s: str) -> bool:
-    """Check if a string is a palindrome (case-insensitive, ignoring spaces)."""
-    cleaned = s.lower().replace(" ", "")
-    return cleaned == cleaned[::-1]
-
-# TODO: Write test functions below
-# Example assertions:
-# assert is_palindrome("racecar") == True
-# assert is_palindrome("hello") == False
-
-def test_palindrome_valid():
-    # TODO: Test valid palindromes like "racecar", "A man a plan a canal Panama"
-    pass
-
-def test_palindrome_invalid():
-    # TODO: Test non-palindromes like "hello", "python"
-    pass
-
-def test_palindrome_edge_case():
-    # TODO: Test edge cases like "", "a" (single char)
-    pass`,
-    },
-    {
         id: "cp1-c66",
-        type: "code",
-        content: `def is_palindrome(s: str) -> bool:
-    """Check if a string is a palindrome (case-insensitive, ignoring spaces)."""
-    cleaned = s.lower().replace(" ", "")
-    return cleaned == cleaned[::-1]
-
-def test_palindrome_valid():
-    assert is_palindrome("racecar") == True
-    assert is_palindrome("A man a plan a canal Panama") == True
-
-def test_palindrome_invalid():
-    assert is_palindrome("hello") == False
-    assert is_palindrome("python") == False
-
-def test_palindrome_edge_case():
-    assert is_palindrome("") == True  # Empty string is a palindrome
-    assert is_palindrome("a") == True  # Single char is a palindrome
-
-# Run all tests
-test_palindrome_valid()
-test_palindrome_invalid()
-test_palindrome_edge_case()
-print("All tests passed!")`,
-        metadata: {
-            pynote: {
-                codeview: { showCode: false },
-                placeholder: "<- Toggle visibility to see exercise solution"
-            }
-        },
-    },
-    {
-        id: "cp1-c67",
         type: "markdown",
-        content: `**Exercise 2 (10-15 min)**: Write a \`unittest.TestCase\` class that tests the \`BankAccount\` class from Section 3.2. Include tests for: successful deposit, successful withdrawal, and a withdrawal that should raise \`ValueError\`.`,
-    },
-    {
-        id: "cp1-c68",
-        type: "code",
-        content: `import unittest
+        content: `## 1.5 Exception Handling
 
-# BankAccount class is defined in Section 3.2 — copied here for standalone testing
-# In practice, you would: from bank_account import BankAccount
-class BankAccount:
-    def __init__(self, initial_balance=0):
-        if initial_balance < 0:
-            raise ValueError("Balance cannot be negative")
-        self.balance = initial_balance
-    def deposit(self, amount):
-        if amount <= 0:
-            raise ValueError("Must deposit positive amount")
-        self.balance += amount
-    def withdraw(self, amount):
-        if amount > self.balance:
-            raise ValueError("Insufficient funds")
-        self.balance -= amount
-
-class TestBankAccount(unittest.TestCase):
-    # TODO: Implement test methods
-    # Example structure:
-    # def test_deposit(self):
-    #     acct = BankAccount(100)
-    #     acct.deposit(50)
-    #     self.assertEqual(acct.balance, 150)
-    #
-    # def test_withdraw_insufficient_funds(self):
-    #     acct = BankAccount(50)
-    #     with self.assertRaises(ValueError):
-    #         acct.withdraw(100)
-    pass`,
-    },
-    {
-        id: "cp1-c69",
-        type: "code",
-        content: `import unittest
-
-class BankAccount:
-    def __init__(self, initial_balance=0):
-        if initial_balance < 0:
-            raise ValueError("Balance cannot be negative")
-        self.balance = initial_balance
-    def deposit(self, amount):
-        if amount <= 0:
-            raise ValueError("Must deposit positive amount")
-        self.balance += amount
-    def withdraw(self, amount):
-        if amount > self.balance:
-            raise ValueError("Insufficient funds")
-        self.balance -= amount
-
-class TestBankAccount(unittest.TestCase):
-    def setUp(self):
-        """Create a fresh account before each test."""
-        self.account = BankAccount(100)
-    
-    def test_deposit_success(self):
-        self.account.deposit(50)
-        self.assertEqual(self.account.balance, 150)
-    
-    def test_withdraw_success(self):
-        self.account.withdraw(30)
-        self.assertEqual(self.account.balance, 70)
-    
-    def test_withdraw_insufficient_funds(self):
-        with self.assertRaises(ValueError):
-            self.account.withdraw(200)  # More than balance
-
-# Run in notebook
-if __name__ == '__main__':
-    unittest.main(argv=[''], exit=False, verbosity=2)`,
-        metadata: {
-            pynote: {
-                codeview: { showCode: false },
-                placeholder: "<- Toggle visibility to see exercise solution"
-            }
-        },
-    },
-    {
-        id: "cp1-c70",
-        type: "markdown",
-        content: `## 1.6 Exception Handling
-
-**Concept Overview**:
+#### Concept Overview
 
 **1. The try/except/else/finally Pattern**
 Exception handling is fundamental to robust Python code. The full pattern provides fine-grained control:`,
     },
     {
-        id: "cp1-c71",
+        id: "cp1-c67",
         type: "code",
         content: `def risky_operation():
     return 10 / 2  # change to / 0 to trigger ValueError-like crash
@@ -1528,7 +1908,7 @@ finally:
     cleanup_resources()`,
     },
     {
-        id: "cp1-c72",
+        id: "cp1-c68",
         type: "markdown",
         content: `**2. Raising Exceptions**
 Use \`raise\` to signal errors. Prefer specific built-in exceptions:
@@ -1539,7 +1919,7 @@ Use \`raise\` to signal errors. Prefer specific built-in exceptions:
 - \`IndexError\`: List index out of range`,
     },
     {
-        id: "cp1-c73",
+        id: "cp1-c69",
         type: "code",
         content: `def divide(a, b):
     if b == 0:
@@ -1553,13 +1933,13 @@ except ValueError as e:
     print("Caught:", e)`,
     },
     {
-        id: "cp1-c74",
+        id: "cp1-c70",
         type: "markdown",
         content: `**3. Custom Exceptions**
 Create domain-specific exceptions by inheriting from \`Exception\`:`,
     },
     {
-        id: "cp1-c75",
+        id: "cp1-c71",
         type: "code",
         content: `class InsufficientFundsError(Exception):
     """Raised when withdrawal exceeds balance."""
@@ -1576,13 +1956,13 @@ except InsufficientFundsError as e:
     print("balance was:", e.balance, "| attempted:", e.amount)`,
     },
     {
-        id: "cp1-c76",
+        id: "cp1-c72",
         type: "markdown",
         content: `**4. Context Managers for Exception Safety**
 The \`with\` statement ensures cleanup even when exceptions occur:`,
     },
     {
-        id: "cp1-c77",
+        id: "cp1-c73",
         type: "code",
         content: `# Setup: a tiny file to demonstrate the context manager
 with open("data.txt", "w") as f:
@@ -1596,12 +1976,14 @@ with open("data.txt") as f:
     process(f.read())`,
     },
     {
-        id: "cp1-c78",
+        id: "cp1-c74",
         type: "markdown",
-        content: `**Exercise 1 (10-15 min)**: Write a \`safe_divide(a, b)\` function that returns \`a / b\`. If \`b\` is zero, return \`None\` instead of crashing. If either input is not a number, raise a \`TypeError\` with a descriptive message.`,
+        content: `#### Exercises
+
+**Exercise 1 (10-15 min)**: Write a \`safe_divide(a, b)\` function that returns \`a / b\`. If \`b\` is zero, return \`None\` instead of crashing. If either input is not a number, raise a \`TypeError\` with a descriptive message.`,
     },
     {
-        id: "cp1-c79",
+        id: "cp1-c75",
         type: "code",
         content: `def safe_divide(a, b):
     # TODO: Implement
@@ -1613,7 +1995,7 @@ with open("data.txt") as f:
 # Example: safe_divide("10", 2) -> raises TypeError`,
     },
     {
-        id: "cp1-c80",
+        id: "cp1-c76",
         type: "code",
         content: `def safe_divide(a, b):
     # Time: O(1) | Space: O(1)
@@ -1652,11 +2034,16 @@ with open("data.txt") as f:
 _check_solution(
     "safe_divide",
     cases=[
-        ((10, 2), 5.0, "basic division"),
-        ((9, 3), 3.0, "exact division"),
-        ((10, 0), None, "division by zero returns None"),
-        ((-6, 2), -3.0, "negative numerator"),
-        ((0, 5), 0.0, "zero numerator"),
+        ((10, 2), 5.0, "Basic division",
+         'Pass \`a=10\`, \`b=2\`. Standard division returns the float \`5.0\`.'),
+        ((9, 3), 3.0, "Exact division",
+         'Pass \`a=9\`, \`b=3\`. The division is exact, returning the float \`3.0\`.'),
+        ((10, 0), None, "Divide by zero returns None",
+         'Pass \`a=10\`, \`b=0\`. Instead of letting \`ZeroDivisionError\` propagate, the function should catch it and return \`None\`.'),
+        ((-6, 2), -3.0, "Negative numerator",
+         'Pass \`a=-6\`, \`b=2\`. The sign of \`a\` carries through, returning \`-3.0\`.'),
+        ((0, 5), 0.0, "Zero numerator",
+         'Pass \`a=0\`, \`b=5\`. Zero divided by any nonzero number is \`0.0\`.'),
     ],
     custom_test=_custom_safe_divide,
 )`,
@@ -1669,12 +2056,12 @@ _check_solution(
         },
     },
     {
-        id: "cp1-c81",
+        id: "cp1-c77",
         type: "markdown",
         content: `**Exercise 2 (10-15 min)**: Create a custom \`ValidationError\` exception class that stores a \`field_name\` and \`message\`. Then write a \`validate_age(age)\` function that raises \`ValidationError\` if age is negative or over 150.`,
     },
     {
-        id: "cp1-c82",
+        id: "cp1-c78",
         type: "code",
         content: `class ValidationError(Exception):
     # TODO: Store field_name and message
@@ -1688,7 +2075,7 @@ def validate_age(age: int) -> bool:
 # Example: validate_age(-5) -> raises ValidationError("age", "Age cannot be negative")`,
     },
     {
-        id: "cp1-c83",
+        id: "cp1-c79",
         type: "code",
         content: `class ValidationError(Exception):
     """Custom exception for validation failures."""
@@ -1755,9 +2142,12 @@ def validate_age(age: int) -> bool:
 _check_solution(
     "validate_age",
     cases=[
-        ((25,), True, "valid age"),
-        ((0,), True, "zero is valid"),
-        ((150,), True, "max valid age"),
+        ((25,), True, "Typical valid age",
+         'Pass \`age=25\`, well inside the allowed range. The function should return \`True\` without raising.'),
+        ((0,), True, "Zero is the lower bound (inclusive)",
+         'Pass \`age=0\`. Zero is not negative, so it is the smallest allowed value and should pass validation.'),
+        ((150,), True, "Upper bound 150 is inclusive",
+         'Pass \`age=150\`. The maximum allowed value is 150, so calling with exactly 150 should still return \`True\`.'),
     ],
     custom_test=_custom_validate_age,
 )`,
@@ -1776,6 +2166,6 @@ _check_solution(
 
 ## Section complete!
 
-[Back to Table of Contents](?open=coding-prep) &nbsp;|&nbsp; Next: [Section 2: Algorithms](?open=coding-prep-2) →`,
+[Back to Table of Contents](?open=coding-prep) &nbsp;|&nbsp; Next: [Section 2: Advanced Python](?open=coding-prep-2) →`,
     },
 ];

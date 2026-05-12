@@ -17,6 +17,8 @@ interface ButtonProps {
     grow?: number | null;
     shrink?: number | null;
     force_dimensions?: boolean;
+    align_h?: "left" | "center" | "right";
+    align_v?: "top" | "center" | "bottom";
     border?: boolean | string | null;
     background?: boolean | string | null;
     hidden?: boolean;
@@ -121,6 +123,16 @@ const Button: Component<ButtonProps> = (p) => {
       }
     }
 
+    // Alignment - same logic as Text component.
+    // Use flexbox so alignment works regardless of sizing mode. This affects
+    // the position of the label within the button when the button has extra
+    // space (e.g. width="100%" or grow set).
+    styles.display = "flex";
+    const alignH = allProps().align_h ?? "center";
+    styles["justify-content"] = alignH === "center" ? "center" : alignH === "right" ? "flex-end" : "flex-start";
+    const alignV = allProps().align_v ?? "center";
+    styles["align-items"] = alignV === "center" ? "center" : alignV === "bottom" ? "flex-end" : "flex-start";
+
     return styles;
   };
 
@@ -179,6 +191,12 @@ const Button: Component<ButtonProps> = (p) => {
         .${buttonClass}:active {
           filter: brightness(1.3);
         }
+        .${buttonClass}:disabled,
+        .${buttonClass}[disabled] {
+          opacity: 0.45 !important;
+          filter: grayscale(0.6);
+          cursor: not-allowed !important;
+        }
       `;
     }
     
@@ -189,6 +207,12 @@ const Button: Component<ButtonProps> = (p) => {
         background-color: ${colorVar} !important;
         color: var(--background) !important;
         font-weight: 600 !important;
+      }
+      .${buttonClass}:disabled,
+      .${buttonClass}[disabled] {
+        opacity: 0.45 !important;
+        filter: grayscale(0.6);
+        cursor: not-allowed !important;
       }
     `;
   };

@@ -106,13 +106,15 @@ class Text(UIElement):
         status.hide()  # Hide component
         status.show()  # Show component
     """
-    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, background=True, color=None):
+    def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, background=True, color=None, markdown=False):
         self._content = content
         self._size = size
+        self._markdown = markdown
         super().__init__(
             content=content, size=size,
             width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
-            align_h=align_h, align_v=align_v, border=border, background=background, color=color
+            align_h=align_h, align_v=align_v, border=border, background=background, color=color,
+            markdown=markdown
         )
 
     @property
@@ -132,6 +134,15 @@ class Text(UIElement):
     def size(self, new_size):
         self._size = new_size
         self.send_update(size=new_size)
+
+    @property
+    def markdown(self):
+        return self._markdown
+
+    @markdown.setter
+    def markdown(self, value):
+        self._markdown = value
+        self.send_update(markdown=value)
 
     def options(self, **kwargs):
         """Update component properties after initialization"""
@@ -174,7 +185,7 @@ class Group(UIElement):
         controls = Group([slider1, slider2, button], 
                         layout="col", border=True, label="Controls")
     """
-    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, background=True, padding=None, gap=None, overflow=None, force_dimensions=False):
+    def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, background=True, padding=None, gap=None, overflow=None, force_dimensions=False, wrap=False):
         self.children = children
 
         super().__init__(
@@ -191,7 +202,8 @@ class Group(UIElement):
             padding=padding,
             gap=gap,
             overflow=overflow,
-            force_dimensions=force_dimensions
+            force_dimensions=force_dimensions,
+            wrap=wrap
         )
 
     @property
@@ -324,14 +336,16 @@ class Button(UIElement):
         btn.on_update(handle_click)
     """
     def __init__(self, label="Button", color=None, style=None, size=None, disabled=False, loading=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False,
+                 align_h="center", align_v="center", border=True, background=True):
         self._label = label
         self._disabled = disabled
         self._loading = loading
         self._size = size
         super().__init__(
             label=label, color=color, style=style, size=size, disabled=disabled, loading=loading,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions,
+            align_h=align_h, align_v=align_v, border=border, background=background
         )
 
     @property

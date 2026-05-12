@@ -27,19 +27,32 @@ Each exercise comes with a **Check Solution** button that verifies your implemen
 | 1.2 Dictionaries & Sets | Hash tables, O(1) lookups, Counter, defaultdict |
 | 1.3 Hash Tables & Hashability | Hash functions, hashable requirements, tuple keys |
 | 1.4 File I/O & Automation | Context managers, large file processing, json, subprocess |
-| 1.5 Testing in Python | unittest, pytest, fixtures, mocking |
-| 1.6 Exception Handling | try/except/else/finally, custom exceptions |
-| **[Section 2: Algorithms & Problem-Solving →](?open=coding-prep-2)** | |
-| 2.1 Complexity Analysis | Big-O notation, time vs space tradeoffs |
-| 2.2 Binary Search | Sorted array search, O(log n) lookups |
-| 2.3 Graph Traversal | BFS vs DFS, queue vs stack, shortest path |
-| 2.4 Recursion & Memoization | Base cases, call stack, @lru_cache |
-| 2.5 Two Pointers & Sliding Window | Array patterns, subarray problems |
-| **[Section 3: Advanced Python Concepts →](?open=coding-prep-3)** | |
-| 3.1 Generators & Iterators | yield, lazy evaluation, memory efficiency |
-| 3.2 Decorators & Closures | Function wrapping, @wraps, closure scope |
-| 3.3 OOP Fundamentals | Classes, instance/class/static methods |
-| 3.4 Magic Methods | Operator overloading, __str__, __repr__ |
+| 1.5 Exception Handling | try/except/else/finally, custom exceptions |
+| **[Section 2: Advanced Python Concepts →](?open=coding-prep-2)** | |
+| 2.1 Generators & Iterators | yield, lazy evaluation, memory efficiency |
+| 2.2 Decorators & Closures | Function wrapping, @wraps, closure scope |
+| 2.3 OOP Fundamentals | Classes, instance/class/static methods |
+| 2.4 Magic Methods | Operator overloading, __str__, __repr__ |
+| 2.5 Testing in Python | unittest, pytest, fixtures, mocking |
+| **[Section 3: Algorithms & Problem-Solving →](?open=coding-prep-3)** | |
+| 3.1 Complexity Analysis | Big-O notation, time vs space tradeoffs |
+| 3.2 Two Pointers | Same/opposite direction scans on sorted/linear data |
+| 3.3 Sliding Window | Contiguous subarray/substring problems in O(n) |
+| 3.4 Fast & Slow Pointers | Cycle detection, midpoints in linked lists |
+| 3.5 In-Place Linked List Reversal | Reverse whole/sublists with O(1) extra space |
+| 3.6 Cyclic Sort | Find missing/duplicate in [1..n] arrays in O(n) |
+| 3.7 Merge Intervals | Sort + sweep for overlap, scheduling, calendars |
+| **[Section 4: Advanced Algorithmic Patterns →](?open=coding-prep-4)** | |
+| 4.1 Binary Search | Sorted array search, O(log n) lookups |
+| 4.2 Modified Binary Search | Rotated arrays, search-the-answer-space |
+| 4.3 Recursion & Memoization | Base cases, call stack, @lru_cache |
+| 4.4 Tree BFS | Level-order traversal, per-level bookkeeping |
+| 4.5 Tree DFS | Pre/in/postorder, top-down vs bottom-up |
+| 4.6 Subsets & Backtracking | Choice-tree exploration with prune & undo |
+| 4.7 Top K Elements | Heap of size K for streaming top/bottom queries |
+| 4.8 Two Heaps | Running median and order-statistic patterns |
+| **[Section 5: Next Steps & Resources →](?open=coding-prep-5)** | |
+| 5.1 Interview Tips & Resources | Practice platforms, further reading, key topics |
 
 ---
 
