@@ -60,9 +60,14 @@ Each exercise comes with a **Check Solution** button that verifies your implemen
 
 1. **Read** the concept overview at the top of each sub-section.
 2. **Run** the inline code examples — every Python snippet is now a real, executable cell.
-3. **Try** each exercise in the provided skeleton cell. Don't forget to run the cell when you're done to surface any errors and to allow the *Check Solution* button to validate your implementation.
+3. **Try** each exercise in the provided skeleton cell. Don't forget to **run the cell** when you're done to surface any errors and to allow the *Check Solution* button to validate your implementation.
+
+    ![Run cell](/run-cell.png)
+
 4. **Click** the *Check Solution* button to validate your implementation and see how it benchmarks against fast and slow reference implementations.
 5. **Reveal** the solution with the eye icon if you get stuck.
+
+    ![Show solution](/show-solution.png)
 
 ### What's new in this version
 
