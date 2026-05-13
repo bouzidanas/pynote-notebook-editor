@@ -75,4 +75,13 @@ Each exercise comes with a **Check Solution** button that verifies your implemen
 - **Hidden solutions**: solutions are folded into hidden code cells so you can reveal them on demand.
 - **Auto-graded exercises**: each exercise gets a *Check Solution* button that runs correctness tests, edge cases, and performance benchmarks.`,
     },
+    {
+        id: "cp-footer",
+        type: "markdown",
+        content: `---
+
+## Ready to begin?
+
+Next: [Section 1: Basic Python & Scripting](?open=coding-prep-1) →`,
+    },
 ];
