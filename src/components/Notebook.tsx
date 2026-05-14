@@ -10,7 +10,7 @@ import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOp
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
-import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRunOnNewSession, type CodeVisibilitySettings } from "../lib/codeVisibility";
+import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRun, shouldAutoRunOnRefresh, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
@@ -261,10 +261,11 @@ const Notebook: Component = () => {
   // File System Access API: Store file handle for saving back to opened file
   let fileHandle: FileSystemFileHandle | null = null;
   
-  // One-shot flag for auto-run on new session
-  // Set to true when session is created fresh (no restored data)
-  // Page refreshes of existing sessions leave this false
-  let pendingAutoRun = false;
+  // One-shot triggers for auto-run, drained by a createEffect once the kernel
+  // is ready. Two flags so the trigger context (new-session vs page-refresh)
+  // can be honored by the cascading toggles below.
+  let pendingAutoRun = false;          // "new session start" event
+  let pendingAutoRunRefresh = false;   // "same session reloaded" event
 
   // --- Old Internal Autosave Mechanism ---
   // const AUTOSAVE_KEY = "pynote-autosave";
@@ -787,6 +788,7 @@ const Notebook: Component = () => {
       executionMode: notebookStore.executionMode, // Persist session execution mode
       showTrailingAddButtons: notebookStore.showTrailingAddButtons, // Persist trailing add buttons setting
       notebookAutorun: notebookStore.notebookAutorun, // Persist notebook-level autorun preference
+      notebookAutorunOnRefresh: notebookStore.notebookAutorunOnRefresh, // Persist notebook-level refresh-scope toggle
       codeHiddenPlaceholder: notebookStore.codeHiddenPlaceholder, // Persist hidden-code placeholder
       theme: sessionHasTheme() ? { ...currentTheme } : undefined,
       codeVisibility: getSessionState(), // Persist code visibility settings & cell overrides
@@ -841,8 +843,11 @@ const Notebook: Component = () => {
           data.activeCellId,
           sessionExecutionMode,
           typeof data.showTrailingAddButtons === "boolean" ? data.showTrailingAddButtons : undefined,
-          typeof data.notebookAutorun === "boolean" ? data.notebookAutorun : undefined,
+          typeof data.notebookAutorun === "boolean"
+            ? data.notebookAutorun
+            : undefined,
           typeof data.codeHiddenPlaceholder === "string" ? data.codeHiddenPlaceholder : undefined,
+          typeof data.notebookAutorunOnRefresh === "boolean" ? data.notebookAutorunOnRefresh : undefined,
         );
         
         // Load theme if session has one
@@ -906,7 +911,7 @@ const Notebook: Component = () => {
       // Load app theme for new session
       updateTheme(loadAppTheme());
 
-      const { cells, filename, codeview, showTrailingAddButtons, autorun, codeHiddenPlaceholder, executionMode: builtinExecMode } = getBuiltinNotebook(builtinType);
+      const { cells, filename, codeview, showTrailingAddButtons, autorun, autorunOnRefresh, codeHiddenPlaceholder, executionMode: builtinExecMode, outputLayout: builtinOutputLayout } = getBuiltinNotebook(builtinType);
 
       // Reset user override flag for fresh notebook load
       resetUserOverride();
@@ -914,6 +919,13 @@ const Notebook: Component = () => {
       // Apply notebook-specific code visibility settings if present (respects loadMetadataOnDocumentLoad flag)
       if (codeview && shouldLoadMetadataSettings()) {
         applyDocumentSettings(codeview);
+      }
+
+      // Apply notebook-specific output position (theme override) if present
+      if (builtinOutputLayout) {
+        updateTheme({ outputLayout: builtinOutputLayout });
+        // Mark session as having a theme so the override persists across refreshes
+        setSessionHasTheme(true);
       }
 
       actions.loadNotebook(
@@ -926,6 +938,7 @@ const Notebook: Component = () => {
         showTrailingAddButtons,
         autorun,
         codeHiddenPlaceholder,
+        autorunOnRefresh,
       );
       autosaveNotebook();
 
@@ -965,7 +978,7 @@ const Notebook: Component = () => {
             // ID exists but data is gone (expired/deleted)
             if (builtinType) {
                  // Built-in notebook link with invalid/expired session -> Reload
-                 const { cells, filename, codeview, showTrailingAddButtons, autorun, codeHiddenPlaceholder, executionMode: builtinExecMode } = getBuiltinNotebook(builtinType);
+                 const { cells, filename, codeview, showTrailingAddButtons, autorun, autorunOnRefresh, codeHiddenPlaceholder, executionMode: builtinExecMode, outputLayout: builtinOutputLayout } = getBuiltinNotebook(builtinType);
 
                  // Reset user override flag for fresh notebook load
                  resetUserOverride();
@@ -973,6 +986,12 @@ const Notebook: Component = () => {
                  // Apply notebook-specific code visibility settings if present
                  if (codeview) {
                    setVisibilitySettings(codeview, false); // false = not a user change
+                 }
+
+                 // Apply notebook-specific output position (theme override) if present
+                 if (builtinOutputLayout) {
+                   updateTheme({ outputLayout: builtinOutputLayout });
+                   setSessionHasTheme(true);
                  }
 
                  actions.loadNotebook(
@@ -985,6 +1004,7 @@ const Notebook: Component = () => {
                    showTrailingAddButtons,
                    autorun,
                    codeHiddenPlaceholder,
+                   autorunOnRefresh,
                  );
             } else {
                  // Normal link with invalid/expired session -> New Notebook
@@ -995,34 +1015,48 @@ const Notebook: Component = () => {
             // Mark for auto-run (data was gone/expired)
             pendingAutoRun = true;
         }
-        // If restored === true, this is a page refresh - pendingAutoRun stays false
+        // If restored === true, this is a page refresh — flag the refresh-scope
+        // event so the cascade below can decide whether to fire.
+        if (restored === true) {
+          pendingAutoRunRefresh = true;
+        }
     }
 
     // Apply theme from ?theme= param if present (overrides any loaded theme)
     applyThemeParam(themeParam);
   });
 
-  // Auto-run cells when kernel becomes ready on a NEW session.
-  // Three layers of control:
-  //  1. Global: shouldAutoRunOnNewSession() — app-wide opt-out
-  //  2. Notebook: notebookStore.notebookAutorun === false disables run-all
-  //     for this notebook (loaded from document/built-in metadata)
-  //  3. Cell: when notebook autorun is false, cells with metadata.pynote.autorun
-  //     === true still execute on session start. (Cell-level autorun is
-  //     ignored when notebook-level autorun is true — they would run anyway.)
+  // Auto-run cells when kernel becomes ready.
+  // Two orthogonal toggles at three layers (cell > notebook > app):
+  //  - autorun (master on/off): if false at the resolved level, the cell is
+  //    skipped entirely.
+  //  - autorunOnRefresh (scope): only consulted on a page-refresh event; if
+  //    false at the resolved level, the cell is skipped on refresh.
+  // Cascade: cell value (when defined) overrides notebook value (when
+  // defined) overrides app-level value.
   createEffect(() => {
-    if (pendingAutoRun && kernel.status === "ready" && shouldAutoRunOnNewSession()) {
-      pendingAutoRun = false;
-      if (notebookStore.notebookAutorun === false) {
-        const optInCells = notebookStore.cells.filter(
-          c => c.type === "code" && c.metadata?.pynote?.autorun === true
-        );
-        for (const cell of optInCells) {
-          runCell(cell.id);
-        }
-      } else {
-        runAll();
+    if (kernel.status !== "ready") return;
+    if (!pendingAutoRun && !pendingAutoRunRefresh) return;
+
+    const isRefresh = !pendingAutoRun && pendingAutoRunRefresh;
+    pendingAutoRun = false;
+    pendingAutoRunRefresh = false;
+
+    const appAutorun = shouldAutoRun();
+    const appRefresh = shouldAutoRunOnRefresh();
+    const nbAutorun = notebookStore.notebookAutorun;
+    const nbRefresh = notebookStore.notebookAutorunOnRefresh;
+
+    for (const cell of notebookStore.cells) {
+      if (cell.type !== "code") continue;
+      const py = cell.metadata?.pynote;
+      const resolvedAutorun = py?.autorun ?? nbAutorun ?? appAutorun;
+      if (!resolvedAutorun) continue;
+      if (isRefresh) {
+        const resolvedRefresh = py?.autorunOnRefresh ?? nbRefresh ?? appRefresh;
+        if (!resolvedRefresh) continue;
       }
+      runCell(cell.id);
     }
   });
 
@@ -1083,7 +1117,7 @@ const Notebook: Component = () => {
     return {
       cells: notebookStore.cells.map(c => {
         const py = c.metadata?.pynote;
-        const hasPy = !!(py && (py.codeview || py.autorun !== undefined || py.placeholder !== undefined));
+        const hasPy = !!(py && (py.codeview || py.autorun !== undefined || py.autorunOnRefresh !== undefined || py.placeholder !== undefined));
         return {
           cell_type: c.type,
           source: (() => {
@@ -1100,6 +1134,7 @@ const Notebook: Component = () => {
             pynote: {
               ...(py!.codeview ? { codeview: py!.codeview } : {}),
               ...(py!.autorun !== undefined ? { autorun: py!.autorun } : {}),
+              ...(py!.autorunOnRefresh !== undefined ? { autorunOnRefresh: py!.autorunOnRefresh } : {}),
               ...(py!.placeholder !== undefined ? { placeholder: py!.placeholder } : {}),
             }
           } : {}
@@ -1121,6 +1156,8 @@ const Notebook: Component = () => {
           executionMode: notebookStore.executionMode,
           // Notebook-level autorun preference (only saved when explicitly set)
           ...(notebookStore.notebookAutorun !== undefined ? { autorun: notebookStore.notebookAutorun } : {}),
+          // Notebook-level refresh-scope toggle (only saved when explicitly set)
+          ...(notebookStore.notebookAutorunOnRefresh !== undefined ? { autorunOnRefresh: notebookStore.notebookAutorunOnRefresh } : {}),
           // Notebook-level placeholder text for hidden code cells
           ...(notebookStore.codeHiddenPlaceholder !== undefined ? { codeHiddenPlaceholder: notebookStore.codeHiddenPlaceholder } : {}),
           // saveToExport ON  → write current UI state (user explicitly wants to overwrite)
@@ -1244,8 +1281,9 @@ const Notebook: Component = () => {
           const pyMeta = c.metadata?.pynote;
           const cellCodeview = pyMeta?.codeview;
           const cellAutorun = typeof pyMeta?.autorun === "boolean" ? pyMeta.autorun : undefined;
+          const cellAutorunOnRefresh = typeof pyMeta?.autorunOnRefresh === "boolean" ? pyMeta.autorunOnRefresh : undefined;
           const cellPlaceholder = typeof pyMeta?.placeholder === "string" ? pyMeta.placeholder : undefined;
-          const hasPyMeta = cellCodeview || cellAutorun !== undefined || cellPlaceholder !== undefined;
+          const hasPyMeta = cellCodeview || cellAutorun !== undefined || cellAutorunOnRefresh !== undefined || cellPlaceholder !== undefined;
           return {
             id: crypto.randomUUID(),
             type: c.cell_type === "code" || c.cell_type === "markdown" ? c.cell_type : "markdown",
@@ -1257,6 +1295,7 @@ const Notebook: Component = () => {
                 pynote: {
                   ...(cellCodeview ? { codeview: cellCodeview } : {}),
                   ...(cellAutorun !== undefined ? { autorun: cellAutorun } : {}),
+                  ...(cellAutorunOnRefresh !== undefined ? { autorunOnRefresh: cellAutorunOnRefresh } : {}),
                   ...(cellPlaceholder !== undefined ? { placeholder: cellPlaceholder } : {}),
                 }
               }
@@ -1319,6 +1358,11 @@ const Notebook: Component = () => {
           ? nb.metadata.PyNote.autorun
           : undefined;
 
+        // Extract notebook-level refresh-scope toggle
+        const docNotebookAutorunOnRefresh = typeof nb.metadata?.PyNote?.autorunOnRefresh === "boolean"
+          ? nb.metadata.PyNote.autorunOnRefresh
+          : undefined;
+
         // Extract notebook-level placeholder text for hidden code cells
         const docCodeHiddenPlaceholder = typeof nb.metadata?.PyNote?.codeHiddenPlaceholder === "string"
           ? nb.metadata.PyNote.codeHiddenPlaceholder
@@ -1351,6 +1395,7 @@ const Notebook: Component = () => {
             docShowTrailingAddButtons,
             docNotebookAutorun,
             docCodeHiddenPlaceholder,
+            docNotebookAutorunOnRefresh,
           );
           
           // Update URL without reload
@@ -1379,6 +1424,7 @@ const Notebook: Component = () => {
           executionMode: docExecutionMode, // Document's execution mode (or undefined for app default)
           showTrailingAddButtons: docShowTrailingAddButtons, // Document's trailing add buttons setting
           notebookAutorun: docNotebookAutorun,
+          notebookAutorunOnRefresh: docNotebookAutorunOnRefresh,
           codeHiddenPlaceholder: docCodeHiddenPlaceholder,
           theme: themeData || undefined,
           codeVisibility: documentVisibilityState || undefined,

@@ -46,9 +46,13 @@ export interface CellData {
   metadata?: {
     pynote?: {
       codeview?: CellCodeVisibility;
-      // When notebook-level autorun is false, cells with autorun=true still
-      // execute on session start. Ignored when notebook-level autorun is true.
+      // Cell-level autorun toggle. When undefined, inherits from notebook/app.
+      // true  -> opt this cell in to autorun
+      // false -> opt this cell out of autorun
       autorun?: boolean;
+      // Cell-level refresh-scope toggle. When undefined, inherits from notebook/app.
+      // true  -> also autorun this cell on page refresh / reload of the same session
+      autorunOnRefresh?: boolean;
       // Custom placeholder text shown when this cell's code is hidden.
       // Overrides the notebook-level placeholder.
       placeholder?: string;
@@ -115,10 +119,13 @@ export interface NotebookState {
   executionQueue: string[]; // List of cell IDs waiting to run
   sidebarAlignment: "top" | "center" | "bottom";
   showTrailingAddButtons: boolean;
-  // Notebook-level autorun preference loaded from document metadata.
-  // undefined = use global behavior, false = opt out of autorun-all on session start
-  // (cell-level autorun still applies when this is false).
+  // Notebook-level autorun toggle. When undefined, inherits from app-level.
+  // true  -> autorun cells on session start (subject to refresh-scope toggle)
+  // false -> do not autorun (only cells with explicit cell-level autorun=true run)
   notebookAutorun?: boolean;
+  // Notebook-level refresh-scope toggle. When undefined, inherits from app-level.
+  // true  -> also autorun on page refresh / reload of the same session
+  notebookAutorunOnRefresh?: boolean;
   // Notebook-level placeholder text for hidden code cells.
   // undefined = use the built-in default text.
   codeHiddenPlaceholder?: string;
@@ -241,6 +248,7 @@ const [store, setStore] = createStore<NotebookState>({
   sidebarAlignment: "top",
   showTrailingAddButtons: APP_SHOW_TRAILING_ADD_BUTTONS,
   notebookAutorun: undefined,
+  notebookAutorunOnRefresh: undefined,
   codeHiddenPlaceholder: undefined,
   // Reactive execution mode (Marimo-style DAG)
   cellDependencies: new Map(),
@@ -1083,6 +1091,7 @@ export const actions = {
     showTrailingAddButtons?: boolean,
     notebookAutorun?: boolean,
     codeHiddenPlaceholder?: string,
+    notebookAutorunOnRefresh?: boolean,
   ) => {
     setStore({
       cells,
@@ -1094,6 +1103,7 @@ export const actions = {
       executionMode: executionMode || APP_DEFAULT_EXECUTION_MODE,
       showTrailingAddButtons: showTrailingAddButtons ?? APP_SHOW_TRAILING_ADD_BUTTONS,
       notebookAutorun,
+      notebookAutorunOnRefresh,
       codeHiddenPlaceholder,
       // Reset reactive mode state when loading a new notebook
       cellDependencies: new Map(),

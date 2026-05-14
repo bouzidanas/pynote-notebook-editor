@@ -168,7 +168,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
 
         {/* Output Logs (Stdout/UI) Above */}
         <Show when={visibility().showStdout && currentTheme.outputLayout === "above" && props.cell.outputs}>
-           <OutputStdoutUI outputs={props.cell.outputs} />
+           <OutputStdoutUI outputs={props.cell.outputs} position="above" />
         </Show>
 
         {/* Code Editor - use CSS to hide instead of unmounting to preserve editor state */}
@@ -276,7 +276,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
 
         {/* Output Logs (Stdout/UI) Below (if layout is below) */}
         <Show when={visibility().showStdout && currentTheme.outputLayout === "below" && props.cell.outputs}>
-          <OutputStdoutUI outputs={props.cell.outputs} />
+          <OutputStdoutUI outputs={props.cell.outputs} position="below" />
         </Show>
 
         {/* Error (Always Bottom Most) */}

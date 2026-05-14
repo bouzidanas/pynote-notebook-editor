@@ -10,6 +10,14 @@ interface OutputProps {
   outputs: CellData["outputs"];
 }
 
+interface StdoutOutputProps extends OutputProps {
+  // Position of stdout block relative to the code editor. When "below",
+  // the cell's own bottom padding is already present, so we drop our pb
+  // and add slightly more pt to separate from any preceding outputs
+  // (stderr / result).
+  position?: "above" | "below";
+}
+
 // Control character markers matching Python's pynote_ui
 // Self-closing pattern: \x02TYPE\x02content\x02/TYPE\x02
 const MARKER_UI_START = "\x02PYNOTE_UI\x02";
@@ -481,7 +489,7 @@ const MarkdownWithUI: Component<{ content: string; styled: boolean }> = (props) 
   );
 };
 
-export const OutputStdoutUI: Component<OutputProps> = (props) => {
+export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
   const hasContent = () => {
     const o = props.outputs;
     return o && (
@@ -495,9 +503,16 @@ export const OutputStdoutUI: Component<OutputProps> = (props) => {
     return parseStdoutWithUI(props.outputs.stdout);
   };
 
+  // Below-layout: cell already has bottom padding, so drop pb and bump pt to
+  // separate from any preceding output blocks (stderr/result).
+  const containerClass = () =>
+    props.position === "below"
+      ? "first:pb-4 flex flex-col gap-5 font-mono text-sm px-2 pt-3.5 pb-0 pl-1.25 border-foreground min-w-0"
+      : "first:pb-4 flex flex-col gap-5 font-mono text-sm p-2 pl-1.25 border-foreground min-w-0";
+
   return (
     <Show when={hasContent()}>
-      <div class="first:pb-4 flex flex-col gap-5 font-mono text-sm p-2 pl-1.25 border-foreground min-w-0">
+      <div class={containerClass()}>
         <Show when={segments().length > 0}>
           {/* Render all segments in one container for inline flow */}
           <div class="text-secondary whitespace-pre-wrap min-w-0">

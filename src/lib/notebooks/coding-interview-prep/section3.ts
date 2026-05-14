@@ -197,7 +197,7 @@ def _check_solution(func_name, cases=None, edge_cases=None,
 
     # Mutable counters captured by closures
     counters = {"passed": 0, "failed": 0, "declared_total": len(declared),
-                "custom_total": 0, "started": False}
+                "custom_total": 0, "started": False, "completed": False}
 
     # Holds runtime state shared between _run_checks and _run_perf (e.g. the
     # resolved user function). Populated each time tests run.
@@ -340,7 +340,7 @@ def _check_solution(func_name, cases=None, edge_cases=None,
             (perf_inputs and fast_impl and slow_impl) or
             (size_gen and sizes and fast_impl and slow_impl)
         )
-        if perf_available and counters["failed"] == 0 and counters["started"]:
+        if perf_available and counters["failed"] == 0 and counters["completed"]:
             perf_btn.label = "Check Performance"
             perf_btn.disabled = False
             perf_btn.show()
@@ -374,6 +374,7 @@ def _check_solution(func_name, cases=None, edge_cases=None,
         counters["failed"] = 0
         counters["custom_total"] = 0
         counters["started"] = True
+        counters["completed"] = False
         for spec in declared:
             _set_status(spec, "pending")
         custom_group.send_update(children=[])
@@ -455,6 +456,11 @@ def _check_solution(func_name, cases=None, edge_cases=None,
             custom_group.send_update(
                 children=[b.to_json() for b in custom_buttons])
             _update_head()
+
+        # All declared (and any custom) tests have been executed without an
+        # early return. Mark the run as completed so _finish_run knows it's
+        # safe to consider showing the perf button.
+        counters["completed"] = True
 
         # Perf is now triggered by the separate "Check Performance" button
         # rendered after the correctness tests. _finish_run() (called from
@@ -582,6 +588,7 @@ def _check_solution(func_name, cases=None, edge_cases=None,
             pynote: {
                 codeview: { showCode: false, showResult: false, showStdout: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "Test runner helper - autoruns silently"
             }
         },
@@ -809,6 +816,7 @@ _check_solution(
             pynote: {
                 codeview: { showCode: false, showResult: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "<- Toggle visibility to inspect the test runner code"
             }
         },
@@ -970,6 +978,7 @@ _check_solution(
             pynote: {
                 codeview: { showCode: false, showResult: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "<- Toggle visibility to inspect the test runner code"
             }
         },
@@ -1153,6 +1162,7 @@ _check_solution(
             pynote: {
                 codeview: { showCode: false, showResult: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "<- Toggle visibility to inspect the test runner code"
             }
         },
@@ -1359,6 +1369,7 @@ _check_solution(
             pynote: {
                 codeview: { showCode: false, showResult: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "<- Toggle visibility to inspect the test runner code"
             }
         },
@@ -1518,6 +1529,7 @@ _check_solution(
             pynote: {
                 codeview: { showCode: false, showResult: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "<- Toggle visibility to inspect the test runner code"
             }
         },
@@ -1716,6 +1728,7 @@ _check_solution(
             pynote: {
                 codeview: { showCode: false, showResult: false },
                 autorun: true,
+                autorunOnRefresh: true,
                 placeholder: "<- Toggle visibility to inspect the test runner code"
             }
         },

@@ -20,6 +20,7 @@ export const CODING_PREP_CONFIG: Record<CodingPrepType, NotebookConfig> = {
         cells: codingPrepLandingCells,
         filename: "Python Interview Prep - Table of Contents.ipynb",
         showTrailingAddButtons: false,
+        outputLayout: "below",
     },
     "coding-prep-1": {
         cells: codingPrepSection1Cells,
@@ -28,6 +29,7 @@ export const CODING_PREP_CONFIG: Record<CodingPrepType, NotebookConfig> = {
         autorun: false,
         executionMode: "queue_all",
         codeHiddenPlaceholder: "Code is hidden — toggle the visibility icon to view",
+        outputLayout: "below",
     },
     "coding-prep-2": {
         cells: codingPrepSection2Cells,
@@ -36,6 +38,7 @@ export const CODING_PREP_CONFIG: Record<CodingPrepType, NotebookConfig> = {
         autorun: false,
         executionMode: "queue_all",
         codeHiddenPlaceholder: "Code is hidden — toggle the visibility icon to view",
+        outputLayout: "below",
     },
     "coding-prep-3": {
         cells: codingPrepSection3Cells,
@@ -44,6 +47,7 @@ export const CODING_PREP_CONFIG: Record<CodingPrepType, NotebookConfig> = {
         autorun: false,
         executionMode: "queue_all",
         codeHiddenPlaceholder: "Code is hidden — toggle the visibility icon to view",
+        outputLayout: "below",
     },
     "coding-prep-4": {
         cells: codingPrepSection4Cells,
@@ -52,6 +56,7 @@ export const CODING_PREP_CONFIG: Record<CodingPrepType, NotebookConfig> = {
         autorun: false,
         executionMode: "queue_all",
         codeHiddenPlaceholder: "Code is hidden — toggle the visibility icon to view",
+        outputLayout: "below",
     },
     "coding-prep-5": {
         cells: codingPrepSection5Cells,
@@ -60,5 +65,6 @@ export const CODING_PREP_CONFIG: Record<CodingPrepType, NotebookConfig> = {
         autorun: false,
         executionMode: "queue_all",
         codeHiddenPlaceholder: "Code is hidden — toggle the visibility icon to view",
+        outputLayout: "below",
     },
 };

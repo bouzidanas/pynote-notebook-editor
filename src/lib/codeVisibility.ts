@@ -31,17 +31,32 @@ export const setLoadMetadataOnDocumentLoad = (value: boolean) => {
     loadMetadataOnDocumentLoad = value;
 };
 
-// Internal flag: auto-run all cells when a NEW session loads and kernel is ready
-// Only triggers on brand new sessions, NOT on page refresh of existing sessions
-// Default: true (enabled)
-let autoRunOnNewSession = true;
+// App-level autorun master toggle. When true, cells autorun on session start
+// (and, if `autoRunOnRefresh` is also true, on page refreshes of the same
+// session). When false, no autorun happens regardless of `autoRunOnRefresh`.
+// Default: true (legacy behavior).
+let autoRun = true;
 
-export const shouldAutoRunOnNewSession = (): boolean => {
-    return autoRunOnNewSession;
+export const shouldAutoRun = (): boolean => {
+    return autoRun;
 };
 
-export const setAutoRunOnNewSession = (value: boolean) => {
-    autoRunOnNewSession = value;
+export const setAutoRun = (value: boolean) => {
+    autoRun = value;
+};
+
+// App-level scope toggle: when true (and `autoRun` is also true at the
+// resolved level), autorun also fires on page refresh / reload of an existing
+// session. Has no effect when autorun is off. Default: false (legacy
+// behavior — refreshes don't autorun).
+let autoRunOnRefresh = false;
+
+export const shouldAutoRunOnRefresh = (): boolean => {
+    return autoRunOnRefresh;
+};
+
+export const setAutoRunOnRefresh = (value: boolean) => {
+    autoRunOnRefresh = value;
 };
 
 // Default: show everything
