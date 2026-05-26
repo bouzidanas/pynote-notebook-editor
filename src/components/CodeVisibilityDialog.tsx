@@ -25,7 +25,8 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
   };
 
   // Scope toggle: "cell" or "notebook" (only available when a code cell is selected)
-  const [applyScope, setApplyScope] = createSignal<"cell" | "notebook">("notebook");
+  // Default to "cell" when opened with a code cell active, otherwise "notebook"
+  const [applyScope, setApplyScope] = createSignal<"cell" | "notebook">(activeCodeCell() ? "cell" : "notebook");
 
   // Local state mirrors the store for preview (before save)
   const [localSettings, setLocalSettings] = createSignal<CodeVisibilitySettings>({
@@ -246,6 +247,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       <div 
         class="bg-background border border-foreground rounded-sm shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div class="flex items-center justify-between p-4 border-b border-foreground shrink-0">
@@ -275,7 +277,6 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
                   if (props.activeCellId) {
                     actions.clearCellCodeVisibility(props.activeCellId);
                     loadNotebookSettings();
-                    setApplyScope("notebook");
                   }
                 }}
                 class={clsx(
