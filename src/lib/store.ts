@@ -126,11 +126,11 @@ let batchedEntries: HistoryEntry[] = [];
 
 // --- History Storage Utilities ---
 // Robust string escaping for pipe-delimited format
-const escapeContent = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
-const unescapeContent = (s: string) => s.replace(/\\\|/g, '|').replace(/\\\\/g, '\\');
+export const escapeContent = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+export const unescapeContent = (s: string) => s.replace(/\\\|/g, '|').replace(/\\\\/g, '\\');
 
 // Helper to parse "u|id|old|new" which has two escaped distinct content blocks
-const parseUpdateEntry = (entry: string): { id: string, oldContent: string, newContent: string } | null => {
+export const parseUpdateEntry = (entry: string): { id: string, oldContent: string, newContent: string } | null => {
   // skip "u|" (2 chars)
   const firstPipe = entry.indexOf('|');
   const secondPipe = entry.indexOf('|', firstPipe + 1);
