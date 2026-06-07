@@ -12,6 +12,14 @@ build
 node_modules
 *.local
 
+# Playwright e2e artifacts
+/reports/e2e-html/
+/reports/e2e-artifacts/
+/reports/e2e-junit.xml
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
