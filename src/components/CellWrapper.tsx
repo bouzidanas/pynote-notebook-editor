@@ -5,6 +5,7 @@ import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff, A
 import clsx from "clsx";
 import { notebookStore, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../lib/store";
 import { currentTheme } from "../lib/theme";
+import { TESTID } from "../lib/testids";
 
 // Reactive store for cell exit levels - tracks each cell's exit level
 // Each cell writes its exit level here, next cell reads via prevCellId prop
@@ -136,6 +137,8 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
   return (
     <div
       id={`cell-${props.id}`}
+      data-testid={TESTID.cell}
+      data-cell-id={props.id}
       ref={(el) => { sortable.ref(el); elementRef = el; }}
       {...(APP_ENABLE_CELL_DND ? sortable.dragActivators : {})}
       onKeyDown={undefined}

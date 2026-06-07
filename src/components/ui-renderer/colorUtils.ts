@@ -23,7 +23,7 @@
 /**
  * List of valid theme color presets
  */
-const COLOR_PRESETS = [
+export const COLOR_PRESETS = [
     "neutral",
     "primary",
     "secondary",
@@ -39,7 +39,7 @@ const COLOR_PRESETS = [
  * @param color - Color string to check
  * @returns true if it's a custom CSS color
  */
-function isCustomColor(color: string): boolean {
+export function isCustomColor(color: string): boolean {
     // Check if it's one of our presets
     if (COLOR_PRESETS.includes(color as any)) {
         return false;

@@ -12,6 +12,7 @@ import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRun, shouldAutoRunOnRefresh, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
+import { TESTID } from "../lib/testids";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
@@ -1670,7 +1671,7 @@ const Notebook: Component = () => {
                    return i + 1;
                  })();
                  actions.addCell("code", idx);
-               }} class="btn-toolbar flex items-center gap-1" title="Add Code Cell">
+               }} class="btn-toolbar flex items-center gap-1" title="Add Code Cell" data-testid={TESTID.addCodeCell}>
                  <Plus size={20} /> <Code size={20} />
                </button>
                <button onClick={() => {
@@ -1682,7 +1683,7 @@ const Notebook: Component = () => {
                    return i + 1;
                  })();
                  actions.addCell("markdown", idx);
-               }} class="btn-toolbar flex items-center gap-1" title="Add Markdown Cell">
+               }} class="btn-toolbar flex items-center gap-1" title="Add Markdown Cell" data-testid={TESTID.addMarkdownCell}>
                  <Plus size={20} /> <FileText size={20} />
                </button>
                
@@ -1919,7 +1920,10 @@ const Notebook: Component = () => {
            </div>
   
            <div class="flex items-center gap-2 max-xs:flex-1 max-xs:justify-center">
-             <div class={`text-xs font-mono py-1 rounded-sm flex items-center gap-2 ${
+             <div
+               data-testid={TESTID.kernelStatus}
+               data-status={kernel.status}
+               class={`text-xs font-mono py-1 rounded-sm flex items-center gap-2 ${
                  kernel.status === "ready" ? "text-success" :
                  (kernel.status === "loading" || kernel.status === "running") ? "text-warning" :
                  "text-error"
