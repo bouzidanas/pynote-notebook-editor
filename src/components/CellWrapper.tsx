@@ -81,6 +81,33 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
   const presentationMode = () => notebookStore.presentationMode;
   let elementRef: HTMLDivElement | undefined;
 
+  // Advanced cell-border overrides. Each state (default/hover/select/edit) is
+  // independent; an empty value falls back to the built-in Tailwind classes below.
+  const borderState = (): "default" | "hover" | "select" | "edit" => {
+    if (props.isActive && props.isEditing) return "edit";
+    if (props.isActive) return "select";
+    if (hovered() && !presentationMode()) return "hover";
+    return "default";
+  };
+  const customBorder = (): string => {
+    const cb = currentTheme.cellBorder;
+    switch (borderState()) {
+      case "edit": return cb.edit;
+      case "select": return cb.select;
+      case "hover": return cb.hover;
+      default: return cb.default;
+    }
+  };
+  const customShadow = (): string => {
+    const cs = currentTheme.cellShadow;
+    switch (borderState()) {
+      case "edit": return cs.edit;
+      case "select": return cs.select;
+      case "hover": return cs.hover;
+      default: return cs.default;
+    }
+  };
+
   // Section scoping logic - only active when sectionScoping is enabled
   // When disabled, entryLevel() returns 0 and all store operations are no-ops
   const entryLevel = () => getCellExitLevel(props.prevCellId ?? null);
@@ -157,7 +184,10 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         "margin-top": "var(--cell-margin)",
         "margin-bottom": "var(--cell-margin)",
         "z-index": props.cellIndex !== undefined ? 100000 - props.cellIndex : "auto",
-        ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {})
+        ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {}),
+        ...(currentTheme.cellBorder.radius ? { "border-radius": currentTheme.cellBorder.radius } : {}),
+        ...(customBorder() ? { border: customBorder() } : {}),
+        ...(customShadow() ? { "box-shadow": customShadow() } : {})
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => {

@@ -44,6 +44,41 @@ export interface Theme {
   editor: {
     maxCodeHeight: string;
   };
+  // Advanced cell border overrides. Empty string = inherit current theme behavior.
+  // border* accepts full CSS border shorthand (e.g. "2px solid #89b4fa").
+  cellBorder: {
+    radius: string;
+    default: string;
+    hover: string;
+    select: string;
+    edit: string;
+  };
+  // Advanced cell box-shadow overrides. Empty string = inherit current theme behavior.
+  // Each value accepts full CSS box-shadow shorthand (e.g. "0 0 5px #89b4fa").
+  cellShadow: {
+    default: string;
+    hover: string;
+    select: string;
+    edit: string;
+  };
+  // Advanced code-cell block overrides. Empty string = inherit current styling.
+  // border/shadow accept full CSS shorthand; background accepts any CSS color/background.
+  codeBlock: {
+    outerBorder: string;
+    outerRadius: string;
+    outerBackground: string;
+    outerShadow: string;
+    outerMargin: string;
+    outerPadding: string;
+    innerBorder: string;
+    innerRadius: string;
+    innerBackground: string;
+    innerShadow: string;
+    gutterBorderRightOn: boolean;
+    gutterBorderRight: string;
+    gutterRadius: string;
+    gutterBackground: string;
+  };
   sectionScoping: boolean;
   tableOverflow: "scroll" | "wrap";
   outputLayout: "above" | "below";
@@ -94,6 +129,35 @@ export const defaultTheme: Theme = {
   editor: {
     maxCodeHeight: "none",
   },
+  cellBorder: {
+    radius: "",
+    default: "",
+    hover: "",
+    select: "",
+    edit: "",
+  },
+  cellShadow: {
+    default: "",
+    hover: "",
+    select: "",
+    edit: "",
+  },
+  codeBlock: {
+    outerBorder: "",
+    outerRadius: "",
+    outerBackground: "",
+    outerShadow: "",
+    outerMargin: "",
+    outerPadding: "",
+    innerBorder: "",
+    innerRadius: "",
+    innerBackground: "",
+    innerShadow: "",
+    gutterBorderRightOn: true,
+    gutterBorderRight: "",
+    gutterRadius: "",
+    gutterBackground: "",
+  },
   sectionScoping: true,
   tableOverflow: "scroll",
   outputLayout: "above",
@@ -130,6 +194,9 @@ export const updateTheme = (newTheme: any) => {
   if (newTheme.typography) setTheme("typography", (t) => ({ ...t, ...newTheme.typography }));
   if (newTheme.codeTypography) setTheme("codeTypography", (ct) => ({ ...ct, ...newTheme.codeTypography }));
   if (newTheme.editor) setTheme("editor", (e) => ({ ...e, ...newTheme.editor }));
+  if (newTheme.cellBorder) setTheme("cellBorder", (cb) => ({ ...cb, ...newTheme.cellBorder }));
+  if (newTheme.cellShadow) setTheme("cellShadow", (cs) => ({ ...cs, ...newTheme.cellShadow }));
+  if (newTheme.codeBlock) setTheme("codeBlock", (cb) => ({ ...cb, ...newTheme.codeBlock }));
   if (newTheme.sectionScoping !== undefined) setTheme("sectionScoping", newTheme.sectionScoping);
   if (newTheme.tableOverflow) setTheme("tableOverflow", newTheme.tableOverflow);
   if (newTheme.outputLayout) setTheme("outputLayout", newTheme.outputLayout);

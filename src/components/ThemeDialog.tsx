@@ -1,4 +1,5 @@
-import { type Component, createSignal, createEffect, Show, onCleanup } from "solid-js";
+import { type Component, type JSX, createSignal, createEffect, Show, For, onCleanup } from "solid-js";
+import { createStore } from "solid-js/store";
 import { X, Palette, ChevronDown, Pipette, ChevronUp, RotateCcw, Sparkles } from "lucide-solid";
 import clsx from "clsx";
 import { currentTheme, updateTheme, defaultTheme } from "../lib/theme";
@@ -16,6 +17,33 @@ const FONT_OPTIONS: ComboBoxOption[] = [
   { label: "Google Sans Code",            value: '"Google Sans Code", monospace' },
 ];
 
+// Collapsed/expanded state for the theme dialog sections.
+// Defaults: everything expanded except the three Advanced sections.
+const SECTION_DEFAULTS: Record<string, boolean> = {
+  colors: true,
+  mdTypography: true,
+  codeTypography: true,
+  spacing: true,
+  borderRadius: true,
+  advBorders: false,
+  advShadows: false,
+  advCodeBlock: false,
+  layout: true,
+  markdown: true,
+};
+
+const SECTIONS_STORAGE_KEY = "pynote-theme-sections";
+
+const loadSectionState = (): Record<string, boolean> => {
+  try {
+    const stored = localStorage.getItem(SECTIONS_STORAGE_KEY);
+    if (stored) return { ...SECTION_DEFAULTS, ...JSON.parse(stored) };
+  } catch (e) {
+    console.warn("Failed to load theme section state:", e);
+  }
+  return { ...SECTION_DEFAULTS };
+};
+
 interface ThemeDialogProps {
   onClose: () => void;
   onSave: (applyToSession: boolean) => void;
@@ -32,6 +60,9 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
     typography: { ...currentTheme.typography },
     codeTypography: { ...currentTheme.codeTypography },
     editor: { ...currentTheme.editor },
+    cellBorder: { ...currentTheme.cellBorder },
+    cellShadow: { ...currentTheme.cellShadow },
+    codeBlock: { ...currentTheme.codeBlock },
     sectionScoping: currentTheme.sectionScoping,
     tableOverflow: currentTheme.tableOverflow,
     outputLayout: currentTheme.outputLayout,
@@ -41,7 +72,71 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
 
   const [saveToExport, setSaveToExport] = createSignal(currentTheme.saveToExport);
   const [openPickerId, setOpenPickerId] = createSignal<string | null>(null);
+  const [sectionOpen, setSectionOpen] = createStore<Record<string, boolean>>(loadSectionState());
+  const [previewCellState, setPreviewCellState] = createSignal<"default" | "hover" | "select" | "edit">("select");
   const [applyScope, setApplyScope] = createSignal<"app-wide" | "session-only">(props.initialScope || "session-only");
+
+  const persistSections = () => {
+    try {
+      localStorage.setItem(SECTIONS_STORAGE_KEY, JSON.stringify({ ...sectionOpen }));
+    } catch (e) {
+      console.warn("Failed to save theme section state:", e);
+    }
+  };
+
+  const toggleSection = (id: string) => {
+    setSectionOpen(id, (v) => !v);
+    persistSections();
+  };
+
+  const resetSections = () => {
+    setSectionOpen({ ...SECTION_DEFAULTS });
+    persistSections();
+  };
+
+  // Collapsible section wrapper with persisted open/closed state.
+  const Section: Component<{ id: string; title: string; children: JSX.Element }> = (sp) => (
+    <div class="space-y-2">
+      <button
+        type="button"
+        onClick={() => toggleSection(sp.id)}
+        class="w-full flex items-center justify-between text-xs font-bold text-accent uppercase mb-2"
+      >
+        <span>{sp.title}</span>
+        <Show when={sectionOpen[sp.id]} fallback={<ChevronDown size={14} />}>
+          <ChevronUp size={14} />
+        </Show>
+      </button>
+      <Show when={sectionOpen[sp.id]}>
+        {sp.children}
+      </Show>
+    </div>
+  );
+
+
+  // Border/shadow the preview cell should show for the currently selected state.
+  // Uses the custom override when set, otherwise mirrors the built-in cell styling.
+  const previewBorder = (): string => {
+    const cb = currentTheme.cellBorder;
+    const accent = currentTheme.colors.accent;
+    const secondary = currentTheme.colors.secondary;
+    switch (previewCellState()) {
+      case "edit": return cb.edit || `2px solid ${accent}`;
+      case "select": return cb.select || `2px solid color-mix(in srgb, ${accent} 60%, transparent)`;
+      case "hover": return cb.hover || `2px solid color-mix(in srgb, ${secondary} 10%, transparent)`;
+      default: return cb.default || "2px solid transparent";
+    }
+  };
+  const previewShadow = (): string => {
+    const cs = currentTheme.cellShadow;
+    const accent = currentTheme.colors.accent;
+    switch (previewCellState()) {
+      case "edit": return cs.edit || `0 0 5px ${accent}`;
+      case "select": return cs.select || "none";
+      case "hover": return cs.hover || "none";
+      default: return cs.default || "none";
+    }
+  };
 
   const handleSave = () => {
     // Persist saveToExport flag
@@ -548,7 +643,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
               <RotateCcw size={18} />
             </button>
             <button
-              onClick={() => updateTheme({ ...defaultTheme })}
+              onClick={() => { updateTheme({ ...defaultTheme }); resetSections(); }}
               class="p-1.5 text-secondary/50 hover:text-accent transition-colors rounded-sm"
               title="Reset to App Defaults"
             >
@@ -568,8 +663,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
           <div class="flex-1 shrink-3 p-4 overflow-y-auto border-b lg:border-b-0 lg:border-r border-foreground space-y-4">
 
             {/* Colors Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Colors</h3>
+            <Section id="colors" title="Colors">
               <ColorInput
                 id="primary"
                 label="Primary"
@@ -626,11 +720,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 value={currentTheme.typography.headerColors?.[3] || currentTheme.colors.primary}
                 onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, headerColors: [currentTheme.typography.headerColors?.[0] || "", currentTheme.typography.headerColors?.[1] || "", currentTheme.typography.headerColors?.[2] || "", v] } })}
               />
-            </div>
+            </Section>
 
             {/* Markdown Typography Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Markdown Typography</h3>
+            <Section id="mdTypography" title="Markdown Typography">
               <ComboBox
                 label="Font Family"
                 value={currentTheme.font}
@@ -652,11 +745,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 placeholder="0.225rem"
                 step={0.0125}
               />
-            </div>
+            </Section>
 
             {/* Code Typography Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Code Typography</h3>
+            <Section id="codeTypography" title="Code Typography">
               <ComboBox
                 label="Font Family"
                 value={currentTheme.codeTypography.fontFamily}
@@ -691,11 +783,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontWeight: v } })}
                 placeholder="400"
               />
-            </div>
+            </Section>
 
             {/* Spacing Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Spacing</h3>
+            <Section id="spacing" title="Spacing">
               <NumberUnitInput
                 label="Line Spacing"
                 value={currentTheme.spacing.line}
@@ -724,11 +815,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 placeholder="1.5rem"
                 step={0.125}
               />
-            </div>
+            </Section>
 
             {/* Border Radius Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Border Radius</h3>
+            <Section id="borderRadius" title="Border Radius">
               <NumberUnitInput
                 label="Large Radius"
                 value={currentTheme.radii.lg}
@@ -745,11 +835,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 step={0.125}
                 min={0}
               />
-            </div>
+            </Section>
 
             {/* Layout Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Layout</h3>
+            <Section id="layout" title="Layout">
               <div class="space-y-1">
                 <label class="text-xs font-semibold text-secondary/80">Page Width</label>
                 <select
@@ -773,17 +862,209 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                   <option value="wrap">Force 100% Width (Wrap)</option>
                 </select>
               </div>
-            </div>
+            </Section>
 
             {/* Markdown Section */}
-            <div class="space-y-2">
-              <h3 class="text-xs font-bold text-accent uppercase mb-2">Markdown</h3>
+            <Section id="markdown" title="Markdown">
               <ToggleField
                 label="Section Scoping"
                 value={currentTheme.sectionScoping}
                 onChange={() => updateTheme({ sectionScoping: !currentTheme.sectionScoping })}
               />
-            </div>
+            </Section>
+
+            {/* Advanced: Cell Borders Section */}
+            <Section id="advBorders" title="Advanced — Cell Borders">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    Leave a field blank to keep the current theme behavior. Border
+                    fields accept full CSS shorthand (e.g. <span class="font-mono">2px solid #89b4fa</span>).
+                    Each state is independent.
+                  </p>
+
+                  <NumberUnitInput
+                    label="Border Radius"
+                    value={currentTheme.cellBorder.radius}
+                    onChange={(v) => updateTheme({ cellBorder: { radius: v } })}
+                    placeholder="inherit"
+                    step={0.125}
+                    min={0}
+                  />
+
+                  <InputField
+                    label="Default"
+                    value={currentTheme.cellBorder.default}
+                    onChange={(v) => updateTheme({ cellBorder: { default: v } })}
+                    placeholder="2px solid transparent"
+                  />
+                  <InputField
+                    label="Hover"
+                    value={currentTheme.cellBorder.hover}
+                    onChange={(v) => updateTheme({ cellBorder: { hover: v } })}
+                    placeholder="2px solid #cdd6f433"
+                  />
+                  <InputField
+                    label="Select"
+                    value={currentTheme.cellBorder.select}
+                    onChange={(v) => updateTheme({ cellBorder: { select: v } })}
+                    placeholder="2px solid #89b4fa99"
+                  />
+                  <InputField
+                    label="Edit"
+                    value={currentTheme.cellBorder.edit}
+                    onChange={(v) => updateTheme({ cellBorder: { edit: v } })}
+                    placeholder="2px solid #89b4fa"
+                  />
+                </div>
+            </Section>
+
+            {/* Advanced: Cell Shadows Section */}
+            <Section id="advShadows" title="Advanced — Cell Shadows">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    Leave a field blank to keep the current theme behavior. Box-shadow
+                    fields accept full CSS shorthand (e.g. <span class="font-mono">0 0 5px #89b4fa</span>).
+                    Each state is independent.
+                  </p>
+
+                  <InputField
+                    label="Default"
+                    value={currentTheme.cellShadow.default}
+                    onChange={(v) => updateTheme({ cellShadow: { default: v } })}
+                    placeholder="none"
+                  />
+                  <InputField
+                    label="Hover"
+                    value={currentTheme.cellShadow.hover}
+                    onChange={(v) => updateTheme({ cellShadow: { hover: v } })}
+                    placeholder="none"
+                  />
+                  <InputField
+                    label="Select"
+                    value={currentTheme.cellShadow.select}
+                    onChange={(v) => updateTheme({ cellShadow: { select: v } })}
+                    placeholder="none"
+                  />
+                  <InputField
+                    label="Edit"
+                    value={currentTheme.cellShadow.edit}
+                    onChange={(v) => updateTheme({ cellShadow: { edit: v } })}
+                    placeholder="0 0 5px #89b4fa"
+                  />
+                </div>
+            </Section>
+
+            {/* Advanced: Code Block Section */}
+            <Section id="advCodeBlock" title="Advanced — Code Block">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    Styles the code area of code cells. Leave a field blank to keep the
+                    current styling. Border and shadow fields accept full CSS shorthand;
+                    background accepts any CSS color or background value.
+                  </p>
+
+                  <div class="space-y-1">
+                    <h4 class="text-[11px] font-bold text-secondary/70 uppercase">Outer Block</h4>
+                    <InputField
+                      label="Border"
+                      value={currentTheme.codeBlock.outerBorder}
+                      onChange={(v) => updateTheme({ codeBlock: { outerBorder: v } })}
+                      placeholder="1px solid #89b4fa"
+                    />
+                    <NumberUnitInput
+                      label="Border Radius"
+                      value={currentTheme.codeBlock.outerRadius}
+                      onChange={(v) => updateTheme({ codeBlock: { outerRadius: v } })}
+                      placeholder="inherit"
+                      step={0.125}
+                      min={0}
+                    />
+                    <InputField
+                      label="Background"
+                      value={currentTheme.codeBlock.outerBackground}
+                      onChange={(v) => updateTheme({ codeBlock: { outerBackground: v } })}
+                      placeholder="transparent"
+                    />
+                    <InputField
+                      label="Box Shadow"
+                      value={currentTheme.codeBlock.outerShadow}
+                      onChange={(v) => updateTheme({ codeBlock: { outerShadow: v } })}
+                      placeholder="none"
+                    />
+                    <InputField
+                      label="Margin"
+                      value={currentTheme.codeBlock.outerMargin}
+                      onChange={(v) => updateTheme({ codeBlock: { outerMargin: v } })}
+                      placeholder="0"
+                    />
+                    <InputField
+                      label="Padding"
+                      value={currentTheme.codeBlock.outerPadding}
+                      onChange={(v) => updateTheme({ codeBlock: { outerPadding: v } })}
+                      placeholder="0.5rem"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <h4 class="text-[11px] font-bold text-secondary/70 uppercase">Inner Code Block</h4>
+                    <InputField
+                      label="Border"
+                      value={currentTheme.codeBlock.innerBorder}
+                      onChange={(v) => updateTheme({ codeBlock: { innerBorder: v } })}
+                      placeholder="1px solid #89b4fa"
+                    />
+                    <NumberUnitInput
+                      label="Border Radius"
+                      value={currentTheme.codeBlock.innerRadius}
+                      onChange={(v) => updateTheme({ codeBlock: { innerRadius: v } })}
+                      placeholder="inherit"
+                      step={0.125}
+                      min={0}
+                    />
+                    <InputField
+                      label="Background"
+                      value={currentTheme.codeBlock.innerBackground}
+                      onChange={(v) => updateTheme({ codeBlock: { innerBackground: v } })}
+                      placeholder="color-mix(in srgb, #89b4fa 2%, transparent)"
+                    />
+                    <InputField
+                      label="Box Shadow"
+                      value={currentTheme.codeBlock.innerShadow}
+                      onChange={(v) => updateTheme({ codeBlock: { innerShadow: v } })}
+                      placeholder="none"
+                    />
+                  </div>
+
+                  <div class="space-y-1">
+                    <h4 class="text-[11px] font-bold text-secondary/70 uppercase">Gutter</h4>
+                    <ToggleField
+                      label="Show Right Border"
+                      value={currentTheme.codeBlock.gutterBorderRightOn}
+                      onChange={() => updateTheme({ codeBlock: { gutterBorderRightOn: !currentTheme.codeBlock.gutterBorderRightOn } })}
+                    />
+                    <InputField
+                      label="Right Border"
+                      value={currentTheme.codeBlock.gutterBorderRight}
+                      onChange={(v) => updateTheme({ codeBlock: { gutterBorderRight: v } })}
+                      placeholder="1px solid var(--foreground)"
+                    />
+                    <NumberUnitInput
+                      label="Border Radius"
+                      value={currentTheme.codeBlock.gutterRadius}
+                      onChange={(v) => updateTheme({ codeBlock: { gutterRadius: v } })}
+                      placeholder="inherit"
+                      step={0.125}
+                      min={0}
+                    />
+                    <InputField
+                      label="Background"
+                      value={currentTheme.codeBlock.gutterBackground}
+                      onChange={(v) => updateTheme({ codeBlock: { gutterBackground: v } })}
+                      placeholder="var(--background)"
+                    />
+                  </div>
+                </div>
+            </Section>
           </div>
 
           {/* Right Panel - Preview */}
@@ -799,12 +1080,33 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
           }}>
             <h3 class="text-xs font-bold uppercase mb-2" style={{ color: currentTheme.colors.accent }}>Preview</h3>
 
+            {/* Cell state selector — previews each border/shadow state */}
+            <div class="flex items-center gap-1">
+              <For each={["default", "hover", "select", "edit"] as const}>
+                {(state) => (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewCellState(state)}
+                    class={clsx(
+                      "px-2 py-1 text-[10px] font-bold uppercase rounded-sm border transition-colors",
+                      previewCellState() === state
+                        ? "bg-accent text-background border-accent"
+                        : "text-secondary/70 border-foreground hover:border-secondary/50"
+                    )}
+                  >
+                    {state}
+                  </button>
+                )}
+              </For>
+            </div>
+
             {/* Markdown Cell Preview */}
             <div
-              class="border rounded-sm p-3 space-y-3"
+              class="p-3 space-y-3"
               style={{
-                "border-color": currentTheme.colors.foreground,
-                "border-radius": currentTheme.radii.sm,
+                border: previewBorder(),
+                "box-shadow": previewShadow(),
+                "border-radius": currentTheme.cellBorder.radius || currentTheme.radii.sm,
                 "line-height": currentTheme.spacing.line,
               }}
             >
