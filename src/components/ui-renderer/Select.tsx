@@ -20,6 +20,7 @@ interface SelectProps {
     border?: boolean | string | null;
     background?: boolean | string | null;
     hidden?: boolean;
+    clearable?: boolean;
   };
 }
 
@@ -34,6 +35,7 @@ const Select: Component<SelectProps> = (p) => {
   const disabled = () => allProps().disabled ?? false;
   const size = () => allProps().size ?? "md";
   const hidden = () => allProps().hidden ?? false;
+  const clearable = () => allProps().clearable ?? false;
 
   // Keep allProps in sync with parent props
   createEffect(() => {
@@ -187,8 +189,23 @@ const Select: Component<SelectProps> = (p) => {
             display: flex;
             align-items: center;
             
-            /* Enable customizable select (Chrome 135+) */
+            /* Fallback for browsers without base-select (Safari/Firefox):
+               appearance: none lets the select honor padding/border-radius.
+               appearance: base-select wins in Chrome 135+ (last valid value). */
+            appearance: none;
             appearance: base-select;
+          }
+
+          /* Browsers without base-select strip the native arrow when
+             appearance: none is applied, so draw one via background-image
+             and reserve room for it on the right. */
+          @supports not (appearance: base-select) {
+            .${selectClass} {
+              padding-right: ${sizeConfig().padding * 2 + sizeConfig().iconSize}px;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${sizeConfig().iconSize}' height='${sizeConfig().iconSize}' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+              background-repeat: no-repeat;
+              background-position: right ${sizeConfig().padding}px center;
+            }
           }
           
           /* Style the arrow button */
@@ -225,7 +242,7 @@ const Select: Component<SelectProps> = (p) => {
             font-size: ${sizeConfig().fontSize};
           }
           
-          .${selectClass} option:hover {
+          .${selectClass} option:not([disabled]):hover {
             background: color-mix(in oklch, var(--color-secondary) 20%, transparent) !important;
           }
 
@@ -250,7 +267,7 @@ const Select: Component<SelectProps> = (p) => {
           }
           
           /* Hover state in picker */
-          .${selectClass}::picker(select) option:hover {
+          .${selectClass}::picker(select) option:not([disabled]):hover {
             background-color: color-mix(in oklch, var(--color-secondary) 25%, transparent);
           }
         `}
@@ -263,7 +280,7 @@ const Select: Component<SelectProps> = (p) => {
         disabled={disabled()}
       >
         {allProps().placeholder && (
-          <option value="" disabled>
+          <option value="" disabled={!clearable()}>
             {allProps().placeholder}
           </option>
         )}

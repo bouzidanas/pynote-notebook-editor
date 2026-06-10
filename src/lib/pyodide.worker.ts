@@ -1137,7 +1137,7 @@ class Button(UIElement):
 
 class Select(UIElement):
     def __init__(self, choices=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
-                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
+                 width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False, clearable=False):
         if choices is None:
             choices = []
         self._value = value
@@ -1146,7 +1146,7 @@ class Select(UIElement):
         self._size = size
         super().__init__(
             options=choices, value=value, placeholder=placeholder, color=color, size=size, disabled=disabled,
-            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
+            width=width, height=height, grow=grow, shrink=shrink, force_dimensions=force_dimensions, border=border, background=background, hidden=hidden, clearable=clearable
         )
 
     @property
