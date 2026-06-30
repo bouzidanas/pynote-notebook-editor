@@ -183,7 +183,7 @@ const PRESETS = {
             "edit": "6px 6px 0px #171717"
         },
         "codeBlock": {
-            "gutterBorderRightOn": false
+            "gutterBorderRightOn": true
         },
         "sectionScoping": false,
         "tableOverflow": "scroll",
