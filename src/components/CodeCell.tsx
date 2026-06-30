@@ -190,7 +190,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
            <div
              class={clsx(
                "w-10 bg-background flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono shrink-0",
-               currentTheme.codeBlock.gutterBorderRightOn && !currentTheme.codeBlock.gutterBorderRight && "border-r border-foreground",
+               currentTheme.codeBlock.gutterBorderRightOn && !currentTheme.codeBlock.gutterBorderRight && "border-r ui-border-color",
                props.cell.outputs?.executionKernelId === kernel.id ? "text-secondary/50 font-bold" : "text-foreground"
              )}
              style={{

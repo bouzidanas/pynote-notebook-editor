@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ci": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "gen:presets": "node scripts/build_theme_presets.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.0",

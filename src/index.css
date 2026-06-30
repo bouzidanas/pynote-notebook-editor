@@ -40,6 +40,7 @@ body {
   background-color: transparent;
   color: inherit;
   font-family: var(--font-mono);
+  font-weight: var(--font-weight-base, normal);
   line-height: var(--line-spacing);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -98,8 +99,69 @@ select:-webkit-autofill:active {
 }
 
 /* Utilities */
+
+/* Shared UI element border (theme-customizable thickness + color).
+   Replaces `border border-foreground` on dialogs, dropdowns, menus, toggles
+   and inputs. Width defaults to 1px and color to the foreground color when the
+   advanced "UI Element Borders" theme option is unset.
+   Defined via @utility so it sits in the utilities layer — this lets variant
+   utilities (e.g. focus:border-accent, hover:border-secondary/30) still
+   override the color on the converted elements. */
+@utility ui-border {
+  border-style: var(--ui-border-style, solid);
+  border-width: var(--ui-border-width, 1px);
+  border-color: var(--ui-border-color, var(--foreground));
+}
+
+/* Shared UI border color only — used by content rails (code gutter, output
+   rail) so they follow the same custom border color while keeping their own
+   side and width. */
+@utility ui-border-color {
+  border-color: var(--ui-border-color, var(--foreground));
+}
+
+/* Default border for embedded pynote_ui components (Button, Input, Slider,
+   Group, ...). Replaces the hardcoded `border-2 border-foreground` default so
+   they follow the advanced "pynote_ui Components" theme option. `--component-border`
+   holds a full CSS border value (resolved from the same string a `border=`
+   argument accepts); each utility supplies the matching per-component fallback
+   for the unset case. Variant utilities (focus:border-primary, etc.) still
+   override the color. */
+@utility component-border {
+  border: var(--component-border, 2px solid var(--foreground));
+}
+@utility component-border-b {
+  border-bottom: var(--component-border, 2px solid var(--foreground));
+}
+@utility component-border-dashed {
+  border: var(--component-border, 2px dashed var(--foreground));
+}
+
+/* Shared UI chrome typography — opt-in font family + weight for dialogs,
+   dropdowns, menus and toolbars. Defaults to the shared app font and normal
+   weight, so it only diverges when the advanced "UI Typography" option is set.
+   Applied at chrome roots; children inherit, keeping markdown/code/widgets on
+   the global --font-mono. */
+@utility ui-font {
+  font-family: var(--ui-font-family, var(--font-mono));
+  font-weight: var(--ui-font-weight, normal);
+}
+
+/* Shared UI divider style + color — applied to chrome dividers/separators
+   (dialog, panel, popup and menu-bar lines). The active side's width is set
+   separately via an arbitrary-property class so the divider can carry its own
+   style (e.g. dashed) without the width utility forcing it back to solid. */
+@utility ui-divider {
+  border-style: var(--ui-divider-style, solid);
+  border-color: var(--ui-divider-color, var(--foreground));
+}
+
 .btn-toolbar {
-  @apply h-9 px-3 rounded-[var(--radius-sm)] text-sm font-semibold bg-transparent border-2 border-primary text-primary hover:bg-foreground transition-colors cursor-pointer;
+  @apply h-9 px-3 rounded-[var(--radius-sm)] text-sm bg-transparent text-primary hover:bg-foreground transition-colors cursor-pointer;
+  font-weight: var(--menu-font-weight, 600);
+  border-width: var(--menu-border-width, 2px);
+  border-style: var(--menu-border-style, solid);
+  border-color: var(--menu-border-color, var(--primary));
 }
 
 .btn-icon {
@@ -231,7 +293,8 @@ select:-webkit-autofill:active {
 .prose .table-wrapper {
     display: block;
     overflow-x: auto;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
     border-radius: var(--radius-sm);
     margin-top: var(--block-margin) !important;
     margin-bottom: var(--block-margin) !important;
@@ -269,7 +332,8 @@ select:-webkit-autofill:active {
     display: block;
     overflow-x: auto;
     width: calc(100% - 5px);
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
     border-radius: var(--radius-sm);
     margin-top: var(--block-margin) !important;
     margin-bottom: var(--block-margin) !important;
@@ -313,15 +377,15 @@ select:-webkit-autofill:active {
     background-color: color-mix(in srgb, var(--accent) 10%, transparent);
     font-weight: 600;
     color: var(--secondary);
-    border-bottom: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
-    border-right: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
+    border-bottom: var(--md-divider-width, 2px) var(--md-divider-style, solid) var(--md-divider-color, color-mix(in srgb, var(--accent) 10%, transparent));
+    border-right: var(--md-divider-width, 2px) var(--md-divider-style, solid) var(--md-divider-color, color-mix(in srgb, var(--accent) 10%, transparent));
 }
 
 /* Body Cell Styles */
 .milkdown .editor td,
 .prose td {
-    border-bottom: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
-    border-right: 2px solid color-mix(in srgb, var(--accent) 10%, transparent);
+    border-bottom: var(--md-divider-width, 2px) var(--md-divider-style, solid) var(--md-divider-color, color-mix(in srgb, var(--accent) 10%, transparent));
+    border-right: var(--md-divider-width, 2px) var(--md-divider-style, solid) var(--md-divider-color, color-mix(in srgb, var(--accent) 10%, transparent));
 }
 
 /* Remove outer borders from cells to respect table radius */
@@ -375,7 +439,8 @@ select:-webkit-autofill:active {
 .prose pre,
 .milkdown .editor pre {
     background-color: color-mix(in srgb, var(--accent) 5%, transparent) !important;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
     border-radius: var(--radius-sm);
     padding: 1em !important;
     margin-top: var(--block-margin) !important;
@@ -404,58 +469,64 @@ select:-webkit-autofill:active {
     color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
 }
 
-/* highlight.js theme - Duotone Dark matching CodeMirror */
+/* highlight.js theme — driven by the shared syntax palette (--syntax-*) so
+   markdown code blocks track the selected scheme + per-token overrides, the
+   same as code cells and markdown Python blocks. */
 .prose pre code .hljs-keyword,
 .prose pre code .hljs-selector-tag,
 .prose pre code .hljs-literal,
 .prose pre code .hljs-section,
 .prose pre code .hljs-link {
-    color: #ffcc99 !important;
+    color: var(--syntax-keyword) !important;
 }
 .prose pre code .hljs-function .hljs-keyword {
-    color: #ffcc99 !important;
+    color: var(--syntax-keyword) !important;
 }
 .prose pre code .hljs-string,
 .prose pre code .hljs-attr {
-    color: #ffb870 !important;
+    color: var(--syntax-string) !important;
 }
 .prose pre code .hljs-number,
-.prose pre code .hljs-regexp,
+.prose pre code .hljs-regexp {
+    color: var(--syntax-number) !important;
+}
 .prose pre code .hljs-type,
 .prose pre code .hljs-built_in,
 .prose pre code .hljs-builtin-name {
-    color: #ffcc99 !important;
+    color: var(--syntax-type) !important;
 }
 .prose pre code .hljs-title,
-.prose pre code .hljs-name,
+.prose pre code .hljs-name {
+    color: var(--syntax-function) !important;
+}
 .prose pre code .hljs-variable,
 .prose pre code .hljs-params {
-    color: #eeebff !important;
+    color: var(--syntax-variable) !important;
 }
 .prose pre code .hljs-comment,
 .prose pre code .hljs-quote {
-    color: #6c6783 !important;
+    color: var(--syntax-comment) !important;
     font-style: italic;
 }
 .prose pre code .hljs-meta,
 .prose pre code .hljs-tag {
-    color: #6c6783 !important;
+    color: var(--syntax-comment) !important;
 }
 .prose pre code .hljs-attribute,
 .prose pre code .hljs-property {
-    color: #9a86fd !important;
+    color: var(--syntax-property) !important;
 }
 .prose pre code .hljs-symbol,
 .prose pre code .hljs-bullet,
 .prose pre code .hljs-addition {
-    color: #ffb870 !important;
+    color: var(--syntax-string) !important;
 }
 .prose pre code .hljs-deletion {
     color: #ff6b6b !important;
 }
 .prose pre code .hljs-operator,
 .prose pre code .hljs-punctuation {
-    color: #e09142 !important;
+    color: var(--syntax-punctuation) !important;
 }
 
 /* Remove backticks from code in prose */
@@ -599,7 +670,8 @@ select:-webkit-autofill:active {
 .prose img,
 .milkdown .editor img {
     border-radius: var(--radius-sm) !important;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
     margin-top: var(--block-margin) !important;
     margin-bottom: var(--block-margin) !important;
     margin-right: 5px;
@@ -615,7 +687,8 @@ select:-webkit-autofill:active {
     margin: var(--block-margin) auto !important;
     margin-right: 5px;
     border-radius: var(--radius-sm) !important;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
 }
 .video-embed-wrapper video {
     display: block;
@@ -624,7 +697,8 @@ select:-webkit-autofill:active {
     height: auto;
     margin: 0 auto !important;
     border-radius: var(--radius-sm) !important;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
 }
 
 /* Embedded video (YouTube/Vimeo iframe) — only when NOT inside a wrapper */
@@ -637,7 +711,8 @@ select:-webkit-autofill:active {
     margin: var(--block-margin) auto !important;
     margin-right: 5px;
     border-radius: var(--radius-sm) !important;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
 }
 .video-embed-wrapper iframe.video-embed {
     display: block;
@@ -646,7 +721,8 @@ select:-webkit-autofill:active {
     aspect-ratio: 16 / 9;
     margin: 0 auto !important;
     border-radius: var(--radius-sm) !important;
-    border: 2px solid color-mix(in srgb, var(--secondary) 40%, transparent);
+    border: var(--md-border-width, 2px) var(--md-border-style, solid) var(--md-border-color, color-mix(in srgb, var(--secondary) 40%, transparent));
+    box-shadow: var(--md-shadow, none);
 }
 
 /* Video embed wrapper in editor */

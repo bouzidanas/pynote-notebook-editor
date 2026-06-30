@@ -238,7 +238,7 @@ const Form: Component<FormProps> = (p) => {
     
     // border=true → use default border class
     if (borderValue === true) {
-      return 'border-2 border-foreground bg-base-200/20';
+      return 'component-border bg-base-200/20';
     }
     
     // border="none" or any string value → background only

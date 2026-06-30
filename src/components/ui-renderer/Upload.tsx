@@ -358,7 +358,7 @@ const Upload: Component<UploadProps> = (p) => {
   const borderClass = () => {
     const borderValue = allProps().border;
     if (borderValue === false || borderValue === "none") return "border-none";
-    if (borderValue === true || borderValue == null) return "border-2 border-dashed border-foreground";
+    if (borderValue === true || borderValue == null) return "component-border-dashed";
     return ""; // Custom value — handled by borderStyle()
   };
 

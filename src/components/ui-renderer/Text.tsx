@@ -159,7 +159,7 @@ const Text: Component<TextProps> = (p) => {
 
   return (
     <div 
-      class={`${sizeConfig().padding} bg-base-200/50 border-2 border-foreground rounded-sm font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}${isMarkdown() ? " prose prose-sm max-w-none" : ""}`}
+      class={`${sizeConfig().padding} bg-base-200/50 component-border rounded-sm font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}${isMarkdown() ? " prose prose-sm max-w-none" : ""}`}
       style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), color: colorValue() }}
       {...(isMarkdown() ? { innerHTML: renderedHtml() } : {})}
     >

@@ -4,7 +4,7 @@ import { createSortable } from "@thisbeyond/solid-dnd";
 import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff, AArrowUp, AArrowDown } from "lucide-solid";
 import clsx from "clsx";
 import { notebookStore, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../lib/store";
-import { currentTheme } from "../lib/theme";
+import { currentTheme, parseUiBorder } from "../lib/theme";
 import { TESTID } from "../lib/testids";
 
 // Reactive store for cell exit levels - tracks each cell's exit level
@@ -108,6 +108,24 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
     }
   };
 
+  // Color the sidebar action icon (Play / Edit) to match the cell's border in
+  // the current state. Falls back to the built-in colors when no advanced cell
+  // border override is set, and to the custom border's color when one is.
+  const actionIconColor = (): string => {
+    if (props.hasError) return "var(--primary)";
+    const cb = currentTheme.cellBorder;
+    switch (borderState()) {
+      case "edit":
+        return cb.edit ? parseUiBorder(cb.edit, "var(--accent)").color : "var(--accent)";
+      case "select":
+        return cb.select
+          ? parseUiBorder(cb.select, "var(--accent)").color
+          : "color-mix(in srgb, var(--accent) 60%, transparent)";
+      default:
+        return "var(--foreground)";
+    }
+  };
+
   // Section scoping logic - only active when sectionScoping is enabled
   // When disabled, entryLevel() returns 0 and all store operations are no-ops
   const entryLevel = () => getCellExitLevel(props.prevCellId ?? null);
@@ -185,6 +203,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         "margin-bottom": "var(--cell-margin)",
         "z-index": props.cellIndex !== undefined ? 100000 - props.cellIndex : "auto",
         ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {}),
+        "--cell-action-color": actionIconColor(),
         ...(currentTheme.cellBorder.radius ? { "border-radius": currentTheme.cellBorder.radius } : {}),
         ...(customBorder() ? { border: customBorder() } : {}),
         ...(customShadow() ? { "box-shadow": customShadow() } : {})
@@ -233,10 +252,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
                   props.onActionClick?.(); 
                 }} 
                 disabled={props.type === "code" && (props.actionRunning || props.isQueued)}
-                class={clsx(
-                  "p-2 -m-1 hover:text-accent rounded-sm disabled:opacity-50",
-                  props.hasError ? "text-primary" : (props.isActive || props.isEditing) ? "text-accent" : "text-foreground"
-                )}
+                class="p-2 -m-1 rounded-sm disabled:opacity-50 text-[var(--cell-action-color)] hover:text-accent"
                 title={props.type === "code" ? "Run Cell" : (props.isEditing ? "Finish Editing" : "Edit Markdown")}
               >
                 <Show when={props.type === "code"}
@@ -311,9 +327,9 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         </div>
       </Show>
 
-      {/* Toolbar - Visible when active and not in presentation mode */}
+      {/* Toolbar - Visible when active and not in presentation mode (mobile only) */}
       <Show when={props.isActive && !presentationMode()}>
-        <div class="absolute -top-8 right-2 flex bg-background shadow-md border border-foreground rounded-sm overflow-hidden z-10">
+        <div class="absolute -top-8 right-2 flex lg:hidden bg-background shadow-md ui-border ui-font rounded-sm overflow-hidden z-10">
           {props.toolbar}
         </div>
       </Show>

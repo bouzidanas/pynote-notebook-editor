@@ -62,7 +62,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
   });
 
   const menuClasses = clsx(
-    "shadow-lg bg-background border border-foreground ring-1 ring-black/5 focus:outline-none z-50",
+    "shadow-lg bg-background ui-border ui-font ring-1 ring-black/5 focus:outline-none z-50",
     props.fullWidthMobile ? "max-menu:fixed max-menu:left-0 max-menu:right-0 max-menu:top-[65px] max-menu:mt-0 max-menu:rounded-none max-menu:border-t-0 max-menu:w-auto max-menu:overflow-y-auto max-menu:max-h-[calc(100dvh-65px)]" : "",
     props.fullWidthMobile
       ? (props.compact ? "menu:absolute menu:mt-2 menu:w-48 menu:rounded-sm" : "menu:absolute menu:mt-2 menu:w-70 menu:rounded-sm")
@@ -148,7 +148,7 @@ export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Eleme
       </button>
       <Show when={isOpen()}>
         <div 
-          class={`absolute left-full -top-1 ${props.compact ? 'w-48' : 'w-70'} rounded-sm shadow-lg bg-background border border-foreground ring-1 ring-black/5 z-50`}
+          class={`absolute left-full -top-1 ${props.compact ? 'w-48' : 'w-70'} rounded-sm shadow-lg bg-background ui-border ui-font ring-1 ring-black/5 z-50`}
         >
           <div class="py-1" role="menu" aria-orientation="vertical">
             {props.children}
@@ -161,7 +161,7 @@ export const DropdownNested: Component<{ label: JSX.Element; children: JSX.Eleme
 
 // Divider for dropdown sections
 export const DropdownDivider: Component = () => {
-  return <div class="border-t border-foreground my-1" />;
+  return <div class="[border-top-width:var(--ui-divider-width,1px)] ui-divider my-1" />;
 };
 
 export default Dropdown;

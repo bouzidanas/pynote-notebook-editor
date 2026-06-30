@@ -1,4 +1,5 @@
 import { type Component, For, Show, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import UIOutputRenderer from "./UIOutputRenderer";
 import { kernel } from "../../lib/pyodide";
 import { resolveBorder, resolveBackground } from "./colorUtils";
@@ -88,13 +89,15 @@ const Group: Component<GroupProps> = (p) => {
     // Does NOT have border when: border=false, border=undefined, border=null
     const hasBorder = borderValue === true || (typeof borderValue === 'string' && borderValue !== '');
     const defaultPad = "0.75rem"; // matches p-3
-    const labelExtraPad = "1.1rem"; // p-5 for extra top padding with label
-    
+
+    // With a label the wrapper is a <fieldset> whose <legend> occupies the
+    // block-start space itself, so the top padding is reduced to compensate for
+    // the space the legend already adds above the content.
     if (hasBorder) {
-      // all sides when border is present, extra top padding when label exists
-      return hasLabel ? `${labelExtraPad} ${defaultPad} ${defaultPad} ${defaultPad}` : defaultPad;
+      // Legend present → trim the top padding to a fine-tuned value so content sits closer to the border.
+      return hasLabel ? `0.36rem ${defaultPad} ${defaultPad} ${defaultPad}` : defaultPad;
     } else if (hasLabel) {
-      return `${labelExtraPad} 0 ${defaultPad} 0`; // top/bottom only when label but no border
+      return `0 0 ${defaultPad} 0`; // legend provides the top; keep bottom spacing
     }
     return "0"; // no padding when neither border nor label
   };
@@ -228,7 +231,7 @@ const Group: Component<GroupProps> = (p) => {
     
     // border=true → use default border class
     if (borderValue === true) {
-      return 'border-2 border-foreground bg-base-200/20';
+      return 'component-border bg-base-200/20';
     }
     
     // border=undefined/null → no border styling (but wrapper may exist for label)
@@ -272,17 +275,23 @@ const Group: Component<GroupProps> = (p) => {
   return (
     <div style={componentStyles()} class="min-w-0">
       <Show when={needsWrapper()} fallback={content}>
-        <div 
-          class={`relative rounded-sm w-full ${containerBorderClass()}`}
+        {/* A label needs the border to clip around it: a native <fieldset>/<legend>
+            does this for free (the legend interrupts the block-start border with no
+            background). Without a label there is nothing to clip, so a plain <div>
+            wrapper keeps the simpler semantics. min-w-0 neutralises the fieldset's
+            UA min-inline-size:min-content so it still shrinks like the div. */}
+        <Dynamic
+          component={allProps().label ? "fieldset" : "div"}
+          class={`relative rounded-sm w-full min-w-0 ${containerBorderClass()}`}
           style={{ padding: computePadding(), ...containerBorderStyle(), ...resolveBackground(allProps().background) }}
         >
           <Show when={allProps().label}>
-            <span class={`absolute left-3 -top-2 px-2 text-xs font-bold uppercase tracking-wider text-secondary/70`}>
+            <legend class={`px-2 text-xs font-bold uppercase tracking-wider text-secondary/70`}>
               {allProps().label}
-            </span>
+            </legend>
           </Show>
           {content}
-        </div>
+        </Dynamic>
       </Show>
     </div>
   );

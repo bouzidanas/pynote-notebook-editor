@@ -2,7 +2,8 @@ import { type Component, type JSX, createSignal, createEffect, Show, For, onClea
 import { createStore } from "solid-js/store";
 import { X, Palette, ChevronDown, Pipette, ChevronUp, RotateCcw, Sparkles } from "lucide-solid";
 import clsx from "clsx";
-import { currentTheme, updateTheme, defaultTheme } from "../lib/theme";
+import { currentTheme, updateTheme, defaultTheme, SYNTAX_SCHEME_OPTIONS, SYNTAX_TOKENS, SYNTAX_SCHEMES } from "../lib/theme";
+import { THEME_PRESETS, getBuiltinTheme, isBuiltinTheme } from "../lib/themes";
 import { highlightPython } from "../lib/syntax-highlighter";
 import ComboBox from "./ui/ComboBox";
 import type { ComboBoxOption } from "./ui/ComboBox";
@@ -20,11 +21,17 @@ const FONT_OPTIONS: ComboBoxOption[] = [
 // Collapsed/expanded state for the theme dialog sections.
 // Defaults: everything expanded except the three Advanced sections.
 const SECTION_DEFAULTS: Record<string, boolean> = {
+  presets: true,
   colors: true,
   mdTypography: true,
   codeTypography: true,
+  syntaxHighlighting: true,
   spacing: true,
   borderRadius: true,
+  advUiBorder: false,
+  advUiTypography: false,
+  advPynoteUi: false,
+  advSyntaxColors: false,
   advBorders: false,
   advShadows: false,
   advCodeBlock: false,
@@ -54,12 +61,19 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
   // Store original theme to restore on cancel
   const originalTheme = {
     font: currentTheme.font,
+    fontWeight: currentTheme.fontWeight,
     colors: { ...currentTheme.colors },
+    syntaxScheme: currentTheme.syntaxScheme,
+    syntax: { ...currentTheme.syntax },
     radii: { ...currentTheme.radii },
     spacing: { ...currentTheme.spacing },
     typography: { ...currentTheme.typography },
     codeTypography: { ...currentTheme.codeTypography },
     editor: { ...currentTheme.editor },
+    uiTypography: { ...currentTheme.uiTypography },
+    uiBorder: { ...currentTheme.uiBorder },
+    mdBorder: { ...currentTheme.mdBorder },
+    mdShadow: currentTheme.mdShadow,
     cellBorder: { ...currentTheme.cellBorder },
     cellShadow: { ...currentTheme.cellShadow },
     codeBlock: { ...currentTheme.codeBlock },
@@ -199,7 +213,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
             value={itemProps.value}
             onInput={(e) => itemProps.onChange(e.currentTarget.value)}
             placeholder={itemProps.placeholder}
-            class="w-full h-9 px-2 pr-6 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
+            class="w-full h-9 px-2 pr-7 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
             onKeyDown={(e) => {
               if (e.key === 'ArrowUp') { e.preventDefault(); update(1); }
               if (e.key === 'ArrowDown') { e.preventDefault(); update(-1); }
@@ -209,7 +223,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
             <button
               type="button"
               onClick={() => update(1)}
-              class="p-0.5 text-secondary/50 hover:text-secondary transition-colors"
+              class="p-[calc(var(--spacing)*.4)] pr-1 text-secondary/50 hover:text-secondary transition-colors"
               tabIndex={-1}
             >
               <ChevronUp size={12} />
@@ -217,7 +231,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
             <button
               type="button"
               onClick={() => update(-1)}
-              class="p-0.5 text-secondary/50 hover:text-secondary transition-colors"
+              class="p-[calc(var(--spacing)*.4)] pr-1 text-secondary/50 hover:text-secondary transition-colors"
               tabIndex={-1}
             >
               <ChevronDown size={12} />
@@ -242,7 +256,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
         value={itemProps.value}
         onInput={(e) => itemProps.onChange(e.currentTarget.value)}
         placeholder={itemProps.placeholder}
-        class="w-full h-9 px-2 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
+        class="w-full h-9 px-2 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
       />
     </div>
   );
@@ -253,6 +267,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
     value: string;
     onChange: (value: string) => void;
     id: string;
+    placeholder?: string;
   }> = (itemProps) => {
     const [hue, setHue] = createSignal(0);
     const [saturation, setSaturation] = createSignal(100);
@@ -362,9 +377,11 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
       return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
     };
 
-    // Initialize HSL from current color
+    // Initialize HSL from current color. When the value is blank, seed from the
+    // placeholder (e.g. the active scheme's token color) so the picker opens on
+    // the effective color rather than defaulting to red.
     createEffect(() => {
-      const hsl = hexToHSL(itemProps.value);
+      const hsl = hexToHSL(itemProps.value || itemProps.placeholder || '');
       setHue(hsl.h);
       setSaturation(hsl.s);
       setLightness(hsl.l);
@@ -420,30 +437,31 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
             type="button"
             onClick={togglePicker}
             class="w-9 h-9 shrink-0 rounded-full border-2 border-foreground cursor-pointer hover:opacity-80 transition-opacity"
-            style={{ "background-color": itemProps.value }}
+            style={{ "background-color": itemProps.value || itemProps.placeholder }}
           />
           <div class="relative flex-1">
             <input
               type="text"
               value={getFormattedColor()}
+              placeholder={itemProps.placeholder}
               onInput={(e) => {
                 const hex = parseColorInput(e.currentTarget.value);
                 itemProps.onChange(hex);
               }}
-              class="w-full h-9 px-2 pr-6 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
+              class="w-full h-9 px-2 pr-6 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
             />
             <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
               <button
                 type="button"
                 onClick={() => cycleFormat('up')}
-                class="p-0.5 text-secondary/50 hover:text-secondary transition-colors"
+                class="p-[calc(var(--spacing)*.4)] pr-1 text-secondary/50 hover:text-secondary transition-colors"
                 tabIndex={-1}
               ><ChevronUp size={12} />
               </button>
               <button
                 type="button"
                 onClick={() => cycleFormat('down')}
-                class="p-0.5 text-secondary/50 hover:text-secondary transition-colors"
+                class="p-[calc(var(--spacing)*.4)] pr-1 text-secondary/50 hover:text-secondary transition-colors"
                 tabIndex={-1}
               >
                 <ChevronDown size={12} />
@@ -520,24 +538,25 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 <input
                   type="text"
                   value={getFormattedColor()}
+                  placeholder={itemProps.placeholder}
                   onInput={(e) => {
                     const hex = parseColorInput(e.currentTarget.value);
                     itemProps.onChange(hex);
                   }}
-                  class="w-full px-2 py-2 pr-8 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
+                  class="w-full px-2 py-2 pr-8 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
                 />
                 <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
                   <button
                     type="button"
                     onClick={() => cycleFormat('up')}
-                    class="p-0.5 text-secondary/50 hover:text-secondary transition-colors"
+                    class="p-[calc(var(--spacing)*.4)] pr-1 text-secondary/50 hover:text-secondary transition-colors"
                   >
                     <ChevronUp size={12} />
                   </button>
                   <button
                     type="button"
                     onClick={() => cycleFormat('down')}
-                    class="p-0.5 text-secondary/50 hover:text-secondary transition-colors"
+                    class="p-[calc(var(--spacing)*.4)] pr-1 text-secondary/50 hover:text-secondary transition-colors"
                   >
                     <ChevronDown size={12} />
                   </button>
@@ -625,11 +644,11 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
       onClick={handleCancel}
     >
       <div
-        class="bg-background border border-foreground rounded-sm shadow-xl max-w-5xl w-full max-h-[85vh] flex flex-col"
+        class="bg-background ui-border ui-font rounded-sm shadow-xl max-w-5xl w-full max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div class="relative flex items-center justify-between p-4 border-b border-foreground shrink-0">
+        <div class="relative flex items-center justify-between p-4 [border-bottom-width:var(--ui-divider-width,1px)] ui-divider shrink-0">
           <h2 class="text-lg font-bold flex items-center gap-2">
             <Palette size={20} /> Theme Configuration
           </h2>
@@ -660,7 +679,31 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
         <div class="flex flex-col lg:flex-row flex-1 overflow-hidden">
 
           {/* Left Panel - Theme Inputs */}
-          <div class="flex-1 shrink-3 p-4 overflow-y-auto border-b lg:border-b-0 lg:border-r border-foreground space-y-4">
+          <div class="flex-1 shrink-3 p-4 overflow-y-auto [border-bottom-width:var(--ui-divider-width,1px)] lg:[border-bottom-width:0px] lg:[border-right-width:var(--ui-divider-width,1px)] ui-divider space-y-4">
+
+            {/* Presets Section */}
+            <Section id="presets" title="Presets">
+              <ComboBox
+                label="Load Preset"
+                value={currentTheme.preset}
+                options={[
+                  { label: "Pynote Dark", value: "pynote_dark" },
+                  ...THEME_PRESETS.map((p) => ({ label: p.label, value: p.type })),
+                ]}
+                placeholder="Select a preset…"
+                onChange={(v) => {
+                  if (v !== "pynote_dark" && !isBuiltinTheme(v)) return;
+                  // Reset to the default reference point first, then overlay the
+                  // preset — so fields the preset doesn't customize fall back to
+                  // defaults (same as "Reset to App Defaults" followed by load).
+                  // "Pynote Dark" is the default reference point itself (reset only).
+                  updateTheme({ ...defaultTheme });
+                  if (isBuiltinTheme(v)) updateTheme(getBuiltinTheme(v));
+                  // Persist the selection so the dialog re-shows it on reopen.
+                  updateTheme({ preset: v });
+                }}
+              />
+            </Section>
 
             {/* Colors Section */}
             <Section id="colors" title="Colors">
@@ -730,6 +773,15 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 options={FONT_OPTIONS}
                 onChange={(v) => updateTheme({ font: v })}
                 placeholder='"JetBrains Mono Variable", monospace'
+                previewFontFamily
+              />
+              <NumberUnitInput
+                label="Font Weight"
+                value={currentTheme.fontWeight}
+                onChange={(v) => updateTheme({ fontWeight: v })}
+                placeholder="normal"
+                step={100}
+                min={100}
               />
               <NumberUnitInput
                 label="Base Font Size"
@@ -755,6 +807,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 options={FONT_OPTIONS}
                 onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontFamily: v } })}
                 placeholder='"JetBrains Mono Variable", monospace'
+                previewFontFamily
               />
               <NumberUnitInput
                 label="Base Font Size"
@@ -777,12 +830,28 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 placeholder="1rem"
                 step={0.0625}
               />
-              <InputField
+              <NumberUnitInput
                 label="Font Weight"
                 value={currentTheme.codeTypography.fontWeight}
                 onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontWeight: v } })}
                 placeholder="400"
+                step={100}
+                min={100}
               />
+            </Section>
+
+            {/* Syntax Highlighting Section */}
+            <Section id="syntaxHighlighting" title="Syntax Highlighting">
+              <ComboBox
+                label="Color Scheme"
+                value={currentTheme.syntaxScheme}
+                options={SYNTAX_SCHEME_OPTIONS}
+                onChange={(v) => updateTheme({ syntaxScheme: v })}
+              />
+              <p class="text-[10px] leading-relaxed text-secondary/60 pt-1">
+                Applies to code cells and markdown code blocks. Fine-tune
+                individual token colors in Advanced — Syntax Colors.
+              </p>
             </Section>
 
             {/* Spacing Section */}
@@ -839,38 +908,124 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
 
             {/* Layout Section */}
             <Section id="layout" title="Layout">
-              <div class="space-y-1">
-                <label class="text-xs font-semibold text-secondary/80">Page Width</label>
-                <select
-                  value={currentTheme.pageWidth}
-                  onChange={(e) => updateTheme({ pageWidth: e.currentTarget.value as "normal" | "wide" | "full" })}
-                  class="w-full h-9 px-2 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors"
-                >
-                  <option value="normal">Normal (52rem)</option>
-                  <option value="wide">Wide (64rem)</option>
-                  <option value="full">Full Page</option>
-                </select>
-              </div>
-              <div class="space-y-1">
-                <label class="text-xs font-semibold text-secondary/80">Table Overflow</label>
-                <select
-                  value={currentTheme.tableOverflow}
-                  onChange={(e) => updateTheme({ tableOverflow: e.currentTarget.value as "scroll" | "wrap" })}
-                  class="w-full h-9 px-2 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors"
-                >
-                  <option value="scroll">Horizontal Scroll</option>
-                  <option value="wrap">Force 100% Width (Wrap)</option>
-                </select>
-              </div>
+              <ComboBox
+                label="Page Width"
+                value={currentTheme.pageWidth}
+                options={[
+                  { value: "normal", label: "Normal (52rem)" },
+                  { value: "wide", label: "Wide (64rem)" },
+                  { value: "full", label: "Full Page" },
+                ]}
+                onChange={(v) => updateTheme({ pageWidth: v as "normal" | "wide" | "full" })}
+              />
+              <ComboBox
+                label="Table Overflow"
+                value={currentTheme.tableOverflow}
+                options={[
+                  { value: "scroll", label: "Horizontal Scroll" },
+                  { value: "wrap", label: "Force 100% Width (Wrap)" },
+                ]}
+                onChange={(v) => updateTheme({ tableOverflow: v as "scroll" | "wrap" })}
+              />
             </Section>
 
-            {/* Markdown Section */}
-            <Section id="markdown" title="Markdown">
-              <ToggleField
-                label="Section Scoping"
-                value={currentTheme.sectionScoping}
-                onChange={() => updateTheme({ sectionScoping: !currentTheme.sectionScoping })}
-              />
+            {/* Advanced: UI Element Borders Section */}
+            <Section id="advUiBorder" title="Advanced — UI Borders">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    <span class="font-mono">Color</span> sets the default for
+                    frames and dividers. For <span class="font-mono">Border</span>,{" "}
+                    <span class="font-mono">Divider</span> and <span class="font-mono">Menu</span>,
+                    enter a thickness (<span class="font-mono">2px</span>) or a
+                    full value (<span class="font-mono">2px dashed #89b4fa</span>).
+                    Menu styles toolbar/menu buttons. Blank keeps the current look.
+                  </p>
+
+                  <ColorInput
+                    id="uiBorderColor"
+                    label="Color"
+                    value={currentTheme.uiBorder.color}
+                    onChange={(v) => updateTheme({ uiBorder: { color: v } })}
+                  />
+                  <InputField
+                    label="Border"
+                    value={currentTheme.uiBorder.border}
+                    onChange={(v) => updateTheme({ uiBorder: { border: v } })}
+                    placeholder="1px"
+                  />
+                  <InputField
+                    label="Divider"
+                    value={currentTheme.uiBorder.divider}
+                    onChange={(v) => updateTheme({ uiBorder: { divider: v } })}
+                    placeholder="1px"
+                  />
+                  <InputField
+                    label="Menu"
+                    value={currentTheme.uiBorder.menu}
+                    onChange={(v) => updateTheme({ uiBorder: { menu: v } })}
+                    placeholder="2px"
+                  />
+                </div>
+            </Section>
+
+            {/* Advanced: UI Typography Section */}
+            <Section id="advUiTypography" title="Advanced — UI Typography">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    Overrides the font of UI chrome only (dialogs, dropdowns,
+                    menus, toolbars). Leave blank to use app font.
+                    Menu Weight applies to toolbar/menu buttons.
+                    Markdown, code cells and embedded widgets are unaffected.
+                  </p>
+
+                  <ComboBox
+                    label="Font Family"
+                    value={currentTheme.uiTypography.fontFamily}
+                    options={FONT_OPTIONS}
+                    onChange={(v) => updateTheme({ uiTypography: { fontFamily: v } })}
+                    placeholder="app font"
+                    previewFontFamily
+                  />
+                  <NumberUnitInput
+                    label="Font Weight"
+                    value={currentTheme.uiTypography.fontWeight}
+                    onChange={(v) => updateTheme({ uiTypography: { fontWeight: v } })}
+                    placeholder="normal"
+                    step={100}
+                    min={100}
+                  />
+                  <NumberUnitInput
+                    label="Menu Weight"
+                    value={currentTheme.uiTypography.menuFontWeight}
+                    onChange={(v) => updateTheme({ uiTypography: { menuFontWeight: v } })}
+                    placeholder="600"
+                    step={100}
+                    min={100}
+                  />
+                </div>
+            </Section>
+
+            {/* Advanced: Syntax Colors Section */}
+            <Section id="advSyntaxColors" title="Advanced — Syntax Colors">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    Override individual token colors on top of the selected
+                    scheme. Leave a field blank to use the scheme's color (shown
+                    as the placeholder). Accepts any CSS color.
+                  </p>
+
+                  <For each={SYNTAX_TOKENS}>
+                    {(token) => (
+                      <ColorInput
+                        id={`syntax-${token}`}
+                        label={token.charAt(0).toUpperCase() + token.slice(1)}
+                        value={currentTheme.syntax[token]}
+                        onChange={(v) => updateTheme({ syntax: { [token]: v } })}
+                        placeholder={(SYNTAX_SCHEMES[currentTheme.syntaxScheme] || SYNTAX_SCHEMES.duotone)[token]}
+                      />
+                    )}
+                  </For>
+                </div>
             </Section>
 
             {/* Advanced: Cell Borders Section */}
@@ -954,8 +1109,54 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                 </div>
             </Section>
 
+            {/* Markdown Section */}
+            <Section id="markdown" title="Advanced — Markdown Cell">
+              <p class="text-[10px] leading-relaxed text-secondary/60">
+                <span class="font-mono">Color</span> sets the default for
+                bordered elements and their dividers.{" "}
+                <span class="font-mono">Border</span> applies to tables,
+                images, videos and code blocks;{" "}
+                <span class="font-mono">Divider</span> applies to table cell
+                dividers. Enter a thickness
+                (<span class="font-mono">3px</span>) or a full value
+                (<span class="font-mono">3px dashed #89b4fa</span>). Blank
+                keeps the current look.
+              </p>
+              <ToggleField
+                label="Section Scoping"
+                value={currentTheme.sectionScoping}
+                onChange={() => updateTheme({ sectionScoping: !currentTheme.sectionScoping })}
+              />
+              <div class="space-y-3">
+                <ColorInput
+                  id="mdBorderColor"
+                  label="Color"
+                  value={currentTheme.mdBorder.color}
+                  onChange={(v) => updateTheme({ mdBorder: { color: v } })}
+                />
+                <InputField
+                  label="Border"
+                  value={currentTheme.mdBorder.border}
+                  onChange={(v) => updateTheme({ mdBorder: { border: v } })}
+                  placeholder="2px"
+                />
+                <InputField
+                  label="Divider"
+                  value={currentTheme.mdBorder.divider}
+                  onChange={(v) => updateTheme({ mdBorder: { divider: v } })}
+                  placeholder="2px"
+                />
+                <InputField
+                  label="Shadow"
+                  value={currentTheme.mdShadow}
+                  onChange={(v) => updateTheme({ mdShadow: v })}
+                  placeholder="none"
+                />
+              </div>
+            </Section>
+
             {/* Advanced: Code Block Section */}
-            <Section id="advCodeBlock" title="Advanced — Code Block">
+            <Section id="advCodeBlock" title="Advanced — Code Cell">
                 <div class="space-y-3">
                   <p class="text-[10px] leading-relaxed text-secondary/60">
                     Styles the code area of code cells. Leave a field blank to keep the
@@ -1065,6 +1266,30 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                   </div>
                 </div>
             </Section>
+
+            {/* Advanced: pynote_ui Components Section */}
+            <Section id="advPynoteUi" title="Advanced — pynote_ui Components">
+                <div class="space-y-3">
+                  <p class="text-[10px] leading-relaxed text-secondary/60">
+                    Sets the default border for embedded pynote_ui components
+                    (Button, Input, Slider, etc). Enter exactly what you'd
+                    pass to a component's <span class="font-mono">border</span>{" "}
+                    argument: a preset (<span class="font-mono">primary</span>), a
+                    color (<span class="font-mono">#89b4fa</span>), a full CSS
+                    border (<span class="font-mono">3px dashed #89b4fa</span>) or{" "}
+                    <span class="font-mono">none</span>.
+                    Components given their own <span class="font-mono">border</span>{" "}
+                    are unaffected.
+                  </p>
+
+                  <InputField
+                    label="Default Border"
+                    value={currentTheme.componentBorder}
+                    onChange={(v) => updateTheme({ componentBorder: v })}
+                    placeholder="2px solid foreground"
+                  />
+                </div>
+            </Section>
           </div>
 
           {/* Right Panel - Preview */}
@@ -1088,10 +1313,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
                     type="button"
                     onClick={() => setPreviewCellState(state)}
                     class={clsx(
-                      "px-2 py-1 text-[10px] font-bold uppercase rounded-sm border transition-colors",
+                      "px-2 py-1 text-[10px] font-bold uppercase rounded-sm border-[length:var(--ui-border-width,1px)] transition-colors",
                       previewCellState() === state
                         ? "bg-accent text-background border-accent"
-                        : "text-secondary/70 border-foreground hover:border-secondary/50"
+                        : "text-secondary/70 ui-border-color hover:border-secondary/50"
                     )}
                   >
                     {state}
@@ -1164,12 +1389,12 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
         </div>
 
         {/* Footer */}
-        <div class="relative p-4 border-t border-foreground shrink-0 flex flex-col gap-4 lg:block">
+        <div class="relative p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider shrink-0 flex flex-col gap-4 lg:block">
           {/* Centered Scope Toggle (Order 1 on mobile) */}
           <div class="order-1 flex w-full lg:w-auto lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:z-10">
             <div class="relative flex items-center justify-between w-full lg:block lg:w-auto">
               <div
-                class="relative flex items-center p-1 cursor-pointer select-none transition-colors border border-foreground hover:border-secondary/30 w-40 h-9 rounded-sm"
+                class="relative flex items-center p-1 cursor-pointer select-none transition-colors ui-border hover:border-secondary/30 w-40 h-9 rounded-sm"
                 onClick={() => setApplyScope(applyScope() === "app-wide" ? "session-only" : "app-wide")}
               >
                 {/* Sliding background */}

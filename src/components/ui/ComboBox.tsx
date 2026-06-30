@@ -14,6 +14,8 @@ interface ComboBoxProps {
   options: ComboBoxOption[];
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Render each dropdown option in its own value as font-family (font preview). */
+  previewFontFamily?: boolean;
 }
 
 const ComboBox: Component<ComboBoxProps> = (props) => {
@@ -149,7 +151,7 @@ const ComboBox: Component<ComboBoxProps> = (props) => {
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={props.placeholder}
-          class="w-full h-9 px-2 pr-8 text-sm bg-background border border-foreground rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
+          class="w-full h-9 px-2 pr-8 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
           role="combobox"
           aria-expanded={isOpen()}
           aria-haspopup="listbox"
@@ -175,7 +177,7 @@ const ComboBox: Component<ComboBoxProps> = (props) => {
           <div
             ref={listRef}
             role="listbox"
-            class="absolute z-[10] left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-background border border-foreground rounded-sm shadow-lg"
+            class="absolute z-[10] left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-background ui-border rounded-sm shadow-lg"
           >
             <For each={filteredOptions()}>
               {(option, index) => {
@@ -187,13 +189,13 @@ const ComboBox: Component<ComboBoxProps> = (props) => {
                     role="option"
                     aria-selected={isSelected()}
                     tabIndex={-1}
-                    class="w-full text-left px-2.5 py-1.5 text-sm transition-colors cursor-pointer"
+                    class="w-full text-left px-2.5 py-1.5 text-sm transition-colors cursor-pointer font-mono"
                     classList={{
                       "bg-accent/15 text-accent": isHighlighted(),
                       "bg-accent/5 text-secondary": isSelected() && !isHighlighted(),
                       "text-secondary hover:bg-foreground/60": !isSelected() && !isHighlighted(),
                     }}
-                    style={{ "font-family": option.value }}
+                    style={props.previewFontFamily ? { "font-family": option.value } : undefined}
                     onMouseDown={(e) => {
                       e.preventDefault(); // prevent input blur
                       selectOption(option);

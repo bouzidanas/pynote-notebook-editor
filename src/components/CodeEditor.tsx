@@ -9,17 +9,27 @@ import { tags } from "@lezer/highlight";
 import { bracketMatching, matchBrackets, indentOnInput, indentUnit } from "@codemirror/language";
 import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
 import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
-import { currentTheme } from "../lib/theme";
 import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE } from "../lib/store";
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
 
-// Create custom duotoneDark theme with function color from theme
-// Using duotoneDarkInit() with custom styles is the most efficient approach -
-// single-pass highlighting with our color baked into the theme
-const getCustomDuotoneDark = (functionColor: string) => duotoneDarkInit({
+// Custom duotoneDark theme whose token colors are driven by the shared syntax
+// palette CSS variables (--syntax-*). Because the colors are var() references,
+// the same generated CSS reacts live to scheme changes and per-token overrides
+// without rebuilding the extension. Anything not listed falls back to the base
+// Duotone Dark theme (editor chrome is themed separately via EditorView.theme).
+const getCustomDuotoneDark = () => duotoneDarkInit({
   styles: [
-    { tag: tags.function(tags.variableName), color: functionColor },
+    { tag: [tags.keyword, tags.controlKeyword, tags.definitionKeyword, tags.moduleKeyword, tags.atom, tags.bool, tags.attributeName, tags.quote], color: "var(--syntax-keyword)" },
+    { tag: [tags.function(tags.variableName), tags.function(tags.definition(tags.variableName)), tags.function(tags.propertyName), tags.definition(tags.name)], color: "var(--syntax-function)" },
+    { tag: [tags.name, tags.variableName, tags.tagName, tags.namespace, tags.macroName, tags.self, tags.special(tags.variableName), tags.labelName], color: "var(--syntax-variable)" },
+    { tag: [tags.typeName, tags.className, tags.url], color: "var(--syntax-type)" },
+    { tag: [tags.string, tags.character, tags.regexp, tags.special(tags.string)], color: "var(--syntax-string)" },
+    { tag: [tags.number, tags.integer, tags.float], color: "var(--syntax-number)" },
+    { tag: [tags.operator, tags.arithmeticOperator, tags.logicOperator, tags.bitwiseOperator, tags.compareOperator, tags.operatorKeyword], color: "var(--syntax-operator)" },
+    { tag: [tags.propertyName], color: "var(--syntax-property)" },
+    { tag: [tags.punctuation, tags.separator, tags.unit, tags.brace], color: "var(--syntax-punctuation)" },
+    { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment, tags.bracket, tags.angleBracket, tags.squareBracket, tags.paren, tags.meta], color: "var(--syntax-comment)" },
   ]
 });
 
@@ -671,8 +681,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
   ];
   createExtension(extensionsConfig);
   
-  // Reactive duotone theme (updates when syntax colors change)
-  createExtension(() => getCustomDuotoneDark(currentTheme.syntax.function));
+  // Syntax highlighting theme. Token colors are var(--syntax-*) references, so
+  // this builds once and updates live when the scheme or overrides change.
+  createExtension(() => getCustomDuotoneDark());
   
   // Reactive line numbers (toggleable via settings)
   createExtension(createMemo(() => {
