@@ -242,7 +242,7 @@ const Button: Component<ButtonProps> = (p) => {
     if (!border) {
       return `
         .${buttonClass} {
-          border: 2px solid var(--foreground);
+          border: var(--component-border, 2px solid var(--foreground));
         }
         .${buttonClass}:hover {
           border-color: ${colorVar};

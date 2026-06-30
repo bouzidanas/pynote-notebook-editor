@@ -152,7 +152,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
       .${checkboxClass} {
         appearance: none;
         background-color: transparent;
-        border: 2px solid var(--foreground);
+        border: var(--component-border, 2px solid var(--foreground));
         border-radius: 4px;
         cursor: pointer;
         position: relative;
@@ -186,7 +186,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
 
   // Layout classes based on align, spaced, and reverse
   const layoutClasses = () => {
-    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "border-2", "border-foreground", "rounded-sm", sizeConfig().textSize];
+    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "component-border", "rounded-sm", sizeConfig().textSize];
     
     // Handle reverse (order)
     if (reverse()) {

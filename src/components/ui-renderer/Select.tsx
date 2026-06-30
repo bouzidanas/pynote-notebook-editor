@@ -156,7 +156,7 @@ const Select: Component<SelectProps> = (p) => {
       return `border: ${borderStyle.border} !important;`;
     }
     // Default border
-    return "border: 2px solid var(--foreground) !important;";
+    return "border: var(--component-border, 2px solid var(--foreground)) !important;";
   };
   
   // Get color

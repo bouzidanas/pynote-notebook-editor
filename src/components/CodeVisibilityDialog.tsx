@@ -245,12 +245,12 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       onClick={props.onClose}
     >
       <div 
-        class="bg-background border border-foreground rounded-sm shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col"
+        class="bg-background ui-border ui-font rounded-sm shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div class="flex items-center justify-between p-4 border-b border-foreground shrink-0">
+        <div class="flex items-center justify-between p-4 [border-bottom-width:var(--ui-divider-width,1px)] ui-divider shrink-0">
           <h2 class="text-lg font-bold flex items-center gap-2">
             <EyeOff size={20} /> Code Cell Visibility
             <Show when={applyScope() === "cell" && activeCodeCell()}>
@@ -269,7 +269,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
         <div class="flex flex-col sm:flex-row flex-1 overflow-hidden">
           
           {/* Left Panel - Checkboxes */}
-          <div class="flex-1 p-4 overflow-y-auto border-b sm:border-b-0 sm:border-r border-foreground">
+          <div class="flex-1 p-4 overflow-y-auto [border-bottom-width:var(--ui-divider-width,1px)] sm:[border-bottom-width:0px] sm:[border-right-width:var(--ui-divider-width,1px)] ui-divider">
             <div class="flex items-center justify-between mb-2">
               <h3 class="text-xs font-bold text-accent uppercase">Show / Hide Elements</h3>
               <button
@@ -312,7 +312,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
           {/* Right Panel - Preview */}
           <div class="flex-1 p-4 overflow-y-auto bg-background/50">
             <h3 class="text-xs font-bold text-accent uppercase mb-2">Preview</h3>
-            <div class="border border-foreground rounded-sm bg-background p-3 space-y-2">
+            <div class="ui-border rounded-sm bg-background p-3 space-y-2">
               
               {/* Stdout Above (if layout is above) */}
               <Show when={localSettings().showStdout && localOutputLayout() === "above"}>
@@ -388,13 +388,13 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
         </div>
 
         {/* Footer */}
-        <div class="relative p-4 border-t border-foreground shrink-0 flex flex-col gap-3 sm:block">
+        <div class="relative p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider shrink-0 flex flex-col gap-3 sm:block">
           {/* Scope Toggle - centered, only visible when a code cell is selected */}
           <Show when={activeCodeCell()}>
             <div class="order-1 flex w-full sm:w-auto sm:absolute sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:z-10">
               <div class="relative flex items-center justify-between w-full sm:block sm:w-auto">
                 <div
-                  class="relative flex items-center p-1 cursor-pointer select-none transition-colors border border-foreground hover:border-secondary/30 w-40 h-9 rounded-sm"
+                  class="relative flex items-center p-1 cursor-pointer select-none transition-colors ui-border hover:border-secondary/30 w-40 h-9 rounded-sm"
                   onClick={() => setApplyScope(applyScope() === "cell" ? "notebook" : "cell")}
                 >
                   {/* Sliding background */}

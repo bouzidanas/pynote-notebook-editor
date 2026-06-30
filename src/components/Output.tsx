@@ -571,8 +571,8 @@ export const OutputResult: Component<OutputProps> = (props) => {
     <Show when={props.outputs?.result}>
       <div class="flex flex-col gap-1 font-mono text-sm p-2 pl-1 border-foreground">
         <div class="flex w-full">
-          <div class="w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
-          <div class="flex-1 text-secondary/80 whitespace-pre-wrap border-l-4 border-foreground bg-accent/5 pt-5 p-4">
+          <div class="w-10 bg-background border-r ui-border-color flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
+          <div class="flex-1 text-secondary/80 whitespace-pre-wrap border-l-4 ui-border-color bg-accent/5 pt-5 p-4">
             {props.outputs?.result}
           </div>
         </div>

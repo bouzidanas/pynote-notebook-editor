@@ -11,12 +11,34 @@ import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRun, shouldAutoRunOnRefresh, type CodeVisibilitySettings } from "../lib/codeVisibility";
-import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme } from "../lib/theme";
+import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, defaultTheme } from "../lib/theme";
 import { TESTID } from "../lib/testids";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 const ThemeDialog = lazy(() => import("./ThemeDialog"));
+
+// Strip "no-op" empty-string overrides from a theme before writing it to a
+// notebook's metadata, so the saved .ipynb isn't bloated with unused fields.
+// A "" is only dropped when the theme default for that same field is also "":
+// in that case omitting the key reloads to the identical value (loadAppTheme
+// fills missing keys from defaults). Fields whose default is non-empty keep
+// their "" (the value is meaningful there), and all non-string values are left
+// untouched. Nested objects that prune down to empty are dropped too.
+const pruneEmptyThemeOverrides = (value: any, def: any): any => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      const dv = def ? def[k] : undefined;
+      if (v === "" && dv === "") continue;
+      const pv = pruneEmptyThemeOverrides(v, dv);
+      if (pv && typeof pv === "object" && !Array.isArray(pv) && Object.keys(pv).length === 0) continue;
+      out[k] = pv;
+    }
+    return out;
+  }
+  return value;
+};
 
 // ============================================================================
 const SHORTCUTS = {
@@ -1178,7 +1200,7 @@ const Notebook: Component = () => {
           ...(currentTheme.saveToExport ? {
             theme: (() => {
               const { saveToExport, ...themeToExport } = currentTheme;
-              return themeToExport;
+              return pruneEmptyThemeOverrides(themeToExport, defaultTheme);
             })()
           } : loadedDocumentTheme ? {
             theme: loadedDocumentTheme
@@ -1492,7 +1514,7 @@ const Notebook: Component = () => {
     <div class="pb-32">
        {/* Global Toolbar */}
        <div 
-         class={`sticky top-0 z-[200000] bg-background/80 backdrop-blur-md border-b border-foreground mb-8 shadow-sm transition-transform duration-300 ${notebookStore.presentationMode ? "-translate-y-full" : ""}`}
+         class={`sticky top-0 z-[200000] bg-background/80 backdrop-blur-md [border-bottom-width:var(--ui-divider-width,1px)] ui-divider mb-8 shadow-sm transition-transform duration-300 ${notebookStore.presentationMode ? "-translate-y-full" : ""}`}
          onClick={(e) => {
            e.stopPropagation();
            // Deselect all cells when clicking the background
@@ -2012,7 +2034,7 @@ const Notebook: Component = () => {
          {/* Exit button - top right */}
          <button 
            onClick={() => actions.setPresentationMode(false)}
-           class="fixed top-4 right-4 z-50 p-2 bg-background/80 backdrop-blur-md border border-foreground rounded-sm hover:bg-foreground transition-colors shadow-lg"
+           class="fixed top-4 right-4 z-50 p-2 bg-background/80 backdrop-blur-md ui-border rounded-sm hover:bg-foreground transition-colors shadow-lg"
            title="Exit Presentation Mode"
          >
            <X size={20} class="text-secondary" />
@@ -2029,8 +2051,8 @@ const Notebook: Component = () => {
        {/* Keyboard Shortcuts Modal */}
        <Show when={showShortcuts()}>
          <div class="fixed inset-0 z-[300000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowShortcuts(false)}>
-           <div class="bg-background border border-foreground rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-             <div class="flex items-center justify-between p-4 border-b border-foreground shrink-0">
+           <div class="bg-background ui-border ui-font rounded-sm shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+             <div class="flex items-center justify-between p-4 [border-bottom-width:var(--ui-divider-width,1px)] ui-divider shrink-0">
                <h2 class="text-lg font-bold flex items-center gap-2"><Keyboard /> Keyboard Shortcuts</h2>
                <button onClick={() => setShowShortcuts(false)} class="p-1 hover:bg-foreground rounded-sm">
                  <X size={20} />
@@ -2066,7 +2088,7 @@ const Notebook: Component = () => {
                </div>
 
              </div>
-             <div class="p-4 border-t border-foreground text-center text-xs text-secondary/50 shrink-0">
+             <div class="p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider text-center text-xs text-secondary/50 shrink-0">
                Click anywhere outside to close
              </div>
            </div>

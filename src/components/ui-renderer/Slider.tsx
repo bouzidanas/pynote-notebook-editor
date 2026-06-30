@@ -138,7 +138,7 @@ const Slider: Component<SliderProps> = (p) => {
   const outerBorderClass = () => {
     const border = borderValue();
     // Only use Tailwind classes when border is explicitly true (default styling)
-    return border === true ? "border-2 border-foreground" : "";
+    return border === true ? "component-border" : "";
   };
   const outerBorderStyle = () => resolveBorder(allProps().border);
   
@@ -146,7 +146,7 @@ const Slider: Component<SliderProps> = (p) => {
   const headerBorderClass = () => {
     const border = borderValue();
     // Only use Tailwind classes when border is explicitly true (default styling)
-    return border === true ? "border-b-2 border-foreground" : "";
+    return border === true ? "component-border-b" : "";
   };
   const headerBorderStyle = () => {
     const { border } = resolveBorder(allProps().border);

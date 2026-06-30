@@ -51,79 +51,83 @@ const canonicalNames: Record<string, string> = {
 };
 
 // Python highlight style - array of tag+color pairs
-// Order matters: more specific tags (composite) should come first
+// Order matters: more specific tags (composite) should come first.
+// Colors are var(--syntax-*) references into the shared syntax palette, so
+// markdown Python blocks track the active scheme + overrides like the editor.
 const pythonStyleRules: Array<{ tag: Tag, color: string }> = [
-    // --- Functions (#a6e3a1) - must come before variableName ---
-    { tag: tags.function(tags.variableName), color: "#a6e3a1" },
-    { tag: tags.function(tags.definition(tags.variableName)), color: "#a6e3a1" },
-    { tag: tags.function(tags.propertyName), color: "#a6e3a1" },
-    { tag: tags.definition(tags.name), color: "#a6e3a1" },
+    // --- Functions - must come before variableName ---
+    { tag: tags.function(tags.variableName), color: "var(--syntax-function)" },
+    { tag: tags.function(tags.definition(tags.variableName)), color: "var(--syntax-function)" },
+    { tag: tags.function(tags.propertyName), color: "var(--syntax-function)" },
+    { tag: tags.definition(tags.name), color: "var(--syntax-function)" },
 
-    // --- Group 1: Peach/Orange (#ffcc99) - KEYWORDS ---
-    { tag: tags.keyword, color: "#ffcc99" },
-    { tag: tags.controlKeyword, color: "#ffcc99" },
-    { tag: tags.definitionKeyword, color: "#ffcc99" },
-    { tag: tags.moduleKeyword, color: "#ffcc99" },
-    { tag: tags.atom, color: "#ffcc99" },
-    { tag: tags.bool, color: "#ffcc99" },
-    { tag: tags.number, color: "#ffcc99" },
-    { tag: tags.integer, color: "#ffcc99" },
-    { tag: tags.float, color: "#ffcc99" },
-    { tag: tags.link, color: "#ffcc99" },
-    { tag: tags.attributeName, color: "#ffcc99" },
+    // --- Keywords ---
+    { tag: tags.keyword, color: "var(--syntax-keyword)" },
+    { tag: tags.controlKeyword, color: "var(--syntax-keyword)" },
+    { tag: tags.definitionKeyword, color: "var(--syntax-keyword)" },
+    { tag: tags.moduleKeyword, color: "var(--syntax-keyword)" },
+    { tag: tags.atom, color: "var(--syntax-keyword)" },
+    { tag: tags.bool, color: "var(--syntax-keyword)" },
+    { tag: tags.link, color: "var(--syntax-keyword)" },
+    { tag: tags.attributeName, color: "var(--syntax-keyword)" },
 
-    // --- Group 2: White/Lavender (#eeebff) - IDENTIFIERS ---
-    { tag: tags.name, color: "#eeebff" },
-    { tag: tags.variableName, color: "#eeebff" },
-    { tag: tags.tagName, color: "#eeebff" },
-    { tag: tags.className, color: "#eeebff" },
-    { tag: tags.namespace, color: "#eeebff" },
-    { tag: tags.macroName, color: "#eeebff" },
-    { tag: tags.self, color: "#eeebff" },
-    { tag: tags.special(tags.variableName), color: "#eeebff" },
-    { tag: tags.labelName, color: "#eeebff" },
+    // --- Numbers ---
+    { tag: tags.number, color: "var(--syntax-number)" },
+    { tag: tags.integer, color: "var(--syntax-number)" },
+    { tag: tags.float, color: "var(--syntax-number)" },
 
-    // --- Group 3: Purple (#7a63ee) - TYPES & URLS ---
-    { tag: tags.typeName, color: "#7a63ee" },
-    { tag: tags.url, color: "#7a63ee" },
+    // --- Identifiers ---
+    { tag: tags.name, color: "var(--syntax-variable)" },
+    { tag: tags.variableName, color: "var(--syntax-variable)" },
+    { tag: tags.tagName, color: "var(--syntax-variable)" },
+    { tag: tags.className, color: "var(--syntax-type)" },
+    { tag: tags.namespace, color: "var(--syntax-variable)" },
+    { tag: tags.macroName, color: "var(--syntax-variable)" },
+    { tag: tags.self, color: "var(--syntax-variable)" },
+    { tag: tags.special(tags.variableName), color: "var(--syntax-variable)" },
+    { tag: tags.labelName, color: "var(--syntax-variable)" },
 
-    // --- Group 4: Orange (#ffad5c) - OPERATORS ---
-    { tag: tags.operator, color: "#ffad5c" },
-    { tag: tags.arithmeticOperator, color: "#ffad5c" },
-    { tag: tags.logicOperator, color: "#ffad5c" },
-    { tag: tags.bitwiseOperator, color: "#ffad5c" },
-    { tag: tags.compareOperator, color: "#ffad5c" },
-    { tag: tags.operatorKeyword, color: "#ffad5c" },
+    // --- Types & URLs ---
+    { tag: tags.typeName, color: "var(--syntax-type)" },
+    { tag: tags.url, color: "var(--syntax-type)" },
 
-    // --- Group 5: Light Orange (#ffb870) - STRINGS ---
-    { tag: tags.string, color: "#ffb870" },
-    { tag: tags.character, color: "#ffb870" },
-    { tag: tags.regexp, color: "#ffb870" },
-    { tag: tags.special(tags.string), color: "#ffb870" },
+    // --- Operators ---
+    { tag: tags.operator, color: "var(--syntax-operator)" },
+    { tag: tags.arithmeticOperator, color: "var(--syntax-operator)" },
+    { tag: tags.logicOperator, color: "var(--syntax-operator)" },
+    { tag: tags.bitwiseOperator, color: "var(--syntax-operator)" },
+    { tag: tags.compareOperator, color: "var(--syntax-operator)" },
+    { tag: tags.operatorKeyword, color: "var(--syntax-operator)" },
 
-    // --- Group 6: Light Purple (#9a86fd) - PROPERTIES ---
-    { tag: tags.propertyName, color: "#9a86fd" },
+    // --- Strings ---
+    { tag: tags.string, color: "var(--syntax-string)" },
+    { tag: tags.character, color: "var(--syntax-string)" },
+    { tag: tags.regexp, color: "var(--syntax-string)" },
+    { tag: tags.special(tags.string), color: "var(--syntax-string)" },
 
-    // --- Group 7: Darker Orange (#e09142) - PUNCTUATION ---
-    { tag: tags.punctuation, color: "#e09142" },
-    { tag: tags.separator, color: "#e09142" },
-    { tag: tags.unit, color: "#e09142" },
-    { tag: tags.brace, color: "#e09142" },
+    // --- Properties ---
+    { tag: tags.propertyName, color: "var(--syntax-property)" },
 
-    // --- Group 8: Greyish Purple (#6c6783) - COMMENTS & BRACKETS ---
-    { tag: tags.comment, color: "#6c6783" },
-    { tag: tags.lineComment, color: "#6c6783" },
-    { tag: tags.blockComment, color: "#6c6783" },
-    { tag: tags.docComment, color: "#6c6783" },
-    { tag: tags.bracket, color: "#6c6783" },
-    { tag: tags.angleBracket, color: "#6c6783" },
-    { tag: tags.squareBracket, color: "#6c6783" },
-    { tag: tags.paren, color: "#6c6783" },
-    { tag: tags.meta, color: "#6c6783" },
+    // --- Punctuation ---
+    { tag: tags.punctuation, color: "var(--syntax-punctuation)" },
+    { tag: tags.separator, color: "var(--syntax-punctuation)" },
+    { tag: tags.unit, color: "var(--syntax-punctuation)" },
+    { tag: tags.brace, color: "var(--syntax-punctuation)" },
+
+    // --- Comments & Brackets ---
+    { tag: tags.comment, color: "var(--syntax-comment)" },
+    { tag: tags.lineComment, color: "var(--syntax-comment)" },
+    { tag: tags.blockComment, color: "var(--syntax-comment)" },
+    { tag: tags.docComment, color: "var(--syntax-comment)" },
+    { tag: tags.bracket, color: "var(--syntax-comment)" },
+    { tag: tags.angleBracket, color: "var(--syntax-comment)" },
+    { tag: tags.squareBracket, color: "var(--syntax-comment)" },
+    { tag: tags.paren, color: "var(--syntax-comment)" },
+    { tag: tags.meta, color: "var(--syntax-comment)" },
 
     // --- Misfits & Corrections ---
-    { tag: tags.quote, color: "#ffcc99" },
-    { tag: tags.invalid, color: "#ffcc99" },
+    { tag: tags.quote, color: "var(--syntax-keyword)" },
+    { tag: tags.invalid, color: "var(--syntax-keyword)" },
 ];
 
 // Match input tags against our style rules

@@ -172,18 +172,44 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         </Show>
 
         {/* Code Editor - use CSS to hide instead of unmounting to preserve editor state */}
-        <div class={clsx(
-          "flex relative pl-1.75 z-10 p-2",
-          !visibility().showCode && "hidden"
-        )}>
+        <div
+          class={clsx(
+            "flex relative pl-1.75 z-10 p-2",
+            !visibility().showCode && "hidden"
+          )}
+          style={{
+            ...(currentTheme.codeBlock.outerBorder ? { border: currentTheme.codeBlock.outerBorder } : {}),
+            ...(currentTheme.codeBlock.outerRadius ? { "border-radius": currentTheme.codeBlock.outerRadius } : {}),
+            ...(currentTheme.codeBlock.outerBackground ? { background: currentTheme.codeBlock.outerBackground } : {}),
+            ...(currentTheme.codeBlock.outerShadow ? { "box-shadow": currentTheme.codeBlock.outerShadow } : {}),
+            ...(currentTheme.codeBlock.outerMargin ? { margin: currentTheme.codeBlock.outerMargin } : {}),
+            ...(currentTheme.codeBlock.outerPadding ? { padding: currentTheme.codeBlock.outerPadding } : {}),
+          }}
+        >
            {/* Line numbers gutter could go here */}
-           <div class={clsx(
-             "w-10 bg-background border-r border-foreground flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono shrink-0",
-             props.cell.outputs?.executionKernelId === kernel.id ? "text-secondary/50 font-bold" : "text-foreground"
-           )}>
+           <div
+             class={clsx(
+               "w-10 bg-background flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono shrink-0",
+               currentTheme.codeBlock.gutterBorderRightOn && !currentTheme.codeBlock.gutterBorderRight && "border-r ui-border-color",
+               props.cell.outputs?.executionKernelId === kernel.id ? "text-secondary/50 font-bold" : "text-foreground"
+             )}
+             style={{
+               ...(currentTheme.codeBlock.gutterBorderRightOn && currentTheme.codeBlock.gutterBorderRight ? { "border-right": currentTheme.codeBlock.gutterBorderRight } : {}),
+               ...(currentTheme.codeBlock.gutterRadius ? { "border-radius": currentTheme.codeBlock.gutterRadius } : {}),
+               ...(currentTheme.codeBlock.gutterBackground ? { background: currentTheme.codeBlock.gutterBackground } : {}),
+             }}
+           >
               [{props.index + 1}]:
            </div>
-           <div class="flex-1 min-w-0 bg-accent/2 relative">
+           <div
+             class="flex-1 min-w-0 bg-accent/2 relative"
+             style={{
+               ...(currentTheme.codeBlock.innerBorder ? { border: currentTheme.codeBlock.innerBorder } : {}),
+               ...(currentTheme.codeBlock.innerRadius ? { "border-radius": currentTheme.codeBlock.innerRadius } : {}),
+               ...(currentTheme.codeBlock.innerBackground ? { background: currentTheme.codeBlock.innerBackground } : {}),
+               ...(currentTheme.codeBlock.innerShadow ? { "box-shadow": currentTheme.codeBlock.innerShadow } : {}),
+             }}
+           >
              <CodeEditor
                value={props.cell.content}
                onChange={(val) => actions.updateCell(props.cell.id, val)}
