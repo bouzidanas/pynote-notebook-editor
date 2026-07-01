@@ -662,7 +662,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
               <RotateCcw size={18} />
             </button>
             <button
-              onClick={() => { updateTheme({ ...defaultTheme }); resetSections(); }}
+              onClick={() => { updateTheme({ ...defaultTheme, outputLayout: currentTheme.outputLayout }); resetSections(); }}
               class="p-1.5 text-secondary/50 hover:text-accent transition-colors rounded-sm"
               title="Reset to App Defaults"
             >
