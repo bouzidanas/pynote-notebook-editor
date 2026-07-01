@@ -301,6 +301,30 @@ select:-webkit-autofill:active {
     margin-right: 5px;
 }
 
+/* Inset the horizontal scrollbar so it clears the rounded corners. Rather than
+   shrinking the thumb (which flattens its rounded ends), we add left/right
+   margin to the track so the thumb keeps its native pill shape and simply can't
+   travel into the corners. Applied to all horizontally scrolling bordered blocks
+   (rendered + edit mode): table wrappers, edit-mode tables, and code blocks. */
+.milkdown .editor .table-wrapper::-webkit-scrollbar:horizontal,
+.prose .table-wrapper::-webkit-scrollbar:horizontal,
+.milkdown .editor table:not(.table-wrapper table)::-webkit-scrollbar:horizontal,
+.prose pre::-webkit-scrollbar:horizontal,
+.milkdown .editor pre::-webkit-scrollbar:horizontal {
+    /* 1px taller than the global 5px so the 1px bottom margin below keeps the
+       thumb at its original 5px thickness while shifting it up 1px. */
+    height: 6px;
+}
+.milkdown .editor .table-wrapper::-webkit-scrollbar-track:horizontal,
+.prose .table-wrapper::-webkit-scrollbar-track:horizontal,
+.milkdown .editor table:not(.table-wrapper table)::-webkit-scrollbar-track:horizontal,
+.prose pre::-webkit-scrollbar-track:horizontal,
+.milkdown .editor pre::-webkit-scrollbar-track:horizontal {
+    margin-left: calc(var(--radius-sm) / 2 + 1px);
+    margin-right: calc(var(--radius-sm) / 2 + 1px);
+    margin-bottom: 1px;
+}
+
 /* Table inside wrapper stretches to fit or overflow */
 .milkdown .editor .table-wrapper table,
 .prose .table-wrapper table {
