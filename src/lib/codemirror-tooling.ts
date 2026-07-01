@@ -24,6 +24,7 @@ export const tooltipTheme = EditorView.theme({
         fontSize: "14px"
     },
     ".cm-tooltip-body": {
+        color: "var(--color-secondary)",
         lineHeight: "1.5",
         whiteSpace: "pre-wrap"
     },
