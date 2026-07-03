@@ -254,82 +254,96 @@ The \`Upload\` component provides a **drag & drop** file upload area. Files can 
     {
         id: "tut-ui-upload-standalone",
         type: "markdown",
-        content: "### Standalone Upload (Immediate Mode)\n\nWhen used outside a Form, files are sent to Python immediately after dropping. Access uploaded files via `uploader.files` — a dictionary mapping filenames to their raw bytes."
+        content: "### Standalone Upload (Immediate Mode)\n\nWhen used outside a Form, files are sent to Python immediately after dropping. Each successful upload is also written into `/workspace`, so it appears in Files and Data and can be opened by code that reads from disk. Access uploaded bytes via `uploader.files` and workspace locations via `uploader.workspace_paths`. Use `dir` to target a subdirectory under `/workspace`, but create that directory in Python first if it does not already exist. Invalid or missing destinations surface an upload error."
     },
     {
         id: "tut-demo-upload-standalone",
         type: "code",
-        content: `from pynote_ui import *
-
-# --- Standalone Upload (immediate mode) ---
-uploader = Upload(label="Drop files here", width="100%")
-
-status_text = Text(content="No files uploaded yet.", border=False)
-
-def on_upload(data):
-    if not uploader.files:
-        status_text.content = "No files uploaded yet."
-        return
-    nl = chr(10)
-    lines = []
-    for name, raw in uploader.files.items():
-        try:
-            text = raw.decode("utf-8")
-        except Exception:
-            text = repr(raw[:100])
-        preview = text[:300] + ("..." if len(text) > 300 else "")
-        lines.append(f"**{name}** ({len(raw)} bytes)")
-        lines.append(preview)
-    status_text.content = (nl * 2).join(lines)
-
-uploader.on_update(on_upload)
-
-Group([
-    Text(content="Standalone Upload (immediate)", border=False, size="lg"),
-    uploader,
-    status_text
-], gap=3, border=True, label="Immediate Mode")`
+        content: [
+            "from pynote_ui import *",
+            "from pathlib import Path",
+            "",
+            "Path(\"/workspace/data\").mkdir(parents=True, exist_ok=True)",
+            "",
+            "# --- Standalone Upload (immediate mode) ---",
+            "uploader = Upload(label=\"Drop files here\", dir=\"data\", width=\"100%\")",
+            "",
+            "status_text = Text(content=\"No files uploaded yet.\", border=False)",
+            "",
+            "def on_upload(data):",
+            "    if not uploader.files:",
+            "        status_text.content = \"No files uploaded yet.\"",
+            "        return",
+            "    nl = chr(10)",
+            "    lines = []",
+            "    for name, raw in uploader.files.items():",
+            "        workspace_path = uploader.workspace_paths[name]",
+            "        try:",
+            "            text = raw.decode(\"utf-8\")",
+            "        except Exception:",
+            "            text = repr(raw[:100])",
+            "        preview = text[:300] + (\"...\" if len(text) > 300 else \"\")",
+            "        lines.append(f\"**{name}** ({len(raw)} bytes)\")",
+            "        lines.append(f\"Saved to: {workspace_path}\")",
+            "        lines.append(preview)",
+            "    status_text.content = (nl * 2).join(lines)",
+            "",
+            "uploader.on_update(on_upload)",
+            "",
+            "Group([",
+            "    Text(content=\"Standalone Upload (immediate)\", border=False, size=\"lg\"),",
+            "    uploader,",
+            "    status_text",
+            "], gap=3, border=True, label=\"Immediate Mode\")",
+        ].join("\n")
     },
 
     // --- Upload inside Form ---
     {
         id: "tut-ui-upload-form",
         type: "markdown",
-        content: "### Upload inside a Form (Deferred Mode)\n\nWhen placed inside a `Form`, files are **not sent to Python** until the form is submitted. This lets users add/remove files before committing."
+        content: "### Upload inside a Form (Deferred Mode)\n\nWhen placed inside a `Form`, files are **not sent to Python** until the form is submitted. After submit, successful files become available both as raw bytes in `form_upload.files` and as real files in `/workspace`. Use `dir` when you want those saved files to land in a specific directory under `/workspace`, and create that directory in Python first if needed."
     },
     {
         id: "tut-demo-upload-form",
         type: "code",
-        content: `from pynote_ui import *
-
-# --- Upload inside a Form (deferred mode) ---
-form_upload = Upload(label="Attach files", width="100%")
-submit_btn = Button(label="Submit Form", button_type="submit", color="primary", width="100%")
-form_status = Text(content="Add files and click Submit.", border=False)
-
-def on_submit(data):
-    if not form_upload.files:
-        form_status.content = "Form submitted with no files."
-        return
-    nl = chr(10)
-    lines = []
-    for name, raw in form_upload.files.items():
-        try:
-            text = raw.decode("utf-8")
-        except Exception:
-            text = repr(raw[:100])
-        preview = text[:300] + ("..." if len(text) > 300 else "")
-        lines.append(f"**{name}** ({len(raw)} bytes)")
-        lines.append(preview)
-    form_status.content = (nl * 2).join(lines)
-
-submit_btn.on_update(on_submit)
-
-Form([
-    form_upload,
-    submit_btn,
-    form_status
-], label="Deferred Upload (Form)", border=True, gap=3)`
+        content: [
+            "from pynote_ui import *",
+            "from pathlib import Path",
+            "",
+            "Path(\"/workspace/incoming\").mkdir(parents=True, exist_ok=True)",
+            "",
+            "# --- Upload inside a Form (deferred mode) ---",
+            "form_upload = Upload(label=\"Attach files\", dir=\"incoming\", width=\"100%\")",
+            "submit_btn = Button(label=\"Submit Form\", button_type=\"submit\", color=\"primary\", width=\"100%\")",
+            "form_status = Text(content=\"Add files and click Submit.\", border=False)",
+            "",
+            "def on_submit(data):",
+            "    if not form_upload.files:",
+            "        form_status.content = \"Form submitted with no files.\"",
+            "        return",
+            "    nl = chr(10)",
+            "    lines = []",
+            "    for name, raw in form_upload.files.items():",
+            "        workspace_path = form_upload.workspace_paths[name]",
+            "        try:",
+            "            text = raw.decode(\"utf-8\")",
+            "        except Exception:",
+            "            text = repr(raw[:100])",
+            "        preview = text[:300] + (\"...\" if len(text) > 300 else \"\")",
+            "        lines.append(f\"**{name}** ({len(raw)} bytes)\")",
+            "        lines.append(f\"Saved to: {workspace_path}\")",
+            "        lines.append(preview)",
+            "    form_status.content = (nl * 2).join(lines)",
+            "",
+            "submit_btn.on_update(on_submit)",
+            "",
+            "Form([",
+            "    form_upload,",
+            "    submit_btn,",
+            "    form_status",
+            "], label=\"Deferred Upload (Form)\", border=True, gap=3)",
+        ].join("\n")
     },
 
     // ============================================================================

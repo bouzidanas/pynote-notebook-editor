@@ -533,6 +533,15 @@ export const saveThemeAppWide = () => {
     // Update preloader colors immediately
     localStorage.setItem("theme_bg", theme.colors.background);
     localStorage.setItem("theme_text", theme.colors.secondary);
+
+    const root = document.documentElement;
+    const body = document.body;
+    root.style.setProperty("--background", theme.colors.background);
+    root.style.setProperty("--secondary", theme.colors.secondary);
+    root.style.backgroundColor = theme.colors.background;
+    body.style.backgroundColor = theme.colors.background;
+    const metaTheme = document.getElementById("meta-theme-color");
+    if (metaTheme) metaTheme.setAttribute("content", theme.colors.background);
   } catch (e) {
     console.warn("Failed to save theme:", e);
   }
@@ -565,6 +574,7 @@ export const parseUiBorder = (value: string, fallbackColor: string, fallbackWidt
 export const initTheme = () => {
   createEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     root.style.setProperty("--font-mono", theme.font);
     root.style.setProperty("--font-weight-base", theme.fontWeight || "normal");
 
@@ -579,6 +589,8 @@ export const initTheme = () => {
     root.style.setProperty("--error", theme.colors.error);
     root.style.setProperty("--warning", theme.colors.warning);
     root.style.setProperty("--info", theme.colors.info);
+    root.style.backgroundColor = theme.colors.background;
+    body.style.backgroundColor = theme.colors.background;
 
     // DaisyUI variables (not using @theme inline, set directly)
     root.style.setProperty("--color-base-100", theme.colors.background);

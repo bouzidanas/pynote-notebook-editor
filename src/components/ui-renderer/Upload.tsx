@@ -5,6 +5,7 @@ import { kernel } from "../../lib/pyodide";
 import { useFormContext } from "./FormContext";
 import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 import { CloudUpload, CircleCheckBig, CloudAlert, Circle, X, Loader } from "lucide-solid";
+import { TESTID } from "../../lib/testids";
 
 // --- Types ---
 
@@ -28,6 +29,7 @@ interface UploadProps {
     accept?: string | null;
     max_size?: number | null;
     label?: string | null;
+    dir?: string | null;
     color?: string | null;
     size?: "xs" | "sm" | "md" | "lg" | "xl" | null;
     disabled?: boolean;
@@ -407,6 +409,9 @@ const Upload: Component<UploadProps> = (p) => {
           el.addEventListener("dragleave", handleDragLeave);
           el.addEventListener("drop", handleDrop);
         }}
+        data-testid={TESTID.uploadComponent}
+        data-component-id={componentId}
+        data-label={label()}
         class={`${uploadClass} rounded-sm cursor-pointer select-none font-mono flex-col ${sizeConfig().paddingClass} ${borderClass()} ${hidden() ? "hidden" : "flex"} ${allProps().height == null ? "min-h-[120px]" : ""} ${isDragOver() ? "drag-over" : ""}`}
         style={{
           ...componentStyles(),

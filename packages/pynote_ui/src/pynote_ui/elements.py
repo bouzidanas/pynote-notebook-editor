@@ -88,6 +88,7 @@ class Text(UIElement):
     Args:
         content: Text string to display (can be updated dynamically)
         size: Size preset ('xs', 'sm', 'md', 'lg')
+        dir: Destination directory under /workspace. Relative paths are resolved from /workspace.
         color: Color theme ('primary', 'secondary', 'accent', etc.)
         align_h: Horizontal alignment ('left', 'center', 'right')
         align_v: Vertical alignment ('top', 'center', 'bottom')
@@ -835,14 +836,19 @@ class Upload(UIElement):
     
     Properties:
         files: Dict of {filename: bytes} for all successfully uploaded files (read-only)
+        workspace_paths: Dict of {filename: '/workspace/filename'} for saved workspace files
     
     Example:
         # Basic usage
-        uploader = Upload(label="Drop CSV files", accept=".csv")
+        # Create the target directory first when using dir=...
+        from pathlib import Path
+        Path("/workspace/data").mkdir(parents=True, exist_ok=True)
+        uploader = Upload(label="Drop CSV files", accept=".csv", dir="data")
         
         def on_file(data):
             for name, content in uploader.files.items():
                 print(f"Got {name}: {len(content)} bytes")
+                print(f"Saved to: {uploader.workspace_paths[name]}")
         
         uploader.on_update(on_file)
         
@@ -851,14 +857,15 @@ class Upload(UIElement):
         submit = Button(label="Send", button_type="submit")
         form = Form([upload, submit], label="Upload Form")
     """
-    def __init__(self, accept=None, max_size=None, label="Upload", color=None, size=None,
+    def __init__(self, accept=None, max_size=None, label="Upload", dir=None, color=None, size=None,
                  disabled=False, width=None, height=None, grow=None, shrink=None,
                  force_dimensions=False, border=True, background=True, hidden=False):
         self._files = {}  # {key: bytes}
+        self._workspace_paths = {}
         self._disabled = disabled
         self._size = size
         super().__init__(
-            accept=accept, max_size=max_size, label=label, color=color, size=size,
+            accept=accept, max_size=max_size, label=label, dir=dir, color=color, size=size,
             disabled=disabled, width=width, height=height, grow=grow, shrink=shrink,
             force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
@@ -867,6 +874,11 @@ class Upload(UIElement):
     def files(self):
         """Dict of {filename: bytes} for all successfully uploaded files."""
         return dict(self._files)
+
+    @property
+    def workspace_paths(self):
+        """Dict of {filename: '/workspace/filename'} for workspace-persisted uploads."""
+        return dict(self._workspace_paths)
 
     @property
     def disabled(self):
@@ -886,7 +898,60 @@ class Upload(UIElement):
         self._size = new_size
         self.send_update(size=new_size)
 
+    def _safe_workspace_name(self, name):
+        name = str(name or "unknown").replace("\\", "/").split("/")[-1].strip()
+        return name or "unknown"
+
+    def _workspace_dir(self):
+        from pathlib import Path
+
+        raw = str(self.props.get("dir") or "/workspace").strip().replace("\\", "/")
+        if not raw:
+            raw = "/workspace"
+        if not raw.startswith("/"):
+            raw = f"/workspace/{raw}"
+
+        parts = []
+        for segment in raw.split("/"):
+            if not segment or segment == ".":
+                continue
+            if segment == "..":
+                if parts:
+                    parts.pop()
+                continue
+            parts.append(segment)
+
+        normalized = "/" + "/".join(parts)
+        if normalized != "/workspace" and not normalized.startswith("/workspace/"):
+            raise ValueError("Upload destination must stay inside /workspace")
+
+        path = Path(normalized)
+        if not path.exists() or not path.is_dir():
+            raise FileNotFoundError(f"Upload destination does not exist: {normalized}")
+        return path
+
+    def _workspace_path_for(self, key):
+        safe_name = self._safe_workspace_name(key)
+        return self._workspace_dir() / safe_name
+
+    def _persist_to_workspace(self, key, raw):
+        path = self._workspace_path_for(key)
+        path.write_bytes(raw)
+        self._workspace_paths[key] = str(path)
+
+    def _remove_from_workspace(self, key):
+        from pathlib import Path
+
+        path_str = self._workspace_paths.pop(key, None)
+        if not path_str:
+            path_str = str(self._workspace_path_for(key))
+
+        path = Path(path_str)
+        if path.exists() and path.is_file():
+            path.unlink()
+
     def handle_interaction(self, data):
+        import base64
         action = data.get("action") if hasattr(data, "get") else None
 
         if action == "upload":
@@ -907,6 +972,7 @@ class Upload(UIElement):
                         status[key] = f"error:File exceeds max size ({max_size} bytes)"
                     else:
                         self._files[key] = raw
+                        self._persist_to_workspace(key, raw)
                         status[key] = "success"
                 except Exception as e:
                     status[key] = f"error:{e}"
@@ -916,6 +982,7 @@ class Upload(UIElement):
         elif action == "remove":
             key = data.get("key", "")
             self._files.pop(key, None)
+            self._remove_from_workspace(key)
             self.send_update(upload_status={key: "removed"})
             super().handle_interaction(data)
 
@@ -937,6 +1004,7 @@ class Upload(UIElement):
                             status[key] = f"error:File exceeds max size ({max_size} bytes)"
                         else:
                             self._files[key] = raw
+                            self._persist_to_workspace(key, raw)
                             status[key] = "success"
                     except Exception as e:
                         status[key] = f"error:{e}"

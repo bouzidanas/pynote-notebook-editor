@@ -2,6 +2,335 @@
 import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.mjs";
 
 let pyodide: any = null;
+const WORKSPACE_ROOT = "/workspace";
+let workspacePersistenceEnabled = false;
+
+const normalizePath = (inputPath: string): string => {
+    const source = inputPath.trim();
+    const segments = source.replace(/\\/g, "/").split("/");
+    const out: string[] = [];
+    for (const segment of segments) {
+        if (!segment || segment === ".") continue;
+        if (segment === "..") {
+            if (out.length > 0) out.pop();
+            continue;
+        }
+        out.push(segment);
+    }
+    return `/${out.join("/")}`;
+};
+
+const normalizeWorkspacePath = (inputPath?: string): string => {
+    const raw = inputPath && inputPath.trim() ? inputPath : WORKSPACE_ROOT;
+    const normalized = raw.startsWith("/") ? normalizePath(raw) : normalizePath(`${WORKSPACE_ROOT}/${raw}`);
+    if (normalized === WORKSPACE_ROOT) return normalized;
+    if (!normalized.startsWith(`${WORKSPACE_ROOT}/`)) {
+        throw new Error("Path must stay inside /workspace");
+    }
+    return normalized;
+};
+
+const pathExists = (path: string): boolean => {
+    const analyzed = pyodide.FS.analyzePath(path);
+    return !!analyzed.exists;
+};
+
+const isDirectory = (path: string): boolean => {
+    const stat = pyodide.FS.stat(path);
+    return pyodide.FS.isDir(stat.mode);
+};
+
+const basename = (path: string): string => {
+    const parts = path.split("/").filter(Boolean);
+    return parts[parts.length - 1] || "";
+};
+
+const splitNameExtension = (name: string): { stem: string; extension: string } => {
+    const dotIndex = name.lastIndexOf(".");
+    if (dotIndex <= 0) {
+        return { stem: name, extension: "" };
+    }
+    return {
+        stem: name.slice(0, dotIndex),
+        extension: name.slice(dotIndex),
+    };
+};
+
+const copyNameAtIndex = (name: string, index: number): string => {
+    const { stem, extension } = splitNameExtension(name);
+    if (index <= 1) return `${stem} (copy)${extension}`;
+    return `${stem} (copy ${index})${extension}`;
+};
+
+const resolveKeepBothPath = (destinationDir: string, name: string): string => {
+    for (let index = 1; index < 10000; index += 1) {
+        const candidate = joinPath(destinationDir, copyNameAtIndex(name, index));
+        if (!pathExists(candidate)) return candidate;
+    }
+    throw new Error("Could not generate copy name");
+};
+
+const joinPath = (dir: string, name: string): string => {
+    return normalizePath(`${dir}/${name}`);
+};
+
+const syncWorkspaceFs = async (populate: boolean): Promise<void> => {
+    if (!workspacePersistenceEnabled) return;
+    await new Promise<void>((resolve, reject) => {
+        pyodide.FS.syncfs(populate, (err: unknown) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
+};
+
+const setupWorkspaceFs = async (): Promise<void> => {
+    try {
+        pyodide.FS.mkdirTree(WORKSPACE_ROOT);
+    } catch {
+        // Already exists.
+    }
+
+    try {
+        pyodide.FS.mount(pyodide.FS.filesystems.IDBFS, {}, WORKSPACE_ROOT);
+        workspacePersistenceEnabled = true;
+        await syncWorkspaceFs(true);
+    } catch {
+        workspacePersistenceEnabled = false;
+    }
+};
+
+const deleteRecursive = (target: string) => {
+    if (!pathExists(target)) return;
+    if (isDirectory(target)) {
+        const children: string[] = pyodide.FS.readdir(target).filter((name: string) => name !== "." && name !== "..");
+        for (const child of children) {
+            deleteRecursive(joinPath(target, child));
+        }
+        pyodide.FS.rmdir(target);
+        return;
+    }
+    pyodide.FS.unlink(target);
+};
+
+const copyRecursive = (sourcePath: string, destinationPath: string) => {
+    if (isDirectory(sourcePath)) {
+        pyodide.FS.mkdirTree(destinationPath);
+        const children: string[] = pyodide.FS.readdir(sourcePath).filter((name: string) => name !== "." && name !== "..");
+        for (const child of children) {
+            copyRecursive(joinPath(sourcePath, child), joinPath(destinationPath, child));
+        }
+        return;
+    }
+    const data = pyodide.FS.readFile(sourcePath, { encoding: "binary" });
+    pyodide.FS.writeFile(destinationPath, data, { encoding: "binary" });
+};
+
+const decodeBase64ToBytes = (base64: string): Uint8Array => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+};
+
+const encodeBytesToBase64 = (bytes: Uint8Array): string => {
+    const chunk = 0x8000;
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += chunk) {
+        const view = bytes.subarray(i, i + chunk);
+        binary += String.fromCharCode(...view);
+    }
+    return btoa(binary);
+};
+
+const guessMime = (name: string): string => {
+    const lower = name.toLowerCase();
+    if (lower.endsWith(".csv")) return "text/csv";
+    if (lower.endsWith(".json")) return "application/json";
+    if (lower.endsWith(".txt") || lower.endsWith(".md") || lower.endsWith(".py")) return "text/plain";
+    if (lower.endsWith(".png")) return "image/png";
+    if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+    if (lower.endsWith(".gif")) return "image/gif";
+    return "application/octet-stream";
+};
+
+const listDirectory = (path: string) => {
+    const names: string[] = pyodide.FS.readdir(path).filter((name: string) => name !== "." && name !== "..");
+    const entries = names.map((name) => {
+        const fullPath = joinPath(path, name);
+        const stat = pyodide.FS.stat(fullPath);
+        const dir = pyodide.FS.isDir(stat.mode);
+        return {
+            name,
+            path: fullPath,
+            type: dir ? "dir" : "file",
+            size: dir ? 0 : Number(stat.size || 0),
+            mtime: Number(stat.mtime || 0),
+        };
+    });
+    entries.sort((a, b) => {
+        if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+        return a.name.localeCompare(b.name);
+    });
+    return entries;
+};
+
+const handleFilesystemRequest = async (request: any) => {
+    const op = request?.op;
+
+    if (op === "list") {
+        const path = normalizeWorkspacePath(request.path);
+        if (!pathExists(path) || !isDirectory(path)) {
+            throw new Error("Directory not found");
+        }
+        return {
+            path,
+            entries: listDirectory(path),
+            persistent: workspacePersistenceEnabled,
+        };
+    }
+
+    if (op === "mkdir") {
+        const path = normalizeWorkspacePath(request.path);
+        pyodide.FS.mkdirTree(path);
+        await syncWorkspaceFs(false);
+        return { ok: true };
+    }
+
+    if (op === "upload") {
+        const targetDir = normalizeWorkspacePath(request.path);
+        pyodide.FS.mkdirTree(targetDir);
+        const files = Array.isArray(request.files) ? request.files : [];
+        for (const file of files) {
+            if (!file?.name || !file?.data_base64) continue;
+            const targetPath = normalizeWorkspacePath(`${targetDir}/${file.name}`);
+            const bytes = decodeBase64ToBytes(file.data_base64);
+            pyodide.FS.writeFile(targetPath, bytes, { encoding: "binary" });
+        }
+        await syncWorkspaceFs(false);
+        return { ok: true, count: files.length };
+    }
+
+    if (op === "delete") {
+        const path = normalizeWorkspacePath(request.path);
+        if (path === WORKSPACE_ROOT) {
+            throw new Error("Cannot delete /workspace root");
+        }
+        deleteRecursive(path);
+        await syncWorkspaceFs(false);
+        return { ok: true };
+    }
+
+    if (op === "rename") {
+        const path = normalizeWorkspacePath(request.path);
+        if (path === WORKSPACE_ROOT) {
+            throw new Error("Cannot rename /workspace root");
+        }
+        const newName = String(request.newName || "").trim();
+        if (!newName || newName.includes("/")) {
+            throw new Error("Invalid name");
+        }
+        const destination = normalizeWorkspacePath(`${parentPath(path)}/${newName}`);
+        if (pathExists(destination)) {
+            throw new Error("Target already exists");
+        }
+        pyodide.FS.rename(path, destination);
+        await syncWorkspaceFs(false);
+        return { ok: true, path: destination };
+    }
+
+    if (op === "move") {
+        const sourcePath = normalizeWorkspacePath(request.sourcePath);
+        const destinationDir = normalizeWorkspacePath(request.destinationDir);
+        const onConflict = String(request.onConflict || "error");
+        if (!pathExists(destinationDir) || !isDirectory(destinationDir)) {
+            throw new Error("Destination directory does not exist");
+        }
+        let destinationPath = normalizeWorkspacePath(`${destinationDir}/${basename(sourcePath)}`);
+        if (destinationPath === sourcePath) {
+            return { ok: true, path: sourcePath, skipped: true };
+        }
+        if (pathExists(destinationPath)) {
+            if (onConflict === "skip") {
+                return { ok: true, path: sourcePath, skipped: true };
+            }
+            if (onConflict === "replace") {
+                deleteRecursive(destinationPath);
+            } else if (onConflict === "keep_both") {
+                destinationPath = resolveKeepBothPath(destinationDir, basename(sourcePath));
+            } else {
+                throw new Error("Target already exists");
+            }
+        }
+        pyodide.FS.rename(sourcePath, destinationPath);
+        await syncWorkspaceFs(false);
+        return { ok: true, path: destinationPath };
+    }
+
+    if (op === "copy") {
+        const sourcePath = normalizeWorkspacePath(request.sourcePath);
+        const destinationDir = normalizeWorkspacePath(request.destinationDir);
+        const onConflict = String(request.onConflict || "error");
+        if (!pathExists(destinationDir) || !isDirectory(destinationDir)) {
+            throw new Error("Destination directory does not exist");
+        }
+        let destinationPath = normalizeWorkspacePath(`${destinationDir}/${basename(sourcePath)}`);
+        if (pathExists(destinationPath)) {
+            if (onConflict === "skip") {
+                return { ok: true, path: destinationPath, skipped: true };
+            }
+            if (onConflict === "replace") {
+                if (destinationPath === sourcePath) {
+                    throw new Error("Cannot replace source with itself");
+                }
+                deleteRecursive(destinationPath);
+            } else if (onConflict === "keep_both") {
+                destinationPath = resolveKeepBothPath(destinationDir, basename(sourcePath));
+            } else {
+                throw new Error("Target already exists");
+            }
+        }
+        copyRecursive(sourcePath, destinationPath);
+        await syncWorkspaceFs(false);
+        return { ok: true, path: destinationPath };
+    }
+
+    if (op === "read_text") {
+        const path = normalizeWorkspacePath(request.path);
+        if (!pathExists(path) || isDirectory(path)) {
+            throw new Error("File not found");
+        }
+        const maxBytes = typeof request.maxBytes === "number" ? request.maxBytes : 8192;
+        const data: Uint8Array = pyodide.FS.readFile(path, { encoding: "binary" });
+        const truncated = data.byteLength > maxBytes;
+        const slice = truncated ? data.subarray(0, maxBytes) : data;
+        const text = new TextDecoder("utf-8").decode(slice);
+        return { text, truncated };
+    }
+
+    if (op === "download") {
+        const path = normalizeWorkspacePath(request.path);
+        if (!pathExists(path) || isDirectory(path)) {
+            throw new Error("File not found");
+        }
+        const bytes: Uint8Array = pyodide.FS.readFile(path, { encoding: "binary" });
+        return {
+            name: basename(path),
+            mime: guessMime(path),
+            data_base64: encodeBytesToBase64(bytes),
+        };
+    }
+
+    throw new Error("Unsupported filesystem operation");
+};
+
+const parentPath = (path: string): string => {
+    const parts = path.split("/").filter(Boolean);
+    if (parts.length <= 1) return WORKSPACE_ROOT;
+    return `/${parts.slice(0, -1).join("/")}`;
+};
 
 const INIT_CODE = `
 import sys
@@ -1419,14 +1748,15 @@ class Checkbox(UIElement):
         return self
 
 class Upload(UIElement):
-    def __init__(self, accept=None, max_size=None, label="Upload", color=None, size=None,
+    def __init__(self, accept=None, max_size=None, label="Upload", dir=None, color=None, size=None,
                  disabled=False, width=None, height=None, grow=None, shrink=None,
                  force_dimensions=False, border=True, background=True, hidden=False):
         self._files = {}
+        self._workspace_paths = {}
         self._disabled = disabled
         self._size = size
         super().__init__(
-            accept=accept, max_size=max_size, label=label, color=color, size=size,
+            accept=accept, max_size=max_size, label=label, dir=dir, color=color, size=size,
             disabled=disabled, width=width, height=height, grow=grow, shrink=shrink,
             force_dimensions=force_dimensions, border=border, background=background, hidden=hidden
         )
@@ -1434,6 +1764,10 @@ class Upload(UIElement):
     @property
     def files(self):
         return dict(self._files)
+
+    @property
+    def workspace_paths(self):
+        return dict(self._workspace_paths)
 
     @property
     def disabled(self):
@@ -1452,6 +1786,58 @@ class Upload(UIElement):
     def size(self, new_size):
         self._size = new_size
         self.send_update(size=new_size)
+
+    def _safe_workspace_name(self, name):
+        name = str(name or "unknown").replace("\\\\", "/").split("/")[-1].strip()
+        return name or "unknown"
+
+    def _workspace_dir(self):
+        from pathlib import Path
+
+        raw = str(self.props.get("dir") or "/workspace").strip().replace("\\\\", "/")
+        if not raw:
+            raw = "/workspace"
+        if not raw.startswith("/"):
+            raw = f"/workspace/{raw}"
+
+        parts = []
+        for segment in raw.split("/"):
+            if not segment or segment == ".":
+                continue
+            if segment == "..":
+                if parts:
+                    parts.pop()
+                continue
+            parts.append(segment)
+
+        normalized = "/" + "/".join(parts)
+        if normalized != "/workspace" and not normalized.startswith("/workspace/"):
+            raise ValueError("Upload destination must stay inside /workspace")
+
+        path = Path(normalized)
+        if not path.exists() or not path.is_dir():
+            raise FileNotFoundError(f"Upload destination does not exist: {normalized}")
+        return path
+
+    def _workspace_path_for(self, key):
+        safe_name = self._safe_workspace_name(key)
+        return self._workspace_dir() / safe_name
+
+    def _persist_to_workspace(self, key, raw):
+        path = self._workspace_path_for(key)
+        path.write_bytes(raw)
+        self._workspace_paths[key] = str(path)
+
+    def _remove_from_workspace(self, key):
+        from pathlib import Path
+
+        path_str = self._workspace_paths.pop(key, None)
+        if not path_str:
+            path_str = str(self._workspace_path_for(key))
+
+        path = Path(path_str)
+        if path.exists() and path.is_file():
+            path.unlink()
 
     def handle_interaction(self, data):
         import base64
@@ -1473,6 +1859,7 @@ class Upload(UIElement):
                         status[key] = f"error:File exceeds max size ({max_size} bytes)"
                     else:
                         self._files[key] = raw
+                        self._persist_to_workspace(key, raw)
                         status[key] = "success"
                 except Exception as e:
                     status[key] = f"error:{e}"
@@ -1482,6 +1869,7 @@ class Upload(UIElement):
         elif action == "remove":
             key = data.get("key", "")
             self._files.pop(key, None)
+            self._remove_from_workspace(key)
             self.send_update(upload_status={key: "removed"})
             super().handle_interaction(data)
 
@@ -1502,6 +1890,7 @@ class Upload(UIElement):
                             status[key] = f"error:File exceeds max size ({max_size} bytes)"
                         else:
                             self._files[key] = raw
+                            self._persist_to_workspace(key, raw)
                             status[key] = "success"
                     except Exception as e:
                         status[key] = f"error:{e}"
@@ -2266,6 +2655,7 @@ class Chart(UIElement):
 `);
 
         await pyodide.runPythonAsync(INIT_CODE);
+        await setupWorkspaceFs();
 
         // Register stream callback
         const register_cb = pyodide.globals.get("register_stream_callback");
@@ -2384,6 +2774,22 @@ self.onmessage = async (e) => {
             } catch (err) {
                 console.error("Clear cell context error", err);
             }
+        }
+    } else if (type === "filesystem") {
+        if (!pyodide) {
+            postMessage({ type: "filesystem_result", id, ok: false, error: "Kernel not ready" });
+            return;
+        }
+        try {
+            const result = await handleFilesystemRequest(e.data.request);
+            postMessage({ type: "filesystem_result", id, ok: true, result });
+        } catch (err) {
+            postMessage({
+                type: "filesystem_result",
+                id,
+                ok: false,
+                error: err instanceof Error ? err.message : String(err),
+            });
         }
     } else if (type === "analyze_cell") {
         // Reactive execution mode: analyze cell dependencies using Python AST
