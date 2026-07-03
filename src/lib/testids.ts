@@ -16,6 +16,13 @@ export const TESTID = {
   addMarkdownCell: "add-markdown-cell",
   cell: "cell",
   cellOutput: "cell-output",
+  filesPanelRoot: "files-panel-root",
+  filesPanelRow: "files-panel-row",
+  filesPanelBreadcrumb: "files-panel-breadcrumb",
+  filesPanelError: "files-panel-error",
+  filesDialog: "files-panel-dialog",
+  filesSidePanel: "files-panel-side",
+  uploadComponent: "upload-component",
 } as const;
 
 export type TestId = (typeof TESTID)[keyof typeof TESTID];

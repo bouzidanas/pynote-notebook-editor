@@ -14,6 +14,17 @@ export interface ExecutionResult {
   executionKernelId?: string;
 }
 
+export type KernelFsRequest =
+  | { op: "list"; path?: string }
+  | { op: "mkdir"; path: string }
+  | { op: "upload"; path: string; files: Array<{ name: string; data_base64: string }> }
+  | { op: "delete"; path: string }
+  | { op: "rename"; path: string; newName: string }
+  | { op: "move"; sourcePath: string; destinationDir: string; onConflict?: "error" | "replace" | "keep_both" | "skip" }
+  | { op: "copy"; sourcePath: string; destinationDir: string; onConflict?: "error" | "replace" | "keep_both" | "skip" }
+  | { op: "download"; path: string }
+  | { op: "read_text"; path: string; maxBytes?: number };
+
 class Kernel {
   private worker: Worker | null = null;
   private listeners: Map<string, (msg: any) => void> = new Map();
@@ -195,6 +206,27 @@ class Kernel {
         }
       });
       this.worker!.postMessage({ type: "inspect", id, code, offset });
+    });
+  }
+
+  filesystem<T = unknown>(request: KernelFsRequest): Promise<T> {
+    if (!this.worker || this.status === "loading") {
+      return Promise.reject(new Error("Kernel not ready"));
+    }
+
+    return new Promise((resolve, reject) => {
+      const id = `fs_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      this.listeners.set(id, (msg) => {
+        if (msg.type === "filesystem_result") {
+          this.listeners.delete(id);
+          if (msg.ok) {
+            resolve(msg.result as T);
+          } else {
+            reject(new Error(msg.error || "Filesystem request failed"));
+          }
+        }
+      });
+      this.worker!.postMessage({ type: "filesystem", id, request });
     });
   }
 

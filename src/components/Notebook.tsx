@@ -6,17 +6,30 @@ import { isBuiltinNotebook, getBuiltinNotebook } from "../lib/notebooks";
 import { isBuiltinTheme, getBuiltinTheme } from "../lib/themes";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
-import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette } from "lucide-solid";
+import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette, PanelLeft } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRun, shouldAutoRunOnRefresh, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, defaultTheme } from "../lib/theme";
 import { TESTID } from "../lib/testids";
+import FileWorkspacePanel from "./FileWorkspacePanel";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 const ThemeDialog = lazy(() => import("./ThemeDialog"));
+
+type FilesPanelViewMode = "list" | "tree";
+const FILES_PANEL_VIEW_MODE_STORAGE_KEY = "pynote-files-panel-view-mode";
+
+const loadPersistedFilesPanelViewMode = (): FilesPanelViewMode => {
+  try {
+    const stored = localStorage.getItem(FILES_PANEL_VIEW_MODE_STORAGE_KEY);
+    return stored === "tree" ? "tree" : "list";
+  } catch {
+    return "list";
+  }
+};
 
 // Strip "no-op" empty-string overrides from a theme before writing it to a
 // notebook's metadata, so the saved .ipynb isn't bloated with unused fields.
@@ -49,6 +62,7 @@ const SHORTCUTS = {
     { label: "Save As", keys: "Ctrl + Shift + S" },
     { label: "Export .ipynb", keys: "Ctrl + E" },
     { label: "Toggle Shortcuts", keys: "Ctrl + \\" },
+    { label: "Toggle Files & Data", keys: "Ctrl + ." },
     { label: "Presentation Mode", keys: "Alt + P" },
     { label: "Theme Configuration", keys: "Alt + T" },
     { label: "Code Visibility", keys: "Alt + V" },
@@ -104,12 +118,12 @@ const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; on
   };
 
   return (
-     <div class="fixed left-[calc(50%+28rem)] px-2 top-32 w-72 max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-[300000]">
-        <button 
+     <div class="fixed left-[calc(50%+28rem)] px-2 top-32 w-[calc(50%-32rem)] max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-[300000]">
+          <button
             onClick={props.onClose}
-            class="self-end -mb-5 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer z-300002"
+            class="self-end -mb-5 translate-y-[2px] translate-x-1.5 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer z-300002"
             title="Hide Shortcuts"
-        >
+          >
             <X size={16} />
         </button>
 
@@ -145,6 +159,24 @@ const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; on
         </Show>
         </div>
      </div>
+  );
+};
+
+const SideLeftPanel: Component<{ onClose: () => void; viewMode: FilesPanelViewMode; onViewModeChange: (nextMode: FilesPanelViewMode) => void }> = (props) => {
+  return (
+    <div class="fixed right-[calc(50%+28rem)] px-2 top-32 w-[calc(50%-32rem)] max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-300000" data-testid={TESTID.filesSidePanel}>
+      <button
+        onClick={props.onClose}
+        class="self-end -mb-5 translate-y-[2px] translate-x-1.5 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer z-300002"
+        title="Hide Left Panel"
+      >
+        <X size={16} />
+      </button>
+
+      <div class="overflow-x-hidden">
+        <FileWorkspacePanel mode="side" viewMode={props.viewMode} onViewModeChange={props.onViewModeChange} />
+      </div>
+    </div>
   );
 };
 
@@ -269,10 +301,21 @@ const Notebook: Component = () => {
   // Signal for showing the Esc hint in presentation mode
   const [showEscHint, setShowEscHint] = createSignal(false);
   const [showShortcuts, setShowShortcuts] = createSignal(false);
+  const [showLeftPanel, setShowLeftPanel] = createSignal(false);
   const [showPerformance, setShowPerformance] = createSignal(false);
   const [showCodeVisibility, setShowCodeVisibility] = createSignal(false);
   const [showThemeDialog, setShowThemeDialog] = createSignal(false);
   const [sessionHasTheme, setSessionHasTheme] = createSignal(false);
+  const [filesPanelViewMode, setFilesPanelViewMode] = createSignal<FilesPanelViewMode>(loadPersistedFilesPanelViewMode());
+
+  const setAndPersistFilesPanelViewMode = (nextMode: FilesPanelViewMode) => {
+    setFilesPanelViewMode(nextMode);
+    try {
+      localStorage.setItem(FILES_PANEL_VIEW_MODE_STORAGE_KEY, nextMode);
+    } catch {
+      // Ignore storage write failures.
+    }
+  };
   // Original theme/codeview from the loaded document metadata.
   // Preserved on save when saveToExport is off, so user UI changes
   // don't accidentally overwrite the file's embedded metadata.
@@ -645,6 +688,9 @@ const Notebook: Component = () => {
 
         e.preventDefault();
         setShowShortcuts(!showShortcuts());
+      } else if ((e.ctrlKey || e.metaKey) && e.key === ".") {
+        e.preventDefault();
+        setShowLeftPanel(!showLeftPanel());
       } else if (e.altKey && e.key === "p") {
         e.preventDefault();
         actions.setPresentationMode(!notebookStore.presentationMode);
@@ -1581,6 +1627,9 @@ const Notebook: Component = () => {
                    }}>
                        <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
                    </DropdownItem>
+                       <DropdownItem onClick={() => setShowLeftPanel(!showLeftPanel())} shortcut="Ctrl+.">
+                         <div class="flex items-center gap-2"><PanelLeft size={18} /> Files & Data</div>
+                     </DropdownItem>
                    <DropdownItem onClick={() => setShowShortcuts(!showShortcuts())} shortcut="Ctrl+\">
                        <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
                    </DropdownItem>
@@ -1817,6 +1866,9 @@ const Notebook: Component = () => {
                          window.open(url, '_blank');
                      }}>
                          <div class="flex items-center gap-2"><BookOpen size={18} /> Tutorial</div>
+                     </DropdownItem>
+                     <DropdownItem onClick={() => setShowLeftPanel(true)} shortcut="Ctrl+.">
+                       <div class="flex items-center gap-2"><PanelLeft size={18} /> Files & Data</div>
                      </DropdownItem>
                      <DropdownItem onClick={() => setShowShortcuts(true)} shortcut="Ctrl+\">
                          <div class="flex items-center gap-2"><Keyboard size={18} /> Shortcuts</div>
@@ -2102,6 +2154,31 @@ const Notebook: Component = () => {
             isEditing={!!notebookStore.activeCellId && !!notebookStore.cells.find(c => c.id === notebookStore.activeCellId)?.isEditing} 
             onClose={() => setShowShortcuts(false)}
           />
+       </Show>
+
+       {/* Left Panel Modal */}
+       <Show when={showLeftPanel()}>
+         <div class="fixed inset-0 z-300000 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowLeftPanel(false)} data-testid={TESTID.filesDialog}>
+           <div class="bg-background ui-border ui-font rounded-sm shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+             <div class="flex items-center justify-between p-4 [border-bottom-width:var(--ui-divider-width,1px)] ui-divider shrink-0">
+               <h2 class="text-lg font-bold flex items-center gap-2"><PanelLeft /> Files & Data</h2>
+               <button onClick={() => setShowLeftPanel(false)} class="p-1 hover:bg-foreground rounded-sm">
+                 <X size={20} />
+               </button>
+             </div>
+             <div class="p-4 overflow-y-auto flex-1">
+               <FileWorkspacePanel mode="dialog" viewMode={filesPanelViewMode()} onViewModeChange={setAndPersistFilesPanelViewMode} />
+             </div>
+             <div class="p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider text-center text-xs text-secondary/50 shrink-0">
+               Click anywhere outside to close
+             </div>
+           </div>
+         </div>
+       </Show>
+
+       {/* Left Panel (Visible on 2xl screens) */}
+       <Show when={showLeftPanel() && !notebookStore.presentationMode}>
+         <SideLeftPanel onClose={() => setShowLeftPanel(false)} viewMode={filesPanelViewMode()} onViewModeChange={setAndPersistFilesPanelViewMode} />
        </Show>
 
        {/* Performance Monitor */}

@@ -37,7 +37,7 @@ html {
 }
 
 body {
-  background-color: transparent;
+    background-color: var(--background);
   color: inherit;
   font-family: var(--font-mono);
   font-weight: var(--font-weight-base, normal);
