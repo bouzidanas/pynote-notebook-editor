@@ -7,6 +7,18 @@ import { notebookStore, actions, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../
 import { currentTheme, parseUiBorder } from "../lib/theme";
 import { TESTID } from "../lib/testids";
 
+// Touch-primary devices use touch to scroll. Drag activators live on the cell
+// wrapper, but the inner content stops pointer/mouse/touch-down propagation, so
+// only the wrapper's border/padding ring can actually start a drag. On touch
+// that border-drag conflicts with scrolling, so drop the activators when the
+// primary pointer is coarse. Screen SIZE is deliberately NOT used: a small
+// desktop window still drives a mouse and should keep border DnD. (The desktop
+// sidebar grip and the mobile drawer's click-to-move flow are separate and
+// remain available.)
+const IS_TOUCH_PRIMARY =
+  typeof window !== "undefined" &&
+  !!window.matchMedia?.("(pointer: coarse)").matches;
+
 // Reactive store for cell exit levels - tracks each cell's exit level
 // Each cell writes its exit level here, next cell reads via prevCellId prop
 // Only used when sectionScoping is enabled
@@ -184,12 +196,12 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       data-testid={TESTID.cell}
       data-cell-id={props.id}
       ref={(el) => { sortable.ref(el); elementRef = el; }}
-      {...(APP_ENABLE_CELL_DND ? sortable.dragActivators : {})}
+      {...(APP_ENABLE_CELL_DND && !IS_TOUCH_PRIMARY ? sortable.dragActivators : {})}
       onKeyDown={undefined}
       data-quiet={APP_QUIET_MODE || undefined}
       class={clsx(
         "group relative flex flex-col rounded-sm border-2 transition-all duration-200 p-1 max-xs:p-0",
-        APP_ENABLE_CELL_DND && !presentationMode() && "cursor-grab active:cursor-grabbing",
+        APP_ENABLE_CELL_DND && !IS_TOUCH_PRIMARY && !presentationMode() && "cursor-grab active:cursor-grabbing",
         !props.isActive && "border-transparent",
         !presentationMode() && !props.isActive && "hover:border-secondary/10",
         props.isActive && !props.isEditing && "border-accent/60",
