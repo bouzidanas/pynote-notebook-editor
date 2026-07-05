@@ -168,6 +168,38 @@ select:-webkit-autofill:active {
   @apply p-2 rounded-[var(--radius-sm)] text-secondary hover:bg-foreground transition-colors cursor-pointer;
 }
 
+/* Mobile cell action drawer (rendered once by Notebook, portaled to body).
+   Outer slide controls presence: only runs when the drawer opens/closes. */
+.cell-drawer-enter-active,
+.cell-drawer-exit-active {
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cell-drawer-enter-from,
+.cell-drawer-exit-to {
+  transform: translateY(100%);
+}
+/* Panel pins to the OS bottom edge (safe-area aware). The grid stacks the
+   outgoing and incoming toolbars in the same cell so a content swap never
+   collapses the panel height mid-transition. */
+.cell-drawer-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.cell-drawer-panel > * {
+  grid-column: 1;
+  grid-row: 1;
+}
+/* Inner cross-fade swaps the controls smoothly when the active cell changes. */
+.cell-drawer-fade-enter-active,
+.cell-drawer-fade-exit-active {
+  transition: opacity 0.4s ease;
+}
+.cell-drawer-fade-enter-from,
+.cell-drawer-fade-exit-to {
+  opacity: 0;
+}
+
 /* Sidebar Container Query Logic */
 /* 
  * When cell is short (toolbar doesn't fit), force center alignment.

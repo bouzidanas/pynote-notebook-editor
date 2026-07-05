@@ -704,6 +704,22 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Disable editor interaction entirely in presentation mode (hides cursor)
   createExtension(() => EditorView.editable.of(!notebookStore.presentationMode));
 
+  // Focus ⟺ edit-mode invariant. The editor stays `editable` (focusable) while
+  // only selected, so a click that lands in the editor's own padding — where the
+  // quick-edit mousedown path doesn't run — can focus it and show a blinking
+  // cursor while the cell is still in select mode. If the editor ever gains focus
+  // outside presentation mode, promote the cell to edit mode so the cursor never
+  // misrepresents the cell's state. Idempotent: no-op once already editing.
+  createExtension(() => EditorView.domEventHandlers({
+    focus: () => {
+      if (!notebookStore.presentationMode && !props.cell.isEditing) {
+        actions.setActiveCell(props.cell.id);
+        actions.setEditing(props.cell.id, true);
+      }
+      return false;
+    }
+  }));
+
   // Report capabilities to store for UI buttons
   createEffect(() => {
       const view = editorView();

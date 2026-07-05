@@ -1,11 +1,13 @@
-import { type Component, For, Show, createSignal, onCleanup, createEffect, onMount, lazy } from "solid-js";
+import { type Component, For, Show, createSignal, onCleanup, createEffect, createMemo, onMount, lazy } from "solid-js";
+import { Portal } from "solid-js/web";
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
-import { TransitionGroup } from "solid-transition-group";
-import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, APP_ENABLE_CELL_DND, type ExecutionMode } from "../lib/store";
+import { Transition, TransitionGroup } from "solid-transition-group";
+import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, APP_ENABLE_CELL_DND, type ExecutionMode, type CellData } from "../lib/store";
 import { isBuiltinNotebook, getBuiltinNotebook } from "../lib/notebooks";
 import { isBuiltinTheme, getBuiltinTheme } from "../lib/themes";
 import CodeCell from "./CodeCell";
 import MarkdownCell from "./MarkdownCell";
+import CellDrawerToolbar from "./CellDrawerToolbar";
 import { Plus, Code, FileText, ChevronDown, StopCircle, RotateCw, Save, FolderOpen, Download, Undo2, Redo2, X, Eye, Play, Trash2, Keyboard, BookOpen, Activity, EyeOff, Palette, PanelLeft } from "lucide-solid";
 import { kernel } from "../lib/pyodide";
 import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
@@ -18,7 +20,6 @@ import FileWorkspacePanel from "./FileWorkspacePanel";
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 const ThemeDialog = lazy(() => import("./ThemeDialog"));
-
 type FilesPanelViewMode = "list" | "tree";
 const FILES_PANEL_VIEW_MODE_STORAGE_KEY = "pynote-files-panel-view-mode";
 
@@ -356,6 +357,17 @@ const Notebook: Component = () => {
     // Pass analyzeCell for reactive mode JIT analysis
     actions.runCell(id, executeRunner, analyzeCell);
   };
+
+  // --- Mobile cell action drawer (narrow screens only) -----------------------
+  // A single persistent drawer, rendered once (see JSX below) rather than
+  // per-cell, so switching the active cell cross-fades its controls in place.
+  // The whole drawer only slides when going between "a cell is active" and
+  // "nothing active"; `drawerContentCell` keeps the last cell while closing so
+  // the drawer retains its content as it slides out.
+  const drawerActiveCell = () => notebookStore.cells.find((c) => c.id === notebookStore.activeCellId) ?? null;
+  const drawerOpen = () => !!drawerActiveCell() && !notebookStore.presentationMode;
+  const drawerContentCell = createMemo<CellData | null>((prev) => drawerActiveCell() ?? prev ?? null);
+
 
   // --- Strict Reactive Mode Logic ---
   const variableOwnership = new Map<string, string>();
@@ -1733,25 +1745,25 @@ const Notebook: Component = () => {
                
                <div class="h-8 w-px bg-foreground mx-1"></div>
     
-               <button onClick={() => {
+               <button onClick={(e) => {
                  const idx = (() => {
                    const activeId = notebookStore.activeCellId;
-                   if (!activeId) return undefined;
+                   if (!activeId) return e.shiftKey ? 0 : undefined;
                    const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                   if (i === -1) return undefined;
-                   return i + 1;
+                   if (i === -1) return e.shiftKey ? 0 : undefined;
+                   return e.shiftKey ? i : i + 1;
                  })();
                  actions.addCell("code", idx);
                }} class="btn-toolbar flex items-center gap-1" title="Add Code Cell" data-testid={TESTID.addCodeCell}>
                  <Plus size={20} /> <Code size={20} />
                </button>
-               <button onClick={() => {
+               <button onClick={(e) => {
                  const idx = (() => {
                    const activeId = notebookStore.activeCellId;
-                   if (!activeId) return undefined;
+                   if (!activeId) return e.shiftKey ? 0 : undefined;
                    const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                   if (i === -1) return undefined;
-                   return i + 1;
+                   if (i === -1) return e.shiftKey ? 0 : undefined;
+                   return e.shiftKey ? i : i + 1;
                  })();
                  actions.addCell("markdown", idx);
                }} class="btn-toolbar flex items-center gap-1" title="Add Markdown Cell" data-testid={TESTID.addMarkdownCell}>
@@ -1901,25 +1913,25 @@ const Notebook: Component = () => {
                      <DropdownDivider />
                      
                      {/* Add Cells */}
-                     <DropdownItem onClick={() => {
+                     <DropdownItem onClick={(e) => {
                        const idx = (() => {
                          const activeId = notebookStore.activeCellId;
-                         if (!activeId) return undefined;
+                         if (!activeId) return e.shiftKey ? 0 : undefined;
                          const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                         if (i === -1) return undefined;
-                         return i + 1;
+                         if (i === -1) return e.shiftKey ? 0 : undefined;
+                         return e.shiftKey ? i : i + 1;
                        })();
                        actions.addCell("code", idx);
                      }}>
                          <div class="flex items-center gap-2"><Code size={18} /> Add Code Cell</div>
                      </DropdownItem>
-                     <DropdownItem onClick={() => {
+                     <DropdownItem onClick={(e) => {
                        const idx = (() => {
                          const activeId = notebookStore.activeCellId;
-                         if (!activeId) return undefined;
+                         if (!activeId) return e.shiftKey ? 0 : undefined;
                          const i = notebookStore.cells.findIndex(c => c.id === activeId);
-                         if (i === -1) return undefined;
-                         return i + 1;
+                         if (i === -1) return e.shiftKey ? 0 : undefined;
+                         return e.shiftKey ? i : i + 1;
                        })();
                        actions.addCell("markdown", idx);
                      }}>
@@ -2065,15 +2077,23 @@ const Notebook: Component = () => {
          {/* Bottom Add Buttons - Hidden in presentation mode or by config */}
          <Show when={!notebookStore.presentationMode && notebookStore.showTrailingAddButtons}>
            <div 
-             class="flex justify-center gap-4 mt-8 opacity-50 transition-opacity"
+             class="flex justify-center gap-2 mt-8"
              onMouseDown={(e) => e.stopPropagation()}
              onClick={(e) => e.stopPropagation()}
            >
-             <button onClick={() => actions.addCell("code")} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
+             <button
+               onClick={() => actions.addCell("code")}
+               class="btn-toolbar flex items-center gap-2 text-foreground! border-transparent! hover:bg-transparent! hover:text-accent/70! focus:bg-transparent! focus:text-accent!"
+               title="Add Code Cell"
+             >
                 <Plus size={20} />
                 <span class="text-sm font-bold">Code</span>
              </button>
-             <button onClick={() => actions.addCell("markdown")} class="flex flex-row items-center gap-2 px-6 py-3 border-2 border-dashed border-foreground bg-background rounded-lg hover:border-accent hover:text-accent text-secondary transition-all shadow-sm">
+             <button
+               onClick={() => actions.addCell("markdown")}
+               class="btn-toolbar flex items-center gap-2 text-foreground! border-transparent! hover:bg-transparent! hover:text-accent/70! focus:bg-transparent! focus:text-accent!"
+               title="Add Markdown Cell"
+             >
                 <Plus size={20} />
                 <span class="text-sm font-bold">Text</span>
              </button>
@@ -2219,6 +2239,28 @@ const Notebook: Component = () => {
             }}
           />
        </Show>
+
+       {/* Mobile Cell Action Drawer — narrow screens only (`lg:hidden`), where the
+           per-cell side toolbar can't be shown. Rendered once and portaled to
+           <body> so it sits at the bottom of the viewport. The outer Transition
+           slides it in/out only when going between an active cell and none; the
+           inner Transition (mode="outin") cross-fades the controls when switching
+           from one cell to another. */}
+       <Portal>
+         <div class="fixed inset-x-0 bottom-0 z-[199999] lg:hidden pointer-events-none">
+           <Transition name="cell-drawer">
+             <Show when={drawerOpen()}>
+               <div class="cell-drawer-panel pointer-events-auto bg-primary ui-font rounded-t-[var(--radius-sm)] shadow-[0_-2px_10px_-3px_rgba(0,0,0,0.7)]">
+                 <Transition name="cell-drawer-fade">
+                   <Show when={drawerContentCell()} keyed>
+                     {(cell) => <CellDrawerToolbar cell={cell} runCell={runCell} />}
+                   </Show>
+                 </Transition>
+               </div>
+             </Show>
+           </Transition>
+         </div>
+       </Portal>
     </div>
   );
 };

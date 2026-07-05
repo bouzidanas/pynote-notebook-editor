@@ -7,8 +7,6 @@ import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
 import katex from "katex";
 import DOMPurify from "dompurify";
-import { Edit2, Check, Trash2 } from "lucide-solid";
-import clsx from "clsx";
 import { highlightPython, isPythonLanguage, isSupportedLanguage, highlightWithHljs } from "../lib/syntax-highlighter";
 
 const displayMath = {
@@ -185,33 +183,6 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
     actions.setEditing(props.cell.id, !props.cell.isEditing);
   };
 
-  const toolbar = (
-    <div class="flex lg:hidden items-center gap-1 p-1">
-      <button 
-        onClick={toggleEdit}
-        class={clsx(
-          "p-1.5 hover:bg-foreground rounded-sm",
-          renderError() ? "text-primary" : (props.isActive || props.cell.isEditing) ? "text-accent" : "text-secondary"
-        )}
-        title={props.cell.isEditing ? "Finish Editing" : "Edit Markdown"}
-      >
-        <Show when={props.cell.isEditing} fallback={<Edit2 size={16} />}>
-          <Check size={16} />
-        </Show>
-      </button>
-      <div class="h-4 w-px bg-foreground mx-1" />
-      <span class="text-xs text-secondary/70 font-mono px-2">Markdown</span>
-      <div class="h-4 w-px bg-foreground mx-1" />
-      <button 
-        onClick={(e) => { e.stopPropagation(); actions.deleteCell(props.cell.id); }}
-        class="p-1.5 hover:bg-foreground rounded-sm text-primary"
-        title="Delete Cell"
-      >
-        <Trash2 size={16} />
-      </button>
-    </div>
-  );
-
   return (
     <div style={{ display: shouldHideInPresentation() ? 'none' : 'block' }}>
     <CellWrapper
@@ -222,7 +193,6 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
       onDelete={() => actions.deleteCell(props.cell.id)}
       onMoveUp={() => actions.moveCell(props.index, props.index - 1)}
       onMoveDown={() => actions.moveCell(props.index, props.index + 1)}
-      toolbar={toolbar}
       type="markdown"
       onActionClick={toggleEdit}
       showFormattingToolbar={showFormattingToolbar()}

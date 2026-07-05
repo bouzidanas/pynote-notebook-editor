@@ -3,7 +3,7 @@ import { createStore } from "solid-js/store";
 import { createSortable } from "@thisbeyond/solid-dnd";
 import { GripVertical, Trash2, Play, Square, Edit2, Check, Timer, Eye, EyeOff, AArrowUp, AArrowDown } from "lucide-solid";
 import clsx from "clsx";
-import { notebookStore, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../lib/store";
+import { notebookStore, actions, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../lib/store";
 import { currentTheme, parseUiBorder } from "../lib/theme";
 import { TESTID } from "../lib/testids";
 
@@ -52,7 +52,6 @@ interface CellWrapperProps {
   onMoveUp: () => void;
   onMoveDown: () => void;
   children: JSX.Element;
-  toolbar: JSX.Element;
   type: "code" | "markdown";
   // Optional props for sidebar action button
   onActionClick?: () => void;
@@ -195,6 +194,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         !presentationMode() && !props.isActive && "hover:border-secondary/10",
         props.isActive && !props.isEditing && "border-accent/60",
         props.isActive && props.isEditing && "border-accent shadow-[0_0_5px_var(--accent)]",
+        notebookStore.movingCellId === props.id && "opacity-70 outline-2 outline-dashed outline-accent outline-offset-2",
         sortable.isActiveDraggable ? "opacity-50" : ""
       )}
       style={{ 
@@ -210,10 +210,15 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => {
-        if (!presentationMode()) {
-          e.stopPropagation();
-          props.onActivate();
+        if (presentationMode()) return;
+        e.stopPropagation();
+        // Click-to-move: if another cell is picked up (via the mobile drawer
+        // grip), a tap on this cell drops it here instead of just selecting.
+        if (notebookStore.movingCellId && notebookStore.movingCellId !== props.id) {
+          actions.dropMovingCellOn(props.id);
+          return;
         }
+        props.onActivate();
       }}
       onMouseEnter={() => {
           if (!presentationMode()) setHovered(true);
@@ -324,13 +329,6 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
               <Trash2 size={14} />
             </button>
           </div>
-        </div>
-      </Show>
-
-      {/* Toolbar - Visible when active and not in presentation mode (mobile only) */}
-      <Show when={props.isActive && !presentationMode()}>
-        <div class="absolute -top-8 right-2 flex lg:hidden bg-background shadow-md ui-border ui-font rounded-sm overflow-hidden z-10">
-          {props.toolbar}
         </div>
       </Show>
 

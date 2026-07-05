@@ -662,7 +662,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
               <RotateCcw size={18} />
             </button>
             <button
-              onClick={() => { updateTheme({ ...defaultTheme, outputLayout: currentTheme.outputLayout }); resetSections(); }}
+              onClick={() => { updateTheme({ ...defaultTheme }); resetSections(); }}
               class="p-1.5 text-secondary/50 hover:text-accent transition-colors rounded-sm"
               title="Reset to App Defaults"
             >
@@ -676,10 +676,10 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
         </div>
 
         {/* Content - Two Column Layout */}
-        <div class="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        <div class="flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden">
 
           {/* Left Panel - Theme Inputs */}
-          <div class="flex-1 shrink-3 p-4 overflow-y-auto [border-bottom-width:var(--ui-divider-width,1px)] lg:[border-bottom-width:0px] lg:[border-right-width:var(--ui-divider-width,1px)] ui-divider space-y-4">
+          <div class="flex-1 max-lg:h-[76%] shrink-3 min-h-0 p-4 overflow-y-auto [border-bottom-width:var(--ui-divider-width,1px)] lg:[border-bottom-width:0px] lg:[border-right-width:var(--ui-divider-width,1px)] ui-divider space-y-4">
 
             {/* Presets Section */}
             <Section id="presets" title="Presets">
@@ -1293,7 +1293,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
           </div>
 
           {/* Right Panel - Preview */}
-          <div class="flex-1 shrink-2 p-4 overflow-y-auto space-y-4" style={{
+          <div class="flex-1 max-lg:h-[24%] shrink-3 min-h-0 p-4 overflow-y-auto space-y-4" style={{
             "font-family": currentTheme.font,
             "background-color": currentTheme.colors.background,
             "color": currentTheme.colors.secondary,
@@ -1392,7 +1392,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
         <div class="relative p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider shrink-0 flex flex-col gap-4 lg:block">
           {/* Centered Scope Toggle (Order 1 on mobile) */}
           <div class="order-1 flex w-full lg:w-auto lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:z-10">
-            <div class="relative flex items-center justify-between w-full lg:block lg:w-auto">
+            <div class="relative flex flex-col items-center gap-2 w-full lg:flex-row lg:items-center lg:justify-between lg:w-auto">
               <div
                 class="relative flex items-center p-1 cursor-pointer select-none transition-colors ui-border hover:border-secondary/30 w-40 h-9 rounded-sm"
                 onClick={() => setApplyScope(applyScope() === "app-wide" ? "session-only" : "app-wide")}
@@ -1429,7 +1429,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
 
               {/* Warning - Positioned Right */}
               <Show when={applyScope() === "app-wide"}>
-                <div class="lg:absolute lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 flex items-center animate-in fade-in slide-in-from-left-2 duration-200">
+                <div class="lg:absolute lg:left-full lg:top-1/2 lg:-translate-y-1/2 lg:ml-3 flex items-center justify-center w-full lg:w-auto animate-in fade-in slide-in-from-left-2 duration-200">
                   <span class="text-[10px] font-semibold whitespace-nowrap" style={{ color: "#f59e0b" }}>
                     ⚠️ APP WILL RELOAD
                   </span>

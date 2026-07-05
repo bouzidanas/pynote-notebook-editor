@@ -106,7 +106,7 @@ const Dropdown: Component<DropdownProps> = (props) => {
   );
 };
 
-export const DropdownItem: Component<{ onClick?: () => void; children: JSX.Element; class?: string; disabled?: boolean; shortcut?: string }> = (props) => {
+export const DropdownItem: Component<{ onClick?: JSX.EventHandler<HTMLButtonElement, MouseEvent>; children: JSX.Element; class?: string; disabled?: boolean; shortcut?: string }> = (props) => {
     return (
         <button
             onClick={props.onClick}
