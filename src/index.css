@@ -180,11 +180,16 @@ select:-webkit-autofill:active {
 }
 /* Panel pins to the OS bottom edge (safe-area aware). The grid stacks the
    outgoing and incoming toolbars in the same cell so a content swap never
-   collapses the panel height mid-transition. */
+   collapses the panel height mid-transition.
+   The +3rem of padding-bottom compensates for the matching translate-y-[3rem]
+   on the outer fixed container: the container shift pushes the panel's bottom
+   edge 3rem below the screen (an off-screen buffer that fills any extra space
+   at the bottom of the phone browser window), and this padding pushes the
+   toolbar content back up so it stays in its original on-screen position. */
 .cell-drawer-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 3rem);
 }
 .cell-drawer-panel > * {
   grid-column: 1;
