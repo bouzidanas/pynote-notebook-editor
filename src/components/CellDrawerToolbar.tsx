@@ -73,7 +73,16 @@ const CellDrawerToolbar: Component<CellDrawerToolbarProps> = (props) => {
           onClick={(e) => {
             e.stopPropagation();
             if (notebookStore.movingCellId === props.cell.id) actions.cancelMovingCell();
-            else actions.startMovingCell(props.cell.id);
+            else {
+              // Deselect first (also clears any stale moving state), THEN pick
+              // up the cell. Deselecting closes the drawer and drops the accent
+              // selection so the cell reads as a pseudo-disabled "picked up"
+              // item until it's dropped, at which point dropMovingCellOn
+              // re-selects it. Order matters: setActiveCell(null) clears
+              // movingCellId, so it must run before startMovingCell.
+              actions.setActiveCell(null);
+              actions.startMovingCell(props.cell.id);
+            }
           }}
           class={clsx(
             "p-2 rounded-sm text-background transition-colors",

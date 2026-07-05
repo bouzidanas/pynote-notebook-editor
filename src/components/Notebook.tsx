@@ -2250,7 +2250,11 @@ const Notebook: Component = () => {
          <div class="fixed inset-x-0 bottom-0 translate-y-[3rem] z-[199999] lg:hidden pointer-events-none">
            <Transition name="cell-drawer">
              <Show when={drawerOpen()}>
-               <div class="cell-drawer-panel pointer-events-auto bg-primary ui-font rounded-t-[var(--radius-sm)] shadow-[0_-2px_10px_-3px_rgba(0,0,0,0.7)]">
+               <div
+                 class="cell-drawer-panel pointer-events-auto bg-primary ui-font rounded-t-[var(--radius-sm)] shadow-[0_-2px_10px_-3px_rgba(0,0,0,0.7)]"
+                 onMouseDown={(e) => e.stopPropagation()}
+                 onClick={(e) => e.stopPropagation()}
+               >
                  <Transition name="cell-drawer-fade">
                    <Show when={drawerContentCell()} keyed>
                      {(cell) => <CellDrawerToolbar cell={cell} runCell={runCell} />}
