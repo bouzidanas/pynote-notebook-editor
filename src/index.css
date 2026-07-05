@@ -180,14 +180,11 @@ select:-webkit-autofill:active {
 }
 /* Panel pins to the OS bottom edge (safe-area aware). The grid stacks the
    outgoing and incoming toolbars in the same cell so a content swap never
-   collapses the panel height mid-transition. The extra 3rem of padding-bottom
-   (paired with the -bottom-12 offset on the fixed container in Notebook.tsx)
-   makes the panel extend further below the viewport edge so no app-background
-   sliver shows through, while keeping the toolbar content in the same spot. */
+   collapses the panel height mid-transition. */
 .cell-drawer-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  padding-bottom: calc(env(safe-area-inset-bottom) + 3rem);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 4rem);
 }
 .cell-drawer-panel > * {
   grid-column: 1;

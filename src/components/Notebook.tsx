@@ -2247,7 +2247,7 @@ const Notebook: Component = () => {
            inner Transition (mode="outin") cross-fades the controls when switching
            from one cell to another. */}
        <Portal>
-         <div class="fixed inset-x-0 -bottom-12 z-[199999] lg:hidden pointer-events-none">
+         <div class="fixed inset-x-0 bottom-0 z-[199999] lg:hidden pointer-events-none">
            <Transition name="cell-drawer">
              <Show when={drawerOpen()}>
                <div class="cell-drawer-panel pointer-events-auto bg-primary ui-font rounded-t-[var(--radius-sm)] shadow-[0_-2px_10px_-3px_rgba(0,0,0,0.7)]">
