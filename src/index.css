@@ -169,12 +169,16 @@ select:-webkit-autofill:active {
 }
 
 /* Mobile cell action drawer (rendered once by Notebook, portaled to body).
-   Outer slide controls presence: only runs when the drawer opens/closes. */
-.cell-drawer-enter-active,
-.cell-drawer-exit-active {
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+   Outer slide controls presence: only runs when the drawer opens/closes.
+   Enter eases out (decelerates into place, so the slowdown is visible as the
+   panel arrives on-screen); exit eases in (accelerates away off-screen). */
+.cell-drawer-enter-active {
+  transition: transform 0.28s ease-out;
 }
-.cell-drawer-enter-from,
+.cell-drawer-exit-active {
+  transition: transform 0.28s ease-in;
+}
+.cell-drawer-enter,
 .cell-drawer-exit-to {
   transform: translateY(100%);
 }
