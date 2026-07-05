@@ -453,7 +453,7 @@ export const defaultTheme: Theme = {
   },
   sectionScoping: true,
   tableOverflow: "scroll",
-  outputLayout: "above",
+  outputLayout: "below",
   pageWidth: "normal",
   preset: "",
   saveToExport: false,

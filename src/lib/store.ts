@@ -112,6 +112,9 @@ export interface NotebookState {
   cells: CellData[];
   filename: string;
   activeCellId: string | null;
+  // Cell currently "picked up" via the mobile drawer grip (click-to-move mode).
+  // While set, tapping another cell drops the picked-up cell at that position.
+  movingCellId: string | null;
   history: HistoryEntry[];
   historyIndex: number; // Current position in history (-1 = no history)
   presentationMode: boolean;
@@ -227,7 +230,7 @@ export const defaultCells: CellData[] = [
   {
     id: crypto.randomUUID(),
     type: "markdown",
-    content: "# Welcome to PyNote\n\nThis is a **modern** notebook running Python in your browser via WebAssembly (Pyodide).\n\nDouble click a cell to edit. Drag handle to reorder."
+    content: "# Welcome to PyNote\n\nThis is a **modern** notebook running Python in your browser.\n\nClick a cell to select it or double click to edit. Drag handle or cell border to reorder. Press Ctrl+\\ to open keyboard shortcuts.\n\nSee the [tutorial](?open=tutorial) for more details."
   },
   {
     id: crypto.randomUUID(),
@@ -240,6 +243,7 @@ const [store, setStore] = createStore<NotebookState>({
   cells: [],
   filename: "untitled.ipynb",
   activeCellId: null,
+  movingCellId: null,
   history: [],
   historyIndex: -1,
   presentationMode: false,
@@ -516,6 +520,9 @@ export const actions = {
       if (store.activeCellId === id) {
         setStore("activeCellId", null);
       }
+      if (store.movingCellId === id) {
+        setStore("movingCellId", null);
+      }
     }
     // Autosave after deleting a cell
     if ((actions as any).__autosaveCallback) {
@@ -538,6 +545,31 @@ export const actions = {
     if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
+  },
+
+  // --- Click-to-move (mobile drawer grip) ------------------------------------
+  // Pick up a cell, then tap a destination cell to drop it there. Uses the same
+  // index semantics as drag-and-drop (see onDragEnd): dropping onto a target
+  // moves the picked-up cell into that target's slot.
+  startMovingCell: (id: string) => {
+    setStore("movingCellId", id);
+  },
+
+  cancelMovingCell: () => {
+    setStore("movingCellId", null);
+  },
+
+  dropMovingCellOn: (targetId: string) => {
+    const fromId = store.movingCellId;
+    setStore("movingCellId", null);
+    if (!fromId || fromId === targetId) return;
+    const fromIndex = store.cells.findIndex((c) => c.id === fromId);
+    const toIndex = store.cells.findIndex((c) => c.id === targetId);
+    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+      actions.moveCell(fromIndex, toIndex);
+    }
+    // Keep the moved cell selected so its action drawer follows it.
+    setStore("activeCellId", fromId);
   },
 
   // Insert a new markdown cell at `index` with the given initial content.
@@ -672,6 +704,8 @@ export const actions = {
 
     setStore("activeCellId", id);
     setStore("cells", (c) => c.id !== id, "isEditing", false);
+    // Deselecting cancels any in-progress click-to-move.
+    if (id === null) setStore("movingCellId", null);
   },
 
   // Internal callback for autosave, set by Notebook.tsx

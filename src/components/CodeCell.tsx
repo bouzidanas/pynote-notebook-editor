@@ -5,7 +5,6 @@ import { currentTheme } from "../lib/theme";
 import CodeEditor from "./CodeEditor";
 import { OutputResult, OutputStdoutUI, OutputStderr, OutputError } from "./Output";
 import CellWrapper from "./CellWrapper";
-import { Play, Square, Trash2, Timer } from "lucide-solid";
 import clsx from "clsx";
 import { 
   getEffectiveVisibility, 
@@ -103,36 +102,6 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       props.runCell(props.cell.id);
   };
 
-  const toolbar = (
-    <div class="flex lg:hidden items-center gap-1 p-1">
-      <button 
-        onClick={handleRun}
-        disabled={props.cell.isQueued}
-        class={clsx(
-          "p-1.5 hover:bg-foreground rounded-sm disabled:opacity-50",
-          props.cell.outputs?.error ? "text-primary" : (props.isActive || props.cell.isEditing) ? "text-accent" : "text-accent"
-        )}
-        title={props.cell.isRunning ? "Stop Cell (Restart Kernel)" : "Run Cell (Ctrl+Enter)"}
-      >
-        <Show when={!props.cell.isRunning} fallback={<Square size={16} class="animate-pulse text-primary" />}>
-          <Show when={props.cell.isQueued} fallback={<Play size={16} />}>
-             <Timer size={16} class="text-accent/70 animate-pulse" />
-          </Show>
-        </Show>
-      </button>
-      <div class="h-4 w-px bg-foreground mx-1" />
-      <span class="text-xs text-secondary/70 font-mono px-2">Python</span>
-      <div class="h-4 w-px bg-foreground mx-1" />
-      <button 
-        onClick={(e) => { e.stopPropagation(); actions.deleteCell(props.cell.id); }}
-        class="p-1.5 hover:bg-foreground rounded-sm text-primary"
-        title="Delete Cell"
-      >
-        <Trash2 size={16} />
-      </button>
-    </div>
-  );
-
   return (
     <div style={{ display: shouldHideInPresentation() ? 'none' : 'block' }}>
     <CellWrapper
@@ -143,7 +112,6 @@ const CodeCell: Component<CodeCellProps> = (props) => {
       onDelete={() => actions.deleteCell(props.cell.id)}
       onMoveUp={() => actions.moveCell(props.index, props.index - 1)}
       onMoveDown={() => actions.moveCell(props.index, props.index + 1)}
-      toolbar={toolbar}
       type="code"
       onActionClick={handleRun}
       actionRunning={props.cell.isRunning}
