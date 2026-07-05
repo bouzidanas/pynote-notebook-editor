@@ -14,7 +14,7 @@ const App: Component = () => {
 
   return (
     <div 
-      class="min-h-screen bg-background text-secondary transition-colors duration-300 font-mono"
+      class="min-h-[100dvh] bg-background text-secondary transition-colors duration-300 font-mono"
       data-testid={TESTID.appRoot}
       onMouseDown={() => actions.setActiveCell(null)}
     >
