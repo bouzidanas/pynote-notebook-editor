@@ -694,10 +694,11 @@ const FileWorkspacePanel: Component<FileWorkspacePanelProps> = (props) => {
     const labelStyles = rowLabel ? getComputedStyle(rowLabel) : getComputedStyle(rowEl);
 
     const ghost = document.createElement("div");
-    ghost.style.position = "fixed";
-    ghost.style.top = "0";
-    ghost.style.left = "0";
-    ghost.style.transform = "translate(-10000px, -10000px)";
+    // Keep the ghost attached and paintable, but place it well outside viewport.
+    // Some engines can skip rendering drag images positioned via large transforms.
+    ghost.style.position = "absolute";
+    ghost.style.top = "-10000px";
+    ghost.style.left = "-10000px";
     ghost.style.pointerEvents = "none";
     ghost.style.display = "inline-flex";
     ghost.style.alignItems = "center";
