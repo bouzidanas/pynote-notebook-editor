@@ -163,7 +163,11 @@ const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; on
   );
 };
 
-const SideLeftPanel: Component<{ onClose: () => void; viewMode: FilesPanelViewMode; onViewModeChange: (nextMode: FilesPanelViewMode) => void }> = (props) => {
+const SideLeftPanel: Component<{
+  onClose: () => void;
+  viewMode: FilesPanelViewMode;
+  onViewModeChange: (nextMode: FilesPanelViewMode) => void;
+}> = (props) => {
   return (
     <div class="fixed right-[calc(50%+28rem)] px-2 top-32 w-[calc(50%-32rem)] max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-300000" data-testid={TESTID.filesSidePanel}>
       <button
@@ -175,7 +179,11 @@ const SideLeftPanel: Component<{ onClose: () => void; viewMode: FilesPanelViewMo
       </button>
 
       <div class="overflow-x-hidden">
-        <FileWorkspacePanel mode="side" viewMode={props.viewMode} onViewModeChange={props.onViewModeChange} />
+        <FileWorkspacePanel
+          mode="side"
+          viewMode={props.viewMode}
+          onViewModeChange={props.onViewModeChange}
+        />
       </div>
     </div>
   );
@@ -296,6 +304,9 @@ const AutoScroller: Component = () => {
 
 const Notebook: Component = () => {
   let fileInput: HTMLInputElement | undefined;
+  const [isWideFilesViewport, setIsWideFilesViewport] = createSignal(
+    typeof window !== "undefined" && window.matchMedia("(min-width: 96rem)").matches,
+  );
   const [draggedHeight, setDraggedHeight] = createSignal<number | null>(null);
   const [grabOffsetX, setGrabOffsetX] = createSignal(0);
   const [cellWidth, setCellWidth] = createSignal(0);
@@ -333,6 +344,19 @@ const Notebook: Component = () => {
   // can be honored by the cascading toggles below.
   let pendingAutoRun = false;          // "new session start" event
   let pendingAutoRunRefresh = false;   // "same session reloaded" event
+
+  onMount(() => {
+    const mediaQuery = window.matchMedia("(min-width: 96rem)");
+    const syncViewport = () => setIsWideFilesViewport(mediaQuery.matches);
+    syncViewport();
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncViewport);
+      onCleanup(() => mediaQuery.removeEventListener("change", syncViewport));
+      return;
+    }
+    mediaQuery.addListener(syncViewport);
+    onCleanup(() => mediaQuery.removeListener(syncViewport));
+  });
 
   // --- Old Internal Autosave Mechanism ---
   // const AUTOSAVE_KEY = "pynote-autosave";
@@ -2177,7 +2201,7 @@ const Notebook: Component = () => {
        </Show>
 
        {/* Left Panel Modal */}
-       <Show when={showLeftPanel()}>
+       <Show when={showLeftPanel() && !isWideFilesViewport()}>
          <div class="fixed inset-0 z-300000 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm 2xl:hidden" onClick={() => setShowLeftPanel(false)} data-testid={TESTID.filesDialog}>
            <div class="bg-background ui-border ui-font rounded-sm shadow-xl max-w-3xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
              <div class="flex items-center justify-between p-4 [border-bottom-width:var(--ui-divider-width,1px)] ui-divider shrink-0">
@@ -2187,7 +2211,11 @@ const Notebook: Component = () => {
                </button>
              </div>
              <div class="p-4 overflow-y-auto flex-1">
-               <FileWorkspacePanel mode="dialog" viewMode={filesPanelViewMode()} onViewModeChange={setAndPersistFilesPanelViewMode} />
+               <FileWorkspacePanel
+                 mode="dialog"
+                 viewMode={filesPanelViewMode()}
+                 onViewModeChange={setAndPersistFilesPanelViewMode}
+               />
              </div>
              <div class="p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider text-center text-xs text-secondary/50 shrink-0">
                Click anywhere outside to close
@@ -2197,8 +2225,12 @@ const Notebook: Component = () => {
        </Show>
 
        {/* Left Panel (Visible on 2xl screens) */}
-       <Show when={showLeftPanel() && !notebookStore.presentationMode}>
-         <SideLeftPanel onClose={() => setShowLeftPanel(false)} viewMode={filesPanelViewMode()} onViewModeChange={setAndPersistFilesPanelViewMode} />
+       <Show when={showLeftPanel() && !notebookStore.presentationMode && isWideFilesViewport()}>
+        <SideLeftPanel
+          onClose={() => setShowLeftPanel(false)}
+          viewMode={filesPanelViewMode()}
+          onViewModeChange={setAndPersistFilesPanelViewMode}
+        />
        </Show>
 
        {/* Performance Monitor */}
