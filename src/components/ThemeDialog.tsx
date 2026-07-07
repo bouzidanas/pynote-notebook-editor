@@ -1293,7 +1293,7 @@ const ThemeDialog: Component<ThemeDialogProps> = (props) => {
           </div>
 
           {/* Right Panel - Preview */}
-          <div class="flex-1 max-lg:h-[24%] shrink-3 min-h-0 p-4 overflow-y-auto space-y-4" style={{
+          <div class="flex-1 max-lg:h-[24%] shrink-2 min-h-0 p-4 overflow-y-auto space-y-4" style={{
             "font-family": currentTheme.font,
             "background-color": currentTheme.colors.background,
             "color": currentTheme.colors.secondary,
