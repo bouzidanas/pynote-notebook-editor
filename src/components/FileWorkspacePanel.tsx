@@ -1210,9 +1210,10 @@ const FileWorkspacePanel: Component<FileWorkspacePanelProps> = (props) => {
                 onDragStart={(e) => handleEntryDragStart(row.entry, e, e.currentTarget)}
                 onDragEnd={handleEntryDragEnd}
                 onDragOver={(e) => {
-                  if (row.entry.type !== "dir") return;
                   e.preventDefault();
-                  setDragOverDirPath(row.entry.path);
+                  if (row.entry.type === "dir") {
+                    setDragOverDirPath(row.entry.path);
+                  }
                 }}
                 onDragLeave={(e) => {
                   const related = e.relatedTarget as Node | null;
@@ -1220,49 +1221,44 @@ const FileWorkspacePanel: Component<FileWorkspacePanelProps> = (props) => {
                   if (dragOverDirPath() === row.entry.path) setDragOverDirPath(null);
                 }}
                 onDrop={(e) => {
-                  if (row.entry.type !== "dir") return;
                   e.preventDefault();
                   e.stopPropagation();
                   setDragOverDirPath(null);
                   const dt = e.dataTransfer;
                   if (!dt) return;
+
+                  const destinationDir = row.entry.type === "dir" ? row.entry.path : parentPath(row.entry.path);
                   if (dt.files && dt.files.length > 0) {
-                    void (async () => {
-                      try {
-                        const files = await Promise.all(
-                          Array.from(dt.files).map(async (file) => ({
-                            name: file.name,
-                            data_base64: await toBase64(file),
-                          })),
-                        );
-                        await kernel.filesystem({ op: "upload", path: row.entry.path, files });
-                        await refresh();
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : "Failed to upload files");
-                      }
-                    })();
+                    void uploadFiles(dt.files, destinationDir);
                     return;
                   }
+
                   const sourcePath = dt.getData("text/plain") || draggedPath();
-                  void moveDraggedEntryToDirectory(row.entry.path, sourcePath);
+                  if (!sourcePath || sourcePath === row.entry.path) return;
+                  void moveDraggedEntryToDirectory(destinationDir, sourcePath);
                 }}
               >
                 <div class="flex items-center gap-1.5 min-w-0" style={viewMode() === "tree" ? { "padding-left": `${row.depth * 14}px` } : undefined}>
-                  <Show when={props.mode === "dialog" && viewMode() === "tree" && row.entry.type === "dir"}>
-                    <button
-                      class="inline-flex h-5 w-5 items-center justify-center text-secondary/55 hover:text-secondary rounded-sm shrink-0"
-                      title={expandedDirPathSet().has(row.entry.path) ? "Collapse folder" : "Expand folder"}
-                      aria-label={expandedDirPathSet().has(row.entry.path) ? "Collapse folder" : "Expand folder"}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        panelRootRef?.focus({ preventScroll: true });
-                        void openDirectory(row.entry.path);
-                      }}
+                  <Show when={props.mode === "dialog" && viewMode() === "tree"}>
+                    <Show
+                      when={row.entry.type === "dir"}
+                      fallback={<span class="inline-flex h-5 w-5 shrink-0" aria-hidden="true" />}
                     >
-                      <Show when={expandedDirPathSet().has(row.entry.path)} fallback={<ChevronRight size={13} />}>
-                        <ChevronDown size={13} />
-                      </Show>
-                    </button>
+                      <button
+                        class="inline-flex h-5 w-5 items-center justify-center text-secondary/55 hover:text-secondary rounded-sm shrink-0"
+                        title={expandedDirPathSet().has(row.entry.path) ? "Collapse folder" : "Expand folder"}
+                        aria-label={expandedDirPathSet().has(row.entry.path) ? "Collapse folder" : "Expand folder"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          panelRootRef?.focus({ preventScroll: true });
+                          void openDirectory(row.entry.path);
+                        }}
+                      >
+                        <Show when={expandedDirPathSet().has(row.entry.path)} fallback={<ChevronRight size={13} />}>
+                          <ChevronDown size={13} />
+                        </Show>
+                      </button>
+                    </Show>
                   </Show>
                   <Show
                     when={row.entry.type === "dir"}
