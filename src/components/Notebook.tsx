@@ -1,6 +1,6 @@
 import { type Component, For, Show, createSignal, onCleanup, createEffect, createMemo, onMount, lazy } from "solid-js";
 import { Portal } from "solid-js/web";
-import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners, useDragDropContext } from "@thisbeyond/solid-dnd";
+import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCorners } from "@thisbeyond/solid-dnd";
 import { Transition, TransitionGroup } from "solid-transition-group";
 import { notebookStore, actions, defaultCells, APP_DEFAULT_EXECUTION_MODE, APP_ENABLE_CELL_DND, type ExecutionMode, type CellData } from "../lib/store";
 import { isBuiltinNotebook, getBuiltinNotebook } from "../lib/notebooks";
@@ -16,21 +16,15 @@ import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionSta
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, defaultTheme } from "../lib/theme";
 import { TESTID } from "../lib/testids";
 import FileWorkspacePanel from "./FileWorkspacePanel";
+import SideShortcuts from "./notebook/SideShortcuts";
+import SideLeftPanel from "./notebook/SideLeftPanel";
+import { SHORTCUTS } from "./notebook/shortcuts";
+import { DragOffsetTracker, CustomDragOverlay, AutoScroller } from "./notebook/dnd-helpers";
+import { type FilesPanelViewMode, FILES_PANEL_VIEW_MODE_STORAGE_KEY, loadPersistedFilesPanelViewMode } from "./notebook/files-panel-view-mode";
 
 const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 const ThemeDialog = lazy(() => import("./ThemeDialog"));
-type FilesPanelViewMode = "list" | "tree";
-const FILES_PANEL_VIEW_MODE_STORAGE_KEY = "pynote-files-panel-view-mode";
-
-const loadPersistedFilesPanelViewMode = (): FilesPanelViewMode => {
-  try {
-    const stored = localStorage.getItem(FILES_PANEL_VIEW_MODE_STORAGE_KEY);
-    return stored === "tree" ? "tree" : "list";
-  } catch {
-    return "list";
-  }
-};
 
 // Strip "no-op" empty-string overrides from a theme before writing it to a
 // notebook's metadata, so the saved .ipynb isn't bloated with unused fields.
@@ -52,254 +46,6 @@ const pruneEmptyThemeOverrides = (value: any, def: any): any => {
     return out;
   }
   return value;
-};
-
-// ============================================================================
-const SHORTCUTS = {
-  global: [
-    { label: "New Notebook", keys: "Alt + N" },
-    { label: "Open File", keys: "Ctrl + O" },
-    { label: "Save Notebook", keys: "Ctrl + S" },
-    { label: "Save As", keys: "Ctrl + Shift + S" },
-    { label: "Export .ipynb", keys: "Ctrl + E" },
-    { label: "Toggle Shortcuts", keys: "Ctrl + \\" },
-    { label: "Toggle Files & Data", keys: "Ctrl + ." },
-    { label: "Presentation Mode", keys: "Alt + P" },
-    { label: "Theme Configuration", keys: "Alt + T" },
-    { label: "Code Visibility", keys: "Alt + V" },
-    { label: "Run All Cells", keys: "Alt + R" },
-    { label: "Clear All Outputs", keys: "Alt + Backspace" },
-    { label: "Delete All Cells", keys: "Alt + Delete" },
-    { label: "Restart Kernel", keys: "Alt + K" },
-    { label: "Shutdown Kernel", keys: "Alt + Q" }
-  ],
-  command: [
-    { label: "Run & Stay", keys: "Ctrl + Enter" },
-    { label: "Run & Select Next", keys: "Shift + Enter" },
-    { label: "Run & Insert", keys: "Alt + Enter" },
-    { label: "Enter Edit Mode", keys: "Enter" },
-    { label: "Deselect Cell", keys: "Esc" },
-    { label: "Change to Code", keys: "Y" },
-    { label: "Change to Markdown", keys: "M" },
-    { label: "Move Up", keys: "Alt/Ctrl+Shift + ↑" },
-    { label: "Move Down", keys: "Alt/Ctrl+Shift + ↓" },
-    { label: "Insert Above", keys: "A" },
-    { label: "Insert Below", keys: "B" },
-    { label: "Delete Cell", keys: "Ctrl + Delete" },
-    { label: "Clear Output", keys: "Ctrl + Backspace" }
-  ],
-  edit: [
-    { label: "Run & Stay (Code)", keys: "Ctrl + Enter" },
-    { label: "Render (Markdown)", keys: "Ctrl + Enter" },
-    { label: "Run & Edit Next", keys: "Shift + Enter" },
-    { label: "Run & Insert", keys: "Alt + Enter" },
-    { label: "Exit Edit Mode", keys: "Esc" },
-    { label: "Undo", keys: "Ctrl + Z" },
-    { label: "Redo", keys: "Ctrl + Shift + Z" },
-    { label: "Comment Toggle", keys: "Ctrl + /" },
-    { label: "Multi-Select Next", keys: "Ctrl + D" },
-    { label: "Multi-Select Previous", keys: "Ctrl + Shift + D" },
-    { label: "Find", keys: "Ctrl + F" },
-    { label: "Move Line Up", keys: "Ctrl + Shift + ↑" },
-    { label: "Move Line Down", keys: "Ctrl + Shift + ↓" },
-    { label: "Duplicate Line Up", keys: "Shift + Alt + ↑" },
-    { label: "Duplicate Line Down", keys: "Shift + Alt + ↓" },
-    { label: "Delete Line", keys: "Ctrl + Shift + K" },
-    { label: "Jump to Bracket", keys: "Ctrl + M" },
-    { label: "Clear Output", keys: "Ctrl + Backspace" }
-  ]
-};
-
-const SideShortcuts: Component<{ activeId: string | null; isEditing: boolean; onClose: () => void }> = (props) => {
-  // Determine which section to show: Global (no selection), Command (selected), or Edit (editing)
-  const section = () => {
-    if (!props.activeId) return "global";
-    if (props.isEditing) return "edit";
-    return "command";
-  };
-
-  return (
-     <div class="fixed left-[calc(50%+28rem)] px-2 top-32 w-[calc(50%-32rem)] max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-[300000]">
-          <button
-            onClick={props.onClose}
-            class="self-end -mb-5 translate-y-[2px] translate-x-1.5 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer z-300002"
-            title="Hide Shortcuts"
-          >
-            <X size={16} />
-        </button>
-
-        <div class="flex flex-col gap-6 max-h-[calc(100vh-12rem)] overflow-x-hidden overflow-y-auto">
-        {/* Global - shown when no cell is selected */}
-        <Show when={section() === "global"}>
-          <div class="space-y-2">
-              <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Global</h3>
-              <For each={SHORTCUTS.global}>
-                  {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
-              </For>
-          </div>
-        </Show>
-
-        {/* Command Mode - shown when cell is selected but not editing */}
-        <Show when={section() === "command"}>
-          <div class="space-y-2">
-              <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Command Mode</h3>
-              <For each={SHORTCUTS.command}>
-                  {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
-              </For>
-          </div>
-        </Show>
-
-        {/* Edit Mode - shown when editing */}
-        <Show when={section() === "edit"}>
-          <div class="space-y-2">
-              <h3 class="text-xs font-bold uppercase tracking-widest opacity-50">Edit Mode</h3>
-              <For each={SHORTCUTS.edit}>
-                  {s => <div class="text-xs flex justify-between gap-8"><span class="font-light">{s.label}</span> <span class="font-mono opacity-75">{s.keys}</span></div>}
-              </For>
-          </div>
-        </Show>
-        </div>
-     </div>
-  );
-};
-
-const SideLeftPanel: Component<{
-  onClose: () => void;
-  viewMode: FilesPanelViewMode;
-  onViewModeChange: (nextMode: FilesPanelViewMode) => void;
-}> = (props) => {
-  return (
-    <div class="fixed right-[calc(50%+28rem)] px-2 top-32 w-[calc(50%-32rem)] max-w-[20rem] hidden 2xl:flex flex-col text-secondary/60 transition-opacity duration-300 group z-300000" data-testid={TESTID.filesSidePanel}>
-      <button
-        onClick={props.onClose}
-        class="self-end -mb-5 translate-y-[2px] translate-x-1.5 p-1.5 rounded-lg hover:bg-foreground text-secondary/40 hover:text-secondary opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer z-300002"
-        title="Hide Left Panel"
-      >
-        <X size={16} />
-      </button>
-
-      <div class="overflow-x-hidden">
-        <FileWorkspacePanel
-          mode="side"
-          viewMode={props.viewMode}
-          onViewModeChange={props.onViewModeChange}
-        />
-      </div>
-    </div>
-  );
-};
-
-// Captures the sensor's pointer origin on drag start to compute grab offset
-// Lives inside <DragDropProvider> so it has access to the drag-drop context
-const DragOffsetTracker: Component<{ setGrabOffsetX: (x: number) => void }> = (props) => {
-  const [state] = useDragDropContext()!;
-
-  createEffect(() => {
-    const draggable = state.active.draggable;
-    const sensor = state.active.sensor;
-    if (draggable && sensor) {
-      const rect = draggable.node.getBoundingClientRect();
-      // Use the sensor's current coordinates (most accurate at activation time)
-      props.setGrabOffsetX(sensor.coordinates.current.x - rect.left);
-    }
-  });
-
-  return null;
-};
-
-// Custom overlay that follows mouse cursor
-const CustomDragOverlay: Component<{ height: number | null; grabOffsetX: number; cellWidth: number }> = (props) => {
-  const [state] = useDragDropContext()!;
-  const [mousePos, setMousePos] = createSignal({ x: 0, y: 0 });
-
-  createEffect(() => {
-    if (state.active.draggable) {
-      const handleMouseMove = (e: MouseEvent) => {
-        setMousePos({ x: e.clientX, y: e.clientY });
-      };
-      window.addEventListener("mousemove", handleMouseMove);
-      onCleanup(() => {
-        window.removeEventListener("mousemove", handleMouseMove);
-      });
-    }
-  });
-
-  return (
-    <Show when={state.active.draggable && props.height}>
-      <div 
-        class="fixed pointer-events-none z-100001" 
-        style={{ 
-          // Position the pill so it maintains the grab offset from the cell
-          // The pill is 832px wide, the cell is cellWidth, so we extend equally on both sides
-          left: `${mousePos().x - props.grabOffsetX - (832 - props.cellWidth) / 2}px`, 
-          top: `${mousePos().y}px`,
-          width: "832px" // Match max-w-[52rem]
-        }}
-      >
-        <div class="bg-accent/20 border-2 border-accent h-12 w-full rounded-sm opacity-50 shadow-sm"></div>
-      </div>
-    </Show>
-  );
-};
-
-const AutoScroller: Component = () => {
-  const [state, { recomputeLayouts }] = useDragDropContext()!;
-  let scrollFrame: number | null = null;
-  let mouseY = 0;
-  const SCROLL_SPEED = 15;
-  const MENU_HEIGHT = 80;
-  const EDGE_THRESHOLD = 50;
-
-  const handleMouseMove = (e: MouseEvent) => {
-    mouseY = e.clientY;
-  };
-
-  const handleScroll = () => {
-    // Only recompute when actual scroll events fire (from user or our scrollBy)
-    recomputeLayouts();
-  };
-
-  const loop = () => {
-    const { innerHeight } = window;
-    
-    // Check top zone (accounting for menu bar)
-    if (mouseY < MENU_HEIGHT + EDGE_THRESHOLD && mouseY > 0) {
-      window.scrollBy(0, -SCROLL_SPEED);
-    } 
-    // Check bottom zone
-    else if (mouseY > innerHeight - EDGE_THRESHOLD) {
-      window.scrollBy(0, SCROLL_SPEED);
-    }
-    
-    // Don't call recomputeLayouts here - let the scroll event handle it
-    
-    scrollFrame = requestAnimationFrame(loop);
-  };
-
-  createEffect(() => {
-    if (state.active.draggable) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("scroll", handleScroll);
-      scrollFrame = requestAnimationFrame(loop);
-    } else {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("scroll", handleScroll);
-      if (scrollFrame) {
-        cancelAnimationFrame(scrollFrame);
-        scrollFrame = null;
-      }
-    }
-  });
-
-  onCleanup(() => {
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("scroll", handleScroll);
-    if (scrollFrame) {
-      cancelAnimationFrame(scrollFrame);
-    }
-  });
-
-  return null;
 };
 
 const Notebook: Component = () => {
@@ -358,10 +104,6 @@ const Notebook: Component = () => {
     onCleanup(() => mediaQuery.removeListener(syncViewport));
   });
 
-  // --- Old Internal Autosave Mechanism ---
-  // const AUTOSAVE_KEY = "pynote-autosave";
-
-  // Helper to run a specific cell
   const executeRunner = async (content: string, id: string) => {
       // In reactive mode, extract definitions and sync ownership BEFORE executing
       if (notebookStore.executionMode === "reactive") {
