@@ -221,6 +221,57 @@ function jumpToMatchingBracket(view: EditorView): boolean {
   return false;
 }
 
+// --- Safari phantom-height fix (shared machinery) -------------------------
+// Safari bakes the assumed horizontal scrollbar height into a scroller's
+// intrinsic (auto) height during load even when nothing overflows, and caches
+// that wrong height until a style invalidation forces a relayout (normally
+// the user's first click) — leaving a phantom 5px gap under the code in every
+// cell. Wrap-on editors are covered purely by CSS (index.css zeroes their
+// h-scrollbar height); this JS handles the wrap-off case, where a real
+// scrollbar must stay available for genuine overflow.
+// One module-level ResizeObserver watches the scrollers of all not-yet-
+// rectified cells (the phantom changes the scroller's height, so its
+// formation triggers the callback). A rectified cell is deregistered, and
+// when the last one deregisters the observer itself is dropped for GC — so
+// with 1000 cells there is never more than one observer, and in steady state
+// there are none.
+const isWebKit = typeof navigator !== "undefined" &&
+  /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg/.test(navigator.userAgent);
+
+const phantomWatch = new Map<HTMLElement, HTMLElement>(); // scroller -> content
+let phantomObserver: ResizeObserver | undefined;
+
+function unwatchPhantom(scroller: HTMLElement) {
+  if (!phantomWatch.delete(scroller)) return;
+  phantomObserver?.unobserve(scroller);
+  if (phantomWatch.size === 0) {
+    phantomObserver?.disconnect();
+    phantomObserver = undefined; // last cell rectified: observer becomes garbage
+  }
+}
+
+function watchPhantom(scroller: HTMLElement, content: HTMLElement) {
+  phantomWatch.set(scroller, content);
+  phantomObserver ??= new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const scroller = entry.target as HTMLElement;
+      const content = phantomWatch.get(scroller);
+      if (!content || codeVisibility.lineWrap) continue; // wrap-on handled by CSS
+      const noHOverflow = scroller.scrollWidth <= scroller.clientWidth;
+      const phantom = scroller.getBoundingClientRect().height -
+        content.getBoundingClientRect().height;
+      if (noHOverflow && phantom > 0.5) {
+        scroller.style.paddingBottom = "0.01px"; // any style change invalidates the cached layout
+        void scroller.offsetHeight;
+        scroller.style.paddingBottom = "";
+        unwatchPhantom(scroller); // rectified once = rectified for the session
+      }
+    }
+  });
+  phantomObserver.observe(scroller);
+}
+// ---------------------------------------------------------------------------
+
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -459,6 +510,23 @@ const CodeEditor: Component<EditorProps> = (props) => {
     if (!props.readOnly && editorView()) {
       editorView().focus();
     }
+  });
+
+  // Safari-only phantom-height fix for wrap-off editors: register this cell's
+  // scroller with the shared observer (see module-level machinery above).
+  // Deregisters on first focus (Safari rectifies natively then) or unmount.
+  createEffect(() => {
+    const view = editorView();
+    if (!view || !isWebKit) return;
+    const scroller = view.scrollDOM;
+    const content = view.contentDOM;
+    watchPhantom(scroller, content);
+    const stopOnFocus = () => unwatchPhantom(scroller);
+    content.addEventListener("focus", stopOnFocus, { once: true });
+    onCleanup(() => {
+      content.removeEventListener("focus", stopOnFocus);
+      unwatchPhantom(scroller);
+    });
   });
 
   // Dynamic Theme - Must use EditorView.theme() API, not global CSS

@@ -71,6 +71,17 @@ body {
   background: var(--primary);
 }
 
+/* CodeMirror scrollers with line wrap ON: horizontal scrolling is never
+   legitimate, so remove the h-scrollbar's height entirely. This kills a
+   Safari bug where the assumed h-scrollbar height gets baked into the
+   scroller's intrinsic height on load (phantom 5px gap under the code even
+   though nothing overflows, cleared by the first click).
+   Wrap-off editors keep the normal 5px scrollbar for real overflow; their
+   no-overflow phantom is fixed in CodeEditor.tsx (WebKit-gated one-shot). */
+.cm-scroller:has(> .cm-content.cm-lineWrapping)::-webkit-scrollbar:horizontal {
+  height: 0;
+}
+
 /* Firefox only - apply standard scrollbar properties */
 @supports not selector(::-webkit-scrollbar) {
   * {
