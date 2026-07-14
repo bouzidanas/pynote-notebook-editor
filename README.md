@@ -70,7 +70,7 @@ Check out the new [interactive interview coding preparation series](https://pyno
 - **Sandboxed:** WebAssembly gives Python execution a natural security boundary. Code runs inside the browser sandbox in a separate worker thread, with no access to your filesystem and no way to touch the page directly, which makes opening untrusted notebooks a lot less scary.
 - **Interactive:** build sliders, toggles, forms, and layouts straight from Python with `pynote_ui`. No frontend code, and components are live objects: set a property from Python and the UI updates in place, no cell re-run.
 - **Reactive:** a marimo-style reactive mode tracks which cells depend on which variables and re-runs dependent cells automatically. Three more execution modes (Sequential, Hybrid, Concurrent) when you want manual control.
-- **Themeable:** colors, fonts, spacing, borders, shadows, all of it. Save the theme into the notebook file itself so it carries its look wherever it goes.
+- **Themeable:** colors, fonts, spacing, borders, shadows, all of it. Your theme can be saved into the notebook file itself so it carries its look wherever it goes.
 - **Built for presentation:** presentation mode, per-cell code visibility, and section-scoped styling where everything under a heading shares theme elements.
 - **Charts:** a declarative plotting API built on Observable Plot. Charts follow the notebook theme automatically.
 - **A real editor:** autocomplete with type info, signature help, hover tooltips, multi-cursor editing, find and replace, line operations.
