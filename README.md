@@ -65,7 +65,7 @@ Check out the new [interactive interview coding preparation series](https://pyno
 **Highlights**
 
 - **Zero setup:** go to [pynote-notebook.vercel.app](https://pynote-notebook.vercel.app/) and start writing Python right away. No login, no account, no install.
-- **Serverless:** Python runs in your browser via WebAssembly. There is no kernel to connect to and no backend to stand up (or pay for).
+- **Serverless:** Python runs in your browser via WebAssembly. There is no remote kernel to connect to and no backend to stand up (or pay for).
 - **Private:** your code and data never leave your machine. There is no server to send them to.
 - **Sandboxed:** WebAssembly gives Python execution a natural security boundary. Code runs inside the browser sandbox in a separate worker thread, with no access to your filesystem and no way to touch the page directly, which makes opening untrusted notebooks a lot less scary.
 - **Interactive:** build sliders, toggles, forms, and layouts straight from Python with `pynote_ui`. No frontend code, and components are live objects: set a property from Python and the UI updates in place, no cell re-run.
