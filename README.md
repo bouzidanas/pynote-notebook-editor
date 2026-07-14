@@ -8,6 +8,8 @@
 > - **Coding interview prep** - a new interactive built-in notebook series
 > - **Under the hood** - Pyodide upgraded from 0.26 to 0.29, large files split up and the codebase reorganized, and unit + end-to-end (Playwright) test suites added
 
+Check out the new [interactive interview coding preparation series](https://pynote-notebook.vercel.app/?open=coding-prep)!
+
 > [!NOTE]
 > **Update 2026-03-02:** 
 > Major UI component enhancements! 🎨
