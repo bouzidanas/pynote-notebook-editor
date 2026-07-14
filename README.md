@@ -73,7 +73,7 @@ Check out the new [interactive interview coding preparation series](https://pyno
 - **Themeable:** colors, fonts, spacing, borders, shadows, all of it. Your theme can be saved into the notebook file itself so it carries the look wherever it goes.
 - **Built for presentation:** presentation mode, per-cell code visibility, and section-scoped styling where everything under a heading shares theme elements.
 - **Charts:** a declarative plotting API built on Observable Plot. Charts follow the notebook theme automatically.
-- **A real code editor:** autocomplete with type info, signature help, hover tooltips, multi-cursor editing, find and replace, line operations.
+- **A real code editor:** autocomplete with type info, signature help, hover tooltips, multi-cursor editing, find and replace, line operations, and more.
 - **WYSIWYG markdown editor:** edit markdown cells rich-text style (Milkdown) with a formatting toolbar, tables, captions, and cell splitting at the cursor.
 - **Files built in:** a Files and Data panel for the in-browser filesystem. Upload, organize, and read files from Python.
 - **Nothing lost:** sessions persist across tab closes and refreshes, and undo/redo covers structural changes as well like adding, moving, and deleting cells.
