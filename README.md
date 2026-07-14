@@ -1,4 +1,14 @@
 > [!NOTE]
+> **Update 2026-07-14:** 
+> Lots of new additions to multiple UI areas:
+> - **Files and Data** - manage the in-browser filesystem from a side panel or dialog: upload, create folders, rename, drag-and-drop to organize, and read it all from Python (press `Ctrl-.` in the app)
+> - **Advanced theme configuration** - new theme dialog sections for cell borders and shadows, UI borders and typography, and per-token syntax colors, with themes savable into the notebook file itself
+> - **Mobile support** - responsive layout with a bottom cell-action drawer and click-to-move cell reordering for editing on the phone
+> - **Markdown toolbar upgrades** - formatting buttons show their active state, list buttons toggle and convert between bullet/numbered lists, and cursor position now survives toolbar actions and table insert/delete
+> - **Coding interview prep** - a new interactive built-in notebook series
+> - **Under the hood** - Pyodide upgraded from 0.26 to 0.29, large files split up and the codebase reorganized, and unit + end-to-end (Playwright) test suites added
+
+> [!NOTE]
 > **Update 2026-02-7:** 
 > Major UI component enhancements! 🎨
 > - **New `.options()` method** for all 10 components - cleaner post-initialization property updates with method chaining support
@@ -50,7 +60,24 @@
 
 **PyNote** is a serverless, zero-setup Python notebook environment that runs entirely in your web browser using WebAssembly (Pyodide). It removes the need for backend kernels or cloud infrastructure, ensuring all code executes locally on your machine for privacy and speed. It features a custom UI python module (`pynote_ui`) that allows Python code to render native, interactive web components (like sliders, buttons, and layouts) and high-performance visualizations directly in the notebook output.
 
-Truth be told, nothing above is special. Many existing open-source notebook environments do this and more.
+**Highlights**
+
+- **Zero setup:** go to [pynote-notebook.vercel.app](https://pynote-notebook.vercel.app/) and start writing Python right away. No login, no account, no install.
+- **Serverless:** Python runs in your browser via WebAssembly. There is no kernel to connect to and no backend to stand up (or pay for).
+- **Private:** your code and data never leave your machine. There is no server to send them to.
+- **Sandboxed:** WebAssembly gives Python execution a natural security boundary. Code runs inside the browser sandbox in a separate worker thread, with no access to your filesystem and no way to touch the page directly, which makes opening untrusted notebooks a lot less scary.
+- **Interactive:** build sliders, toggles, forms, and layouts straight from Python with `pynote_ui`. No frontend code, and components are live objects: set a property from Python and the UI updates in place, no cell re-run.
+- **Reactive:** a marimo-style reactive mode tracks which cells depend on which variables and re-runs dependent cells automatically. Three more execution modes (Sequential, Hybrid, Concurrent) when you want manual control.
+- **Themeable:** colors, fonts, spacing, borders, shadows, all of it. Save the theme into the notebook file itself so it carries its look wherever it goes.
+- **Built for presentation:** presentation mode, per-cell code visibility, and section-scoped styling where everything under a heading shares theme elements.
+- **Charts:** a declarative plotting API built on Observable Plot. Charts follow the notebook theme automatically.
+- **A real editor:** autocomplete with type info, signature help, hover tooltips, multi-cursor editing, find and replace, line operations.
+- **WYSIWYG markdown:** edit markdown cells rich-text style (Milkdown) with a formatting toolbar, tables, captions, and cell splitting at the cursor.
+- **ipynb compatible:** opens and saves regular `.ipynb` files.
+- **Files built in:** a Files and Data panel for the in-browser filesystem. Upload, organize, and read files from Python.
+- **Nothing lost:** sessions persist across tab closes and refreshes, and undo/redo covers structural changes like adding, editing, moving, and deleting cells.
+- **Works on your phone:** responsive layout with a mobile cell-action drawer for editing on small screens.
+- **Learn by doing:** interactive [tutorials](https://pynote-notebook.vercel.app/?open=tutorial) built as notebooks, right in the app. Press `Ctrl-\` for keyboard shortcuts.
 
 ## What I think makes PyNote special
 
