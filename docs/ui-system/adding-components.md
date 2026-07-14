@@ -2,12 +2,12 @@
 
 This guide walks through creating a new UI component. We'll use a Button as the example.
 
-## Overview
+## The three touch points
 
 You need to touch three places:
-1. **Python class** — in `pynote_ui` (embedded in the worker)
-2. **SolidJS component** — in `src/components/ui-renderer/`
-3. **Component registry** — map the name to the component
+1. A **Python class** in `pynote_ui` (embedded in the worker)
+2. A **SolidJS component** in `src/components/ui-renderer/`
+3. A **component registry** entry mapping the name to the component
 
 ## Step 1: Python Class
 
@@ -53,7 +53,7 @@ class Button(UIElement):
         super().handle_interaction(data)
 ```
 
-### Key Points
+### Patterns in the Python class
 
 | Pattern | Why |
 |:--------|:----|
@@ -155,7 +155,7 @@ const Button: Component<ButtonProps> = (p) => {
 export default Button;
 ```
 
-### Key Points
+### Patterns in the component
 
 | Pattern | Why |
 |:--------|:----|

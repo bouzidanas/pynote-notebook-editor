@@ -160,7 +160,7 @@ export const pythonLinter = createPythonLinter();
 // Autocomplete
 const pythonCompletionSource: CompletionSource = async (context) => {
     // Match word or dot sequence before cursor
-    // This regex matches: variable names, dots, and combinations like "np.array"
+    // This regex matches variable names and dotted paths like "np.array"
     const word = context.matchBefore(/[\w.]+/);
 
     // Don't show completions if no match found

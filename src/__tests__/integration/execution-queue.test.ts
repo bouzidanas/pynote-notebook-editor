@@ -29,7 +29,7 @@ beforeEach(() => {
   mockKernel._status = 'ready';
   mockKernel.clearCellState.mockClear();
   mockKernel.setCellContext.mockClear();
-  // Start fresh — loadNotebook resets cells/history but not executionQueue
+  // Start fresh. loadNotebook resets cells/history but not executionQueue
   actions.loadNotebook([], 'test.ipynb');
   actions.resetExecutionState();
 });

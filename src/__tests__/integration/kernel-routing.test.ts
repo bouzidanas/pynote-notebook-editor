@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { kernel } from '../../lib/pyodide';
 
-// Access private internals for testing — these are Maps on the Kernel instance
+// Access private internals for testing. These are Maps on the Kernel instance
 const k = kernel as any;
 
 beforeEach(() => {
@@ -51,7 +51,7 @@ describe('kernel message routing', () => {
     kernel.registerComponentListener('comp-1', oldCallback);
     expect(k.componentListeners.get('comp-1')).toBe(oldCallback);
 
-    // Step 2: Cell re-executes — clearCellState removes old components
+    // Step 2: Cell re-executes and clearCellState removes old components
     kernel.clearCellState('cell-1');
     expect(k.componentListeners.has('comp-1')).toBe(false);
 

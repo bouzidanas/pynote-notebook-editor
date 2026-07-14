@@ -23,7 +23,7 @@ const PreviewPane: Component = () => {
           }}>
             <h3 class="text-xs font-bold uppercase mb-2" style={{ color: currentTheme.colors.accent }}>Preview</h3>
 
-            {/* Cell state selector — previews each border/shadow state */}
+            {/* Cell state selector. Previews each border/shadow state */}
             <div class="flex items-center gap-1">
               <For each={["default", "hover", "select", "edit"] as const}>
                 {(state) => (

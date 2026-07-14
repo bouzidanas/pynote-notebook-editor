@@ -146,7 +146,7 @@ Note: in app terminology, "session" may survive refresh/reload for notebook stat
 - Persistent filesystem mode is expected to retain uploads across reloads/restarts.
 - Browser storage lifecycle still applies (clear site data/private mode/quota eviction can remove persisted data).
 
-## Tradeoff and rationale summary
+## Tradeoff and rationale
 
 Yes, this introduces a second persistence system. The tradeoff is accepted because it avoids:
 
@@ -154,7 +154,7 @@ Yes, this introduces a second persistence system. The tradeoff is accepted becau
 - inefficient binary-in-JSON session payloads,
 - and reimplementation of filesystem semantics in session code.
 
-The result is cleaner boundaries, better operational correctness, and lower maintenance risk.
+The result is cleaner boundaries and lower maintenance risk.
 
 ## Code references
 

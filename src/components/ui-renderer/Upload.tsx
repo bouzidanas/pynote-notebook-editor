@@ -86,7 +86,7 @@ const Upload: Component<UploadProps> = (p) => {
   const [files, setFiles] = createSignal<TrackedFile[]>([]);
   const [isDragOver, setIsDragOver] = createSignal(false);
 
-  // Guard flag: when true, incoming component_update is a status ack — do NOT echo back
+  // Guard flag: when true, incoming component_update is a status ack and must NOT be echoed back
   let isProcessingAck = false;
 
   // Reactive accessors
@@ -169,7 +169,7 @@ const Upload: Component<UploadProps> = (p) => {
     const combined = [...currentFiles, ...newTracked];
     setFiles(combined);
 
-    // If inside a form, defer upload — just store the data for form submission
+    // If inside a form, defer upload and just store the data for form submission
     if (formContext) {
       formContext.setChildValue(componentId, buildFormValue(combined));
     } else {
@@ -223,7 +223,7 @@ const Upload: Component<UploadProps> = (p) => {
     if (!file) return;
 
     if (file.status === "success") {
-      // Already uploaded to Python — tell Python to delete it
+      // Already uploaded to Python, so tell Python to delete it
       kernel.sendInteraction(componentId, { action: "remove", key });
     }
 
@@ -242,7 +242,7 @@ const Upload: Component<UploadProps> = (p) => {
     }
 
     kernel.registerComponentListener(componentId, (data: any) => {
-      // Status ack from Python — just update visual state, do NOT send back
+      // Status ack from Python: just update visual state, do NOT send back
       if (data.upload_status) {
         isProcessingAck = true;
         const statusMap: Record<string, string> = data.upload_status;
@@ -361,7 +361,7 @@ const Upload: Component<UploadProps> = (p) => {
     const borderValue = allProps().border;
     if (borderValue === false || borderValue === "none") return "border-none";
     if (borderValue === true || borderValue == null) return "component-border-dashed";
-    return ""; // Custom value — handled by borderStyle()
+    return ""; // Custom value, handled by borderStyle()
   };
 
   /** Inline style only needed for custom border strings resolved through colorUtils. */

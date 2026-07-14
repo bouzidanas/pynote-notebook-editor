@@ -46,3 +46,7 @@ CLAUDE.md
 .github/copilot-instructions.local.md
 .copilot/
 .ai/
+
+# Local working notes, not part of the published project
+explanations/
+future-feature-specs/

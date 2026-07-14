@@ -24,7 +24,7 @@ const CoreSections: Component = () => {
                 onChange={(v) => {
                   if (v !== "pynote_dark" && !isBuiltinTheme(v)) return;
                   // Reset to the default reference point first, then overlay the
-                  // preset — so fields the preset doesn't customize fall back to
+                  // preset, so fields the preset doesn't customize fall back to
                   // defaults (same as "Reset to App Defaults" followed by load).
                   // "Pynote Dark" is the default reference point itself (reset only).
                   updateTheme({ ...defaultTheme });

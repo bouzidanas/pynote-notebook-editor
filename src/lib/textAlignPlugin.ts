@@ -10,7 +10,7 @@
  *
  * This preserves inline markdown formatting inside aligned blocks (bold,
  * italic, code, links, etc.) because the paragraph content remains standard
- * markdown — only the comment annotation is added.
+ * markdown; only the comment annotation is added.
  *
  * The remark plugin detects these comments and annotates the following
  * paragraph/heading node with `data.textAlign`.  The extended schemas then

@@ -147,10 +147,10 @@ All UI components use monospace font:
 
 ## Accessibility
 
-1. **Keyboard Navigation**: All interactive elements must be keyboard accessible
-2. **Focus Indicators**: Use `focus-visible:border-primary` for keyboard focus
-3. **Screen Reader**: Use `sr-only` class to hide visual-only elements while keeping them accessible
-4. **Stop Propagation**: Text inputs should call `e.stopPropagation()` on `keydown` to prevent triggering notebook shortcuts
+1. All interactive elements must be keyboard accessible
+2. Use `focus-visible:border-primary` to indicate keyboard focus
+3. Use the `sr-only` class to hide visual-only elements while keeping them accessible to screen readers
+4. Text inputs should call `e.stopPropagation()` on `keydown` to prevent triggering notebook shortcuts
 
 ## Adding New Components
 

@@ -9,6 +9,9 @@ interface DropdownProps {
   fullWidthMobile?: boolean;
   usePortal?: boolean;
   compact?: boolean; // Narrower panel for toolbar menus
+  // Don't let menu clicks take focus (keeps an editor's caret/selection alive
+  // for toolbar menus). Only safe when the menu has no form fields.
+  preserveFocus?: boolean;
 }
 
 const Dropdown: Component<DropdownProps> = (props) => {
@@ -81,7 +84,10 @@ const Dropdown: Component<DropdownProps> = (props) => {
             left: props.align === "right" ? 'auto' : `${coords().left}px`,
             right: props.align === "right" ? `${document.documentElement.clientWidth - coords().right}px` : 'auto'
         } : undefined}
-        onMouseDown={(e: MouseEvent) => e.stopPropagation()}
+        onMouseDown={(e: MouseEvent) => {
+            if (props.preserveFocus) e.preventDefault();
+            e.stopPropagation();
+        }}
     >
       <div class="py-1" role="menu" aria-orientation="vertical" onClick={() => setIsOpen(false)}>
         {props.children}

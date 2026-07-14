@@ -12,23 +12,23 @@ Frontend: renders <input type="range">  →  User drags slider
 Python: slider.value becomes 75       ←  Interaction message received
 ```
 
-The Python object is a "remote handle"—it controls a component that lives somewhere else (the DOM). This keeps logic in Python while using the browser's native UI capabilities.
+The Python object is a "remote handle": it controls a component that lives somewhere else (the DOM). This keeps logic in Python while using the browser's native UI capabilities.
 
 <details>
 <summary><strong>Background: Why not just inject HTML?</strong></summary>
 
 You could have `_repr_html_()` return `<input type="range">` and inject it into the DOM. Problems:
 
-1. **XSS risk** — User code could inject `<script>` tags
-2. **No bidirectional binding** — How does Python know when the user moved the slider?
-3. **Styling inconsistency** — Inline HTML doesn't pick up DaisyUI themes
-4. **State management** — What happens when Python does `slider.value = 75`? You'd need to find the DOM element and update it manually
+1. XSS risk: user code could inject `<script>` tags
+2. No bidirectional binding: how does Python know when the user moved the slider?
+3. Styling inconsistency: inline HTML doesn't pick up DaisyUI themes
+4. State management: what happens when Python does `slider.value = 75`? You'd need to find the DOM element and update it manually
 
 The JSON + message approach solves all of these: sanitized data only, explicit interaction events, native components, and reactive state sync.
 
 </details>
 
-## Architecture
+## The two halves of a component
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -58,7 +58,7 @@ The JSON + message approach solves all of these: sanitized data only, explicit i
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Key Files
+## Where the code lives
 
 | File | What it does |
 |:-----|:-------------|
@@ -70,14 +70,14 @@ The JSON + message approach solves all of these: sanitized data only, explicit i
 
 ## Lifecycle
 
-1. **Python creates object:** `slider = Slider(value=50)` → generates UUID, registers with StateManager
-2. **Cell displays result:** `_repr_mimebundle_()` returns `{"id": "...", "type": "Slider", "props": {...}}`
-3. **Frontend renders:** `UIOutputRenderer` looks up "Slider" in registry, mounts the SolidJS component
-4. **Component subscribes:** In `onMount`, calls `kernel.registerComponentListener(id, callback)`
-5. **User interacts:** Moving slider triggers `kernel.sendInteraction(id, {value: 75})`
-6. **Python receives:** Worker routes to `slider.handle_interaction({value: 75})`, internal state updates
-7. **Python pushes update:** `slider.label = "New"` → `send_update(label="New")` → frontend callback fires → signal updates
-8. **Cleanup:** When cell re-runs, `StateManager.clear_cell(id)` removes Python objects; `onCleanup` unregisters listeners
+1. `slider = Slider(value=50)` generates a UUID and registers with StateManager
+2. When the cell displays its result, `_repr_mimebundle_()` returns `{"id": "...", "type": "Slider", "props": {...}}`
+3. `UIOutputRenderer` looks up "Slider" in the registry and mounts the SolidJS component
+4. In `onMount`, the component calls `kernel.registerComponentListener(id, callback)`
+5. Moving the slider triggers `kernel.sendInteraction(id, {value: 75})`
+6. The worker routes to `slider.handle_interaction({value: 75})` and internal state updates
+7. `slider.label = "New"` calls `send_update(label="New")`, the frontend callback fires, and the signal updates
+8. When the cell re-runs, `StateManager.clear_cell(id)` removes Python objects and `onCleanup` unregisters listeners
 
 ## StateManager
 
@@ -85,16 +85,16 @@ Lives in `pynote_ui/core.py`. Tracks all active components and routes messages.
 
 | Attribute | Purpose |
 |:----------|:--------|
-| `_instances` | `{uuid: object}` — all active UIElements |
-| `_instances_by_cell` | `{cell_id: [uuid, ...]}` — ownership tracking for GC |
-| `_current_cell_id` | ContextVar — which cell is currently executing |
+| `_instances` | `{uuid: object}`, all active UIElements |
+| `_instances_by_cell` | `{cell_id: [uuid, ...]}`, ownership tracking for GC |
+| `_current_cell_id` | ContextVar, which cell is currently executing |
 
 <details>
 <summary><strong>Background: Why cell tracking?</strong></summary>
 
 If you run `Slider()` 100 times, you'd have 100 orphaned objects. By tracking which cell created which components, `clear_cell(id)` can remove them all when the cell re-runs.
 
-The cell ID is stored in a `contextvars.ContextVar` so it works correctly with async code—if Cell A awaits something while Cell B runs, they each keep their own cell ID.
+The cell ID is stored in a `contextvars.ContextVar` so it works correctly with async code; if Cell A awaits something while Cell B runs, they each keep their own cell ID.
 
 </details>
 
@@ -172,8 +172,8 @@ All components support flex layout props:
 |:-----|:-------|
 | `width` | Fixed width (px number, CSS string, or "full" for 100%) |
 | `height` | Fixed height (px number or CSS string) |
-| `grow` | flex-grow value—how much to expand |
-| `shrink` | flex-shrink value—how much to contract |
+| `grow` | flex-grow value, how much to expand |
+| `shrink` | flex-shrink value, how much to contract |
 | `force_dimensions` | If True, width/height override flex sizing |
 
 Without `grow`, components fit their content. With `grow`, they expand to fill available space.

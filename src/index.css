@@ -116,7 +116,7 @@ select:-webkit-autofill:active {
    Replaces `border border-foreground` on dialogs, dropdowns, menus, toggles
    and inputs. Width defaults to 1px and color to the foreground color when the
    advanced "UI Element Borders" theme option is unset.
-   Defined via @utility so it sits in the utilities layer — this lets variant
+   Defined via @utility so it sits in the utilities layer, which lets variant
    utilities (e.g. focus:border-accent, hover:border-secondary/30) still
    override the color on the converted elements. */
 @utility ui-border {
@@ -125,7 +125,7 @@ select:-webkit-autofill:active {
   border-color: var(--ui-border-color, var(--foreground));
 }
 
-/* Shared UI border color only — used by content rails (code gutter, output
+/* Shared UI border color only. Used by content rails (code gutter, output
    rail) so they follow the same custom border color while keeping their own
    side and width. */
 @utility ui-border-color {
@@ -149,7 +149,7 @@ select:-webkit-autofill:active {
   border: var(--component-border, 2px dashed var(--foreground));
 }
 
-/* Shared UI chrome typography — opt-in font family + weight for dialogs,
+/* Shared UI chrome typography. Opt-in font family + weight for dialogs,
    dropdowns, menus and toolbars. Defaults to the shared app font and normal
    weight, so it only diverges when the advanced "UI Typography" option is set.
    Applied at chrome roots; children inherit, keeping markdown/code/widgets on
@@ -159,7 +159,7 @@ select:-webkit-autofill:active {
   font-weight: var(--ui-font-weight, normal);
 }
 
-/* Shared UI divider style + color — applied to chrome dividers/separators
+/* Shared UI divider style + color, applied to chrome dividers/separators
    (dialog, panel, popup and menu-bar lines). The active side's width is set
    separately via an arbitrary-property class so the divider can carry its own
    style (e.g. dashed) without the width utility forcing it back to solid. */
@@ -241,6 +241,14 @@ select:-webkit-autofill:active {
 .milkdown .editor {
   @apply bg-transparent text-secondary font-mono outline-none ring-0 border-none;
   caret-color: var(--accent);
+  /* ProseMirror requires pre-wrap whitespace (see prosemirror-view's
+     prosemirror.css, which we don't load). Without it the browser
+     normalizes spaces around the caret while typing, and ProseMirror's
+     DOM diff can absorb a preceding space into newly marked text
+     (e.g. inline code sucking in the space before the cursor). */
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
 }
 .milkdown .editor:focus {
   @apply outline-none ring-0 border-none;
@@ -546,7 +554,7 @@ select:-webkit-autofill:active {
     color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
 }
 
-/* highlight.js theme — driven by the shared syntax palette (--syntax-*) so
+/* highlight.js theme, driven by the shared syntax palette (--syntax-*) so
    markdown code blocks track the selected scheme + per-token overrides, the
    same as code cells and markdown Python blocks. */
 .prose pre code .hljs-keyword,
@@ -754,7 +762,7 @@ select:-webkit-autofill:active {
     margin-right: 5px;
 }
 
-/* Video Styling — only when NOT inside a wrapper (presentation mode) */
+/* Video Styling, only when NOT inside a wrapper (presentation mode) */
 .prose video:not(.video-embed-wrapper *),
 .milkdown .editor video:not(.video-embed-wrapper *) {
     display: block;
@@ -778,7 +786,7 @@ select:-webkit-autofill:active {
     box-shadow: var(--md-shadow, none);
 }
 
-/* Embedded video (YouTube/Vimeo iframe) — only when NOT inside a wrapper */
+/* Embedded video (YouTube/Vimeo iframe), only when NOT inside a wrapper */
 .prose iframe.video-embed:not(.video-embed-wrapper *),
 .milkdown .editor iframe.video-embed:not(.video-embed-wrapper *) {
     display: block;
@@ -814,16 +822,16 @@ select:-webkit-autofill:active {
     border-radius: var(--radius-sm);
 }
 
-/* Caption element — smaller text, inherits color so bold/italic formatting works */
+/* Caption element. Smaller text, inherits color so bold/italic formatting works */
 .prose .caption,
 .milkdown .editor .caption {
     font-size: calc(var(--font-size-base) * 0.85);
 }
 
-/* Caption paragraph adjacent to a BLOCK element (table, hr, image, etc.) —
- * collapse the margin facing the block so caption hugs it tightly.
+/* Caption paragraph adjacent to a BLOCK element (table, hr, image, etc.).
+ * Collapse the margin facing the block so caption hugs it tightly.
  * Does NOT apply when both neighbors are paragraphs or headings (normal spacing preserved).
- * NOTE: Avoids nested :has() — browsers handle :has(+ p > .caption) but NOT :has(+ p:has(> .caption)). */
+ * NOTE: Avoids nested :has() because browsers handle :has(+ p > .caption) but NOT :has(+ p:has(> .caption)). */
 
 /* Caption paragraph directly AFTER a block element → collapse its top margin only */
 .prose *:not(p):not(br):not(.section-scope):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) + p:has(> .caption),
@@ -865,7 +873,7 @@ select:-webkit-autofill:active {
     margin-top: 0 !important;
 }
 
-/* Image (or table) in the SAME paragraph as a caption — collapse image bottom margin
+/* Image (or table) in the SAME paragraph as a caption. Collapse image bottom margin
  * so the caption text hugs the image tightly.
  * Handles: ![](url)\n<span class="caption">text</span>  (no blank line between) */
 .prose p:has(> .caption) img,
@@ -902,7 +910,7 @@ select:-webkit-autofill:active {
   transform: translateX(20px);
 }
 
-/* Quiet Mode — no visible cell borders */
+/* Quiet Mode (no visible cell borders) */
 [data-quiet] {
   border-color: transparent !important;
   box-shadow: none !important;

@@ -43,7 +43,7 @@ const ComboBox: Component<ComboBoxProps> = (props) => {
     // If the display matches a known option label exactly, show all options (no filtering needed)
     const isExactMatch = props.options.some((o) => o.label.toLowerCase() === display);
     if (!display || isExactMatch) return props.options;
-    // Otherwise the user is typing a custom value — filter to matching options
+    // Otherwise the user is typing a custom value, so filter to matching options
     return props.options.filter(
       (o) =>
         o.label.toLowerCase().includes(display) ||

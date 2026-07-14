@@ -61,14 +61,18 @@ vi.mock("@milkdown/kit/utils", () => ({
   callCommand: () => () => {},
   getMarkdown: () => () => "",
   replaceAll: () => () => {},
+  $prose: () => ({}),
 }));
 vi.mock("@milkdown/kit/prose/state", () => ({
   TextSelection: { atEnd: () => ({}), atStart: () => ({}), near: () => ({}), fromJSON: () => ({}) },
+  Plugin: class {},
+  PluginKey: class {},
 }));
 vi.mock("@milkdown/kit/prose/commands", () => ({
   lift: () => {},
   wrapIn: () => () => {},
   setBlockType: () => () => {},
+  toggleMark: () => () => {},
 }));
 vi.mock("@milkdown/kit/prose/history", () => ({ undo: () => {}, redo: () => {} }));
 vi.mock("prosemirror-history", () => ({ undoDepth: () => 0, redoDepth: () => 0 }));
@@ -109,7 +113,7 @@ const renderToolbar = (cell: CellData = fakeCell()) =>
     />
   ));
 
-describe("MarkdownEditor toolbar — Split Cell button", () => {
+describe("MarkdownEditor toolbar Split Cell button", () => {
   it("renders the Split Cell button in the desktop toolbar", () => {
     renderToolbar();
     // Desktop button uses the title prefix "Split Cell at Cursor (...)".
@@ -153,7 +157,7 @@ describe("MarkdownEditor toolbar — Split Cell button", () => {
   });
 });
 
-describe("MarkdownEditor toolbar — dropdowns are not clipped by the cell", () => {
+describe("MarkdownEditor toolbar dropdowns are not clipped by the cell", () => {
   // Regression guard for the mobile More dropdown bug: a toolbar dropdown
   // that portals into <body> escapes the host cell's stacking context and
   // gets painted under sibling cells (CellWrapper assigns each cell
@@ -185,7 +189,7 @@ describe("MarkdownEditor toolbar — dropdowns are not clipped by the cell", () 
       // role=menu nodes that appeared after this click. We accept either
       // the menu inside the container OR none yet (some triggers may need
       // a second click). What we DO NOT accept is a menu that lives
-      // outside `container` — that means it was portaled and would be
+      // outside `container`, that means it was portaled and would be
       // covered by sibling cells in the running app.
       const portaledMenus = Array.from(
         baseElement.querySelectorAll<HTMLElement>('[role="menu"]')
@@ -193,7 +197,7 @@ describe("MarkdownEditor toolbar — dropdowns are not clipped by the cell", () 
 
       expect(
         portaledMenus,
-        `dropdown "${trigger.getAttribute("title")}" portaled outside the cell — it will be hidden behind sibling cells`
+        `dropdown "${trigger.getAttribute("title")}" portaled outside the cell, it will be hidden behind sibling cells`
       ).toHaveLength(0);
 
       // Close before opening the next one.

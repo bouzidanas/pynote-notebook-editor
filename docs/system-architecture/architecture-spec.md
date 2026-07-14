@@ -11,9 +11,9 @@ Traditional notebooks (Jupyter) run Python on a server and communicate via WebSo
 - Latency depends on connection quality
 
 PyNote runs everything client-side. The Python interpreter itself runs in your browser as WebAssembly. Benefits:
-- **No server needed** — works offline, no infrastructure to maintain
-- **Privacy** — code and data never leave your machine
-- **Instant startup** — no kernel connection to establish
+- Works offline, with no server or infrastructure to maintain
+- Code and data never leave your machine
+- Instant startup, since there's no kernel connection to establish
 
 The tradeoff is initial load time (a few seconds to download and initialize Pyodide, cached after first visit) and some packages that need native C extensions won't work unless they've been compiled for WASM.
 
@@ -57,13 +57,13 @@ We built `pynote_ui` from scratch to be lightweight and fit the worker↔main-th
 
 </details>
 
-### How it works
+### From Python object to rendered widget
 
-1. **Python creates an object:** `slider = Slider(value=50)` creates a Python instance with a UUID
-2. **Object registers itself:** The `StateManager` tracks all active UI objects and which cell created them
-3. **Display produces JSON:** When the cell result is displayed, `_repr_mimebundle_()` emits JSON describing the component
-4. **Frontend renders it:** `UIOutputRenderer` reads the JSON and mounts the corresponding SolidJS component
-5. **Two-way sync:** User interactions go back to Python; Python property changes push to the frontend
+1. `slider = Slider(value=50)` creates a Python instance with a UUID
+2. The `StateManager` registers the object and tracks which cell created it
+3. When the cell result is displayed, `_repr_mimebundle_()` emits JSON describing the component
+4. `UIOutputRenderer` reads the JSON and mounts the corresponding SolidJS component
+5. From then on, user interactions go back to Python and Python property changes push to the frontend
 
 ### Why JSON instead of HTML?
 
@@ -76,10 +76,7 @@ The component's `_repr_mimebundle_()` returns JSON like:
 }
 ```
 
-Not HTML. Reasons:
-- **Security:** No XSS risk from Python code injecting arbitrary HTML
-- **Performance:** SolidJS mounts components from data faster than parsing HTML strings
-- **Consistency:** Components use DaisyUI styling automatically, no inline styles needed
+Not HTML. There's no XSS risk from Python code injecting arbitrary markup, SolidJS mounts components from data faster than parsing HTML strings, and components pick up DaisyUI styling automatically with no inline styles needed.
 
 ### StateManager and cell ownership
 
@@ -94,7 +91,7 @@ When you re-run a cell, the frontend tells the worker to clear that cell's compo
 
 Without cell tracking, if you run `Slider()` 100 times, you'd have 100 slider objects in memory with no way to clean them up. By associating each component with the cell that created it, we can garbage collect them when the cell is re-run or deleted.
 
-The current cell ID is stored in a `contextvars.ContextVar`, which correctly handles async code—if you `await` something in the middle of creating widgets, the cell ID is preserved in that async context.
+The current cell ID is stored in a `contextvars.ContextVar`, which correctly handles async code. If you `await` something in the middle of creating widgets, the cell ID is preserved in that async context.
 
 </details>
 
@@ -111,7 +108,7 @@ SolidJS uses fine-grained reactivity. Instead of re-rendering entire component t
 
 All notebook state lives in `src/lib/store.ts`. The main pieces:
 
-**CellData** — one cell's state:
+**CellData**, one cell's state:
 ```typescript
 {
   id: string,              // UUIDv4
@@ -124,7 +121,7 @@ All notebook state lives in `src/lib/store.ts`. The main pieces:
 }
 ```
 
-**NotebookState** — the whole notebook:
+**NotebookState**, the whole notebook:
 ```typescript
 {
   cells: CellData[],
@@ -198,5 +195,5 @@ from pynote_ui import Slider, Text, Group, display, print_md
 All components support layout props: `width`, `height`, `grow`, `shrink`, `force_dimensions`
 
 Utility functions:
-- `display(a, b, ...)` — output multiple components inline
-- `print_md("# Heading")` — output styled markdown
+- `display(a, b, ...)` outputs multiple components inline
+- `print_md("# Heading")` outputs styled markdown

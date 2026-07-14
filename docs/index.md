@@ -1,8 +1,8 @@
 # PyNote Documentation
 
-PyNote is a browser-based Python notebook. It runs Python entirely in the browser using Pyodide—no server needed. The app uses SolidJS for the UI and includes a custom component system (`pynote_ui`) for interactive widgets.
+PyNote is a browser-based Python notebook. It runs Python entirely in the browser using Pyodide, so no server is needed. The app uses SolidJS for the UI and includes a custom component system (`pynote_ui`) for interactive widgets.
 
-## Getting Started
+## Running locally
 
 ```bash
 npm install
@@ -32,8 +32,8 @@ npm run dev
 
 ### Other
 
-- [Debugging Guide](../DEBUGGING_GUIDE.md) — Troubleshooting tips
-- [Tutorial Notebook](../src/lib/tutorial-notebook.ts) — Built-in examples
+- [Debugging Guide](../DEBUGGING_GUIDE.md) for troubleshooting tips
+- [Tutorial Notebook](../src/lib/tutorial-notebook.ts) with built-in examples
 
 ## Quick Reference
 
@@ -82,7 +82,7 @@ Group([slider, text], layout="col")
 | Build | Vite |
 | Types | TypeScript |
 
-## Key Files
+## Source layout
 
 ```
 src/

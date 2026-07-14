@@ -572,11 +572,9 @@ export const actions = {
     setStore("activeCellId", fromId);
   },
 
-  // Insert a new markdown cell at `index` with the given initial content.
-  // Unlike `addCell`, this does NOT change the active cell or the editing
-  // state of any other cell — useful when the new cell is created as a
-  // side-effect of an in-progress edit (e.g. splitting a cell), so the
-  // original editor keeps focus and its cursor.
+  // Insert a markdown cell at `index` without touching active/editing state
+  // of other cells (used by cell splitting, where the original editor must
+  // keep focus and its cursor).
   insertMarkdownCell: (index: number, content: string): string => {
     const id = crypto.randomUUID();
     const previousActive = store.activeCellId;

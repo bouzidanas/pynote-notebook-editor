@@ -49,7 +49,7 @@ describe('parseStdoutWithUI', () => {
     const innerUI = ui(JSON.stringify({ id: 'x', type: 'btn', props: {} }));
     const input = `${mdPlain(`text ${innerUI} more`)}`;
     const result = parseStdoutWithUI([input]);
-    // Only one markdown segment — nested UI is NOT extracted as a separate top-level segment
+    // Only one markdown segment. Nested UI is NOT extracted as a separate top-level segment
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('markdown');
   });

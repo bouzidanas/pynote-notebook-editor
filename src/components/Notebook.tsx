@@ -26,13 +26,10 @@ const PerformanceMonitor = lazy(() => import("./PerformanceMonitor"));
 const CodeVisibilityDialog = lazy(() => import("./CodeVisibilityDialog"));
 const ThemeDialog = lazy(() => import("./ThemeDialog"));
 
-// Strip "no-op" empty-string overrides from a theme before writing it to a
-// notebook's metadata, so the saved .ipynb isn't bloated with unused fields.
-// A "" is only dropped when the theme default for that same field is also "":
-// in that case omitting the key reloads to the identical value (loadAppTheme
-// fills missing keys from defaults). Fields whose default is non-empty keep
-// their "" (the value is meaningful there), and all non-string values are left
-// untouched. Nested objects that prune down to empty are dropped too.
+// Strip "no-op" empty-string overrides before writing a theme to notebook
+// metadata. A "" is only dropped when the theme default for that field is
+// also "" (reload fills missing keys from defaults, so the value round-trips).
+// Nested objects that prune down to empty are dropped too.
 const pruneEmptyThemeOverrides = (value: any, def: any): any => {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const out: Record<string, any> = {};
@@ -125,11 +122,9 @@ const Notebook: Component = () => {
   };
 
   // --- Mobile cell action drawer (narrow screens only) -----------------------
-  // A single persistent drawer, rendered once (see JSX below) rather than
-  // per-cell, so switching the active cell cross-fades its controls in place.
-  // The whole drawer only slides when going between "a cell is active" and
-  // "nothing active"; `drawerContentCell` keeps the last cell while closing so
-  // the drawer retains its content as it slides out.
+  // One persistent drawer rendered once, not per-cell, so switching cells
+  // cross-fades in place. `drawerContentCell` keeps the last cell while
+  // closing so content doesn't vanish mid-slide.
   const drawerActiveCell = () => notebookStore.cells.find((c) => c.id === notebookStore.activeCellId) ?? null;
   const drawerOpen = () => !!drawerActiveCell() && !notebookStore.presentationMode;
   const drawerContentCell = createMemo<CellData | null>((prev) => drawerActiveCell() ?? prev ?? null);
@@ -721,7 +716,7 @@ const Notebook: Component = () => {
 
 
   // Apply a built-in theme from the ?theme= query param.
-  // Works with any notebook (builtin, restored, new) — the theme is injected as an
+  // Works with any notebook (builtin, restored, new). The theme is injected as an
   // override, marked for save-to-export, and the param is cleaned from the URL.
   const applyThemeParam = (themeParam: string | null) => {
     if (!isBuiltinTheme(themeParam)) return;
@@ -862,7 +857,7 @@ const Notebook: Component = () => {
             // Mark for auto-run (data was gone/expired)
             pendingAutoRun = true;
         }
-        // If restored === true, this is a page refresh — flag the refresh-scope
+        // If restored === true, this is a page refresh, so flag the refresh-scope
         // event so the cascade below can decide whether to fire.
         if (restored === true) {
           pendingAutoRunRefresh = true;
@@ -873,14 +868,9 @@ const Notebook: Component = () => {
     applyThemeParam(themeParam);
   });
 
-  // Auto-run cells when kernel becomes ready.
-  // Two orthogonal toggles at three layers (cell > notebook > app):
-  //  - autorun (master on/off): if false at the resolved level, the cell is
-  //    skipped entirely.
-  //  - autorunOnRefresh (scope): only consulted on a page-refresh event; if
-  //    false at the resolved level, the cell is skipped on refresh.
-  // Cascade: cell value (when defined) overrides notebook value (when
-  // defined) overrides app-level value.
+  // Auto-run cells when kernel becomes ready. Two toggles, each resolved
+  // cell > notebook > app: autorun (master on/off) and autorunOnRefresh
+  // (whether a page refresh counts).
   createEffect(() => {
     if (kernel.status !== "ready") return;
     if (!pendingAutoRun && !pendingAutoRunRefresh) return;
@@ -2014,7 +2004,7 @@ const Notebook: Component = () => {
           />
        </Show>
 
-       {/* Mobile Cell Action Drawer — narrow screens only (`lg:hidden`), where the
+       {/* Mobile Cell Action Drawer for narrow screens only (`lg:hidden`), where the
            per-cell side toolbar can't be shown. Rendered once and portaled to
            <body> so it sits at the bottom of the viewport. The outer Transition
            slides it in/out only when going between an active cell and none; the

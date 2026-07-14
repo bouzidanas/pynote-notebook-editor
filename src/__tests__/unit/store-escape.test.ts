@@ -46,7 +46,7 @@ describe('parseUpdateEntry', () => {
 
   test('handles double-backslash before separator pipe', () => {
     // Content ends with a literal backslash: "end\\"
-    // Escaped: "end\\\\" — the separator pipe follows an even number of backslashes
+    // Escaped: "end\\\\" (the separator pipe follows an even number of backslashes)
     const old = escapeContent('end\\');
     const now = escapeContent('start');
     const entry = `u|cell-3|${old}|${now}`;

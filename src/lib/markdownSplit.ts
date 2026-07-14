@@ -5,9 +5,9 @@
 // the sole consumer.
 
 export interface SplitResult {
-  /** Markdown for the first cell — exactly the text before the cursor, untouched. */
+  /** Markdown for the first cell: exactly the text before the cursor, untouched. */
   beforeContent: string;
-  /** Markdown for the second cell — exactly the text after the cursor, untouched. */
+  /** Markdown for the second cell: exactly the text after the cursor, untouched. */
   afterContent: string;
   /**
    * Where the user's cursor should land after the split.
@@ -16,7 +16,7 @@ export interface SplitResult {
    *
    * Decision rule: whichever side has the closest non-whitespace character
    * to the cursor wins. Whitespace (spaces, newlines, tabs) is treated as
-   * separator, not content. Ties go to the first cell — this matches the
+   * separator, not content. Ties go to the first cell, which matches the
    * "Enter creates a break, cursor stays where you were" mental model.
    */
   focusFirst: boolean;
@@ -36,7 +36,7 @@ export function computeSplit(beforeMd: string, afterMd: string): SplitResult {
   const rightDist = afterMd.length - afterMd.replace(/^\s+/, "").length;
   const focusFirst = leftDist <= rightDist;
 
-  // Content is split verbatim at the cursor — no trimming. The user has
+  // Content is split verbatim at the cursor, no trimming. The user has
   // explicitly asked that surrounding whitespace be preserved so that
   // round-tripping through a split is content-preserving.
   return {

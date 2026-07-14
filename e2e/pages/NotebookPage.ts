@@ -9,8 +9,8 @@ import { TESTID } from "../support/selectors";
  * Conventions:
  * - Locators are exposed as getters so they are re-resolved on each access
  *   (Solid re-renders cells; stale handles would flake).
- * - Waits are web-first (`expect(locator).toBeVisible()`, attribute assertions)
- *   — never arbitrary `waitForTimeout`.
+ * - Waits are web-first (`expect(locator).toBeVisible()`, attribute assertions),
+ *   never arbitrary `waitForTimeout`.
  */
 export class NotebookPage {
   constructor(private readonly page: Page) {}

@@ -23,7 +23,7 @@ export const remarkVideoEmbed = $remark(
         if (!tree.children) return;
 
         // Fast path: scan for any video HTML before allocating anything.
-        // Most markdown cells have no video — this exits with zero allocations.
+        // Most markdown cells have no video, so this exits with zero allocations.
         let firstMatchIndex = -1;
         for (let i = 0; i < tree.children.length; i++) {
             const child = tree.children[i];

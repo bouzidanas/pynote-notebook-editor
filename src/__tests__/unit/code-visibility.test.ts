@@ -24,7 +24,7 @@ beforeEach(() => {
 
 describe('getEffectiveVisibility – 4-level priority cascade', () => {
   test('Priority 1: cell showAll overrides cell metadata', () => {
-    // Set showAll (no other state changes — avoids SolidJS store proxy interactions)
+    // Set showAll (no other state changes, avoids SolidJS store proxy interactions)
     setCellShowAll('cell-1', true);
 
     // Even though metadata says hide code and stdout, showAll returns all-true defaults
@@ -50,7 +50,7 @@ describe('getEffectiveVisibility – 4-level priority cascade', () => {
     expect(vis.showLineNumbers).toBe(codeVisibility.showLineNumbers);
   });
 
-  test('Priority 4: no metadata, no overrides — returns global settings', () => {
+  test('Priority 4: no metadata, no overrides, returns global settings', () => {
     setVisibilitySettings({ showResult: false, showError: false }, false);
 
     const vis = getEffectiveVisibility('cell-4');

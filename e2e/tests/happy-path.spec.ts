@@ -1,6 +1,6 @@
 import { test, expect } from "../support/fixtures";
 
-// The core authoring loop: add a code cell, run an expression, see its result.
+// The core authoring loop. Add a code cell, run an expression, see its result.
 test.describe("happy path", () => {
   test("add a code cell, execute it, and see output", async ({ notebook }) => {
     await notebook.open();

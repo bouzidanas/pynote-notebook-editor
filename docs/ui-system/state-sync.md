@@ -88,7 +88,7 @@ def handle_interaction(self, data):
     super().handle_interaction(data)  # Calls user callback
 ```
 
-**Important:** Use `self._value`, not `self.value`. Using the property setter would call `send_update()` again, which is wasteful—the frontend already has the new value.
+**Important:** Use `self._value`, not `self.value`. Using the property setter would call `send_update()` again, which is wasteful; the frontend already has the new value.
 
 ## Frontend Side
 
@@ -126,7 +126,7 @@ const Slider: Component<SliderProps> = (p) => {
 <details>
 <summary><strong>Background: SolidJS signals</strong></summary>
 
-`createSignal` returns a getter function and a setter function. When you read `value()`, SolidJS tracks that the current rendering context depends on this signal. When you call `setValue(75)`, SolidJS updates only the DOM nodes that depend on it—not the whole component.
+`createSignal` returns a getter function and a setter function. When you read `value()`, SolidJS tracks that the current rendering context depends on this signal. When you call `setValue(75)`, SolidJS updates only the DOM nodes that depend on it, not the whole component.
 
 This is "fine-grained reactivity": updates are surgical, not tree-wide.
 
@@ -162,7 +162,7 @@ class Kernel {
 ### User Drags Slider
 
 1. `onInput` fires on the DOM element
-2. Component does `setValue(75)` (optimistic update—UI responds immediately)
+2. Component does `setValue(75)` (optimistic update, so the UI responds immediately)
 3. Component calls `kernel.sendInteraction(id, {value: 75})`
 4. Message posted to worker: `{type: "interaction", uid: id, data: {value: 75}}`
 5. Worker calls `StateManager.update(id, {value: 75})`
@@ -202,7 +202,7 @@ When user drags:
 6. Another `component_update` message goes to frontend
 7. Label updates
 
-This is intentional chaining—the callback explicitly asked to change the label.
+This is intentional chaining; the callback explicitly asked to change the label.
 
 ## Avoiding Circular Updates
 
@@ -238,4 +238,4 @@ When a cell is cleared or re-run:
 1. **Frontend:** `onCleanup` hook fires, calls `unregisterComponentListener(id)`
 2. **Python:** `StateManager.clear_cell(cellId)` removes objects from registry
 
-If an old component receives a `component_update` message after cleanup, it's harmless—the listener map no longer has that ID, so the message is ignored.
+If an old component receives a `component_update` message after cleanup, it's harmless: the listener map no longer has that ID, so the message is ignored.

@@ -13,7 +13,7 @@ test.describe("session persistence", () => {
     const expectedCount = await notebook.cellCount();
 
     // Wait for the debounced autosave to flush the new cell to storage before
-    // reloading — otherwise we would race the 300ms write.
+    // reloading, otherwise we would race the 300ms write.
     await expect
       .poll(() => notebook.persistedCellCount(sessionId!), { timeout: 15_000 })
       .toBe(expectedCount);

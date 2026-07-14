@@ -1,5 +1,6 @@
-import { type Component, onMount, onCleanup, createEffect /* , createSignal */ } from "solid-js";
-import { TextSelection } from "@milkdown/kit/prose/state"; // Standard state handling
+import { type Component, onMount, onCleanup, createEffect, createSignal } from "solid-js";
+import { TextSelection, Plugin, PluginKey, type EditorState } from "@milkdown/kit/prose/state"; // Standard state handling
+import type { MarkType, Node as ProseNode } from "@milkdown/kit/prose/model";
 import { actions, notebookStore, type CellData } from "../lib/store";
 
 // Core Framework
@@ -39,8 +40,8 @@ import { history } from "@milkdown/kit/plugin/history";
 import { clipboard } from "@milkdown/kit/plugin/clipboard";
 
 // Utilities & ProseMirror Bridge
-import { callCommand, getMarkdown, replaceAll } from "@milkdown/kit/utils";
-import { lift, wrapIn, setBlockType } from "@milkdown/kit/prose/commands"; // Re-exported from kit
+import { callCommand, getMarkdown, replaceAll, $prose } from "@milkdown/kit/utils";
+import { lift, wrapIn, setBlockType, toggleMark } from "@milkdown/kit/prose/commands"; // Re-exported from kit
 import { undo as milkUndo, redo as milkRedo } from "@milkdown/kit/prose/history"; // Import standard history commands
 import { undoDepth, redoDepth } from "prosemirror-history"; // Directly import form prosemirror-history (Milkdown uses this internally)
 
@@ -69,6 +70,65 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let editorInstance: Editor | null = null;
   const isUpdatingFromProps = false;
+
+  // Active state of the togglable formatting buttons, derived from the
+  // current selection / stored marks so the toolbar reflects what typing
+  // (or clicking again) will do.
+  const [activeFormats, setActiveFormats] = createSignal({
+    strong: false,
+    emphasis: false,
+    inlineCode: false,
+    blockquote: false,
+    heading: false,
+    bulletList: false,
+    orderedList: false,
+  });
+
+  const isMarkActive = (state: EditorState, type: MarkType | undefined) => {
+    if (!type) return false;
+    const { empty, from, to, $from } = state.selection;
+    // Collapsed cursor: check stored marks (set by a toggle before typing)
+    // falling back to the marks at the cursor position.
+    if (empty) return !!type.isInSet(state.storedMarks || $from.marks());
+    return state.doc.rangeHasMark(from, to, type);
+  };
+
+  const updateActiveFormats = (state: EditorState) => {
+    const { marks } = state.schema;
+    const { $from } = state.selection;
+    let blockquote = false;
+    let heading = false;
+    // Innermost list wins (walk is depth -> root, so first hit is innermost).
+    let listName: string | null = null;
+    for (let i = $from.depth; i > 0; i--) {
+      const name = $from.node(i).type.name;
+      if (name === "blockquote") blockquote = true;
+      else if (name === "heading") heading = true;
+      else if (!listName && (name === "bullet_list" || name === "ordered_list")) listName = name;
+    }
+    setActiveFormats({
+      strong: isMarkActive(state, marks.strong),
+      emphasis: isMarkActive(state, marks.emphasis),
+      inlineCode: isMarkActive(state, marks.inlineCode),
+      blockquote,
+      heading,
+      bulletList: listName === "bullet_list",
+      orderedList: listName === "ordered_list",
+    });
+  };
+
+  // Tiny prose plugin so we see EVERY state update, including storedMarks-only
+  // transactions (e.g. clicking Bold at a collapsed cursor before typing) that
+  // the milkdown listener plugin does not report.
+  const formatStatePlugin = $prose(() => new Plugin({
+    key: new PluginKey("toolbarFormatState"),
+    view: (editorView) => {
+      updateActiveFormats(editorView.state);
+      return {
+        update: (view) => updateActiveFormats(view.state),
+      };
+    },
+  }));
   // --- Text alignment disabled until bug is fixed ---
   // const [currentAlign, setCurrentAlign] = createSignal<string | null>(null);
   // const syncAlignState = (view: any) => {
@@ -142,6 +202,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       .use(codeBlockNavigationPlugin)
       .use(captionMark)
       .use(videoEmbed)
+      .use(formatStatePlugin)
       // .use(textAlign) // disabled until alignment bug (Enter→code_block) is fixed
       .create()
       .then((editor) => {
@@ -151,7 +212,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         editor.action((ctx) => {
           const view = ctx.get(editorViewCtx);
           if (view) {
-              // Place cursor at double-click position (takes priority — reflects current intent)
+              // Place cursor at double-click position (takes priority since it reflects current intent)
               if (props.initialClickCoords) {
                   try {
                       const pos = view.posAtCoords({ left: props.initialClickCoords.left, top: props.initialClickCoords.top });
@@ -187,11 +248,8 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       })
       .catch((e) => console.error("Milkdown init error", e));
 
-    // Keyboard shortcut: Mod+Shift+Enter to split the current markdown cell
-    // at the cursor. Chosen because it is not used by the app or by Chrome /
-    // Firefox / Safari, and is a natural extension of the "Enter creates a
-    // new line / break" mental model. We only act when this editor's view
-    // has DOM focus so the shortcut is scoped to the cell being edited.
+    // Mod+Shift+Enter splits the cell at the cursor. Not used by the app or
+    // any major browser, and only fires when this editor's view has DOM focus.
     const handleSplitShortcut = (e: KeyboardEvent) => {
       if (props.readOnly) return;
       if (!isSplitShortcut(e)) return;
@@ -232,7 +290,111 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   });
 
   const call = (command: any, payload?: any) => {
-    editorInstance?.action(callCommand(command, payload));
+    editorInstance?.action((ctx) => {
+      callCommand(command, payload)(ctx);
+      // Refocus: if focus drifted to other UI, ProseMirror skips the DOM
+      // selection sync after the doc change and the visible caret is lost.
+      ctx.get(editorViewCtx)?.focus();
+    });
+  };
+
+  // Milkdown's toggleInlineCodeCommand bails out on empty selections, so at
+  // a collapsed cursor toggle the stored mark ourselves (same as Bold/Italic).
+  const toggleInlineCode = () => {
+    editorInstance?.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const schema = ctx.get(schemaCtx);
+      const { state, dispatch } = view;
+      if (state.selection.empty) {
+        toggleMark(schema.marks.inlineCode)(state, dispatch);
+      } else {
+        callCommand(toggleInlineCodeCommand.key)(ctx);
+      }
+      view.focus();
+    });
+  };
+
+  // Three-way toggle: wrap (no list), unwrap (same list type), or convert
+  // (other type). Converting must also rewrite each item's listType/label
+  // attrs or milkdown's syncListOrderPlugin converts the node right back.
+  const toggleList = (targetName: "bullet_list" | "ordered_list") => {
+    editorInstance?.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const schema = ctx.get(schemaCtx);
+      const { state, dispatch } = view;
+      const { $from } = state.selection;
+
+      // Find the innermost containing list
+      let listNode: ProseNode | null = null;
+      let listPos = -1;
+      for (let i = $from.depth; i > 0; i--) {
+        const node = $from.node(i);
+        const name = node.type.name;
+        if (name === "bullet_list" || name === "ordered_list") {
+          listNode = node;
+          listPos = $from.before(i);
+          break;
+        }
+      }
+
+      if (!listNode) {
+        const command = targetName === "bullet_list" ? wrapInBulletListCommand : wrapInOrderedListCommand;
+        callCommand(command.key)(ctx);
+        view.focus();
+        return;
+      }
+
+      if (listNode.type.name === targetName) {
+        // Unwrap into the items' blocks. Selection-mapping through a full
+        // replace collapses to the boundary, so map anchor/head into the
+        // flattened output ourselves to keep highlights intact.
+        const { anchor, head } = state.selection;
+        const blocks: ProseNode[] = [];
+        let newAnchor: number | null = null;
+        let newHead: number | null = null;
+        let insertPos = listPos; // start of the next flattened block
+        listNode.forEach((item, itemOffset) => {
+          const itemPos = listPos + 1 + itemOffset;
+          item.forEach((block, blockOffset) => {
+            const blockPos = itemPos + 1 + blockOffset;
+            if (anchor >= blockPos && anchor <= blockPos + block.nodeSize) {
+              newAnchor = insertPos + (anchor - blockPos);
+            }
+            if (head >= blockPos && head <= blockPos + block.nodeSize) {
+              newHead = insertPos + (head - blockPos);
+            }
+            blocks.push(block);
+            insertPos += block.nodeSize;
+          });
+        });
+        const tr = state.tr.replaceWith(listPos, listPos + listNode.nodeSize, blocks);
+        if (newAnchor !== null || newHead !== null) {
+          const a = tr.doc.resolve(newAnchor ?? newHead!);
+          const h = tr.doc.resolve(newHead ?? newAnchor!);
+          tr.setSelection(TextSelection.between(a, h));
+        }
+        dispatch(tr.scrollIntoView());
+        view.focus();
+        return;
+      }
+
+      // Other type: convert in place (list node + every item's attrs).
+      const ordered = targetName === "ordered_list";
+      let tr = state.tr.setNodeMarkup(listPos, schema.nodes[targetName]);
+      let index = 0;
+      listNode.forEach((item, offset) => {
+        if (item.type.name === "list_item") {
+          tr = tr.setNodeMarkup(listPos + 1 + offset, undefined, {
+            ...item.attrs,
+            listType: ordered ? "ordered" : "bullet",
+            label: ordered ? `${index + 1}.` : "\u2022",
+          });
+          index++;
+        }
+      });
+      dispatch(tr.scrollIntoView());
+      view.focus();
+    });
   };
 
   const toggleQuote = () => {
@@ -256,6 +418,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       } else {
         wrapIn(blockquote)(state, dispatch);
       }
+      view.focus();
     });
   };
   
@@ -285,6 +448,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       } else {
         setBlockType(heading, { level: nextLevel })(state, dispatch);
       }
+      view.focus();
     });
   };
 
@@ -315,7 +479,13 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         if ($from.node(i).type.name === 'table') {
           const start = $from.start(i) - 1;
           const end = $from.end(i) + 1;
-          dispatch(state.tr.delete(start, end));
+          // After deleting, place the cursor at the nearest text position
+          // where the table was (start of the following block, or end of the
+          // preceding one) instead of leaving it to selection mapping.
+          const tr = state.tr.delete(start, end);
+          tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(start, tr.doc.content.size))));
+          dispatch(tr.scrollIntoView());
+          view.focus();
           return;
         }
       }
@@ -365,7 +535,29 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   };
 
   const insertTable = () => {
-      call(insertTableCommand.key, { row: 3, col: 3 });
+      editorInstance?.action((ctx) => {
+        callCommand(insertTableCommand.key, { row: 3, col: 3 })(ctx);
+        // Milkdown's own findFrom stops at the split paragraph and never
+        // reaches the table, so move the cursor to the first header cell.
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const selPos = state.selection.from;
+        let tablePos: number | null = null;
+        state.doc.descendants((node, pos) => {
+          if (node.type.name === "table") {
+            if (tablePos === null || Math.abs(pos - selPos) < Math.abs(tablePos - selPos)) {
+              tablePos = pos;
+            }
+            return false;
+          }
+          return true;
+        });
+        if (tablePos !== null) {
+          const sel = TextSelection.near(state.doc.resolve(tablePos + 1), 1);
+          view.dispatch(state.tr.setSelection(sel).scrollIntoView());
+        }
+        view.focus();
+      });
   };
 
   const insertCodeBlock = (language?: string) => {
@@ -381,17 +573,10 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       ? "⌘⇧↵"
       : "Ctrl+Shift+Enter";
 
-  // Split the current markdown cell into two cells at the cursor position.
-  // - The original editor (and its focus) is preserved; only its visible
-  //   content is trimmed in place. A single new sibling cell is inserted with
-  //   the "other half" via `actions.insertMarkdownCell`, which deliberately
-  //   does not steal active/edit state.
-  // - Cursor placement is "smart": whichever side has the closest
-  //   non-whitespace content keeps the cursor. Ties go to the end of the
-  //   first cell. The cursor never has to be re-focused because the original
-  //   editor is the one that retains focus in both branches.
-  // - Trailing newlines on the first half and leading newlines on the second
-  //   are stripped (the cell boundary already provides spacing).
+  // Split the current markdown cell in two at the cursor. The original editor
+  // keeps focus and is trimmed in place; the other half goes into a new
+  // sibling cell. Whichever side has the closest non-whitespace content keeps
+  // the cursor (ties go to the first cell). See computeSplit and its tests.
   const splitCell = () => {
     if (props.readOnly || !editorInstance) return;
 
@@ -417,14 +602,10 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       const idx = notebookStore.cells.findIndex((c) => c.id === props.cell.id);
       if (idx === -1) return;
 
-      // The original cell keeps the half that should hold the cursor; the
-      // other half goes into a brand-new sibling cell. Order of operations:
-      //   1) Insert the sibling first so the new cell appears next to the
-      //      original at the right index regardless of which half stays.
-      //   2) Replace the live editor's content with the "kept" half. This
-      //      triggers the existing markdownUpdated listener which writes
-      //      back to the store and is captured by the in-flight edit
-      //      session for normal undo/redo on exit.
+      // Insert the sibling first (so it lands at the right index either way),
+      // then replace the live editor's content with the kept half. That write
+      // goes through markdownUpdated, so the in-flight edit session captures
+      // it for normal undo/redo on exit.
       if (focusFirst) {
         actions.insertMarkdownCell(idx + 1, afterContent);
       } else {
@@ -477,11 +658,11 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
       >
       <div class="flex items-center gap-1 pb-1 -mt-2 max-xs:-mt-0.5 border-b border-foreground/30" onMouseDown={e => e.preventDefault()}>
         {/* Bold */}
-        <button onClick={() => call(toggleStrongCommand.key)} class="btn-icon" title="Bold">
+        <button onClick={() => call(toggleStrongCommand.key)} class={clsx("btn-icon", activeFormats().strong && "bg-foreground")} aria-pressed={activeFormats().strong} title="Bold">
           <Bold size={16} />
         </button>
         {/* Italic */}
-        <button onClick={() => call(toggleEmphasisCommand.key)} class="btn-icon" title="Italic">
+        <button onClick={() => call(toggleEmphasisCommand.key)} class={clsx("btn-icon", activeFormats().emphasis && "bg-foreground")} aria-pressed={activeFormats().emphasis} title="Italic">
           <Italic size={16} />
         </button>
         
@@ -491,13 +672,15 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         <div class="flex items-center gap-0">
           <button 
             onClick={cycleHeader} 
-            class="btn-icon rounded-r-none hover:z-10 -mr-px" 
+            class={clsx("btn-icon rounded-r-none hover:z-10 -mr-px", activeFormats().heading && "bg-foreground")}
+            aria-pressed={activeFormats().heading}
             title="Cycle Header Level"
           >
             <Heading size={16} />
           </button>
           <Dropdown
             compact
+            preserveFocus
             trigger={
               <button class="btn-icon rounded-l-none px-1" title="Heading Options">
                  <ChevronDown size={12} />
@@ -530,6 +713,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
         <div class="flex sm:hidden items-center">
              <Dropdown
                 compact
+                preserveFocus
                 trigger={
                     <button class="btn-icon" title="More Formatting">
                         <MoreHorizontal size={16} />
@@ -540,17 +724,17 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
                     <div class="flex items-center gap-2"><Link2 size={16} /> Link</div>
                 </DropdownItem>
                 <DropdownDivider />
-                <DropdownItem onClick={() => call(wrapInBulletListCommand.key)}>
+                <DropdownItem onClick={() => toggleList("bullet_list")}>
                     <div class="flex items-center gap-2"><List size={16} /> Bullet List</div>
                 </DropdownItem>
-                <DropdownItem onClick={() => call(wrapInOrderedListCommand.key)}>
+                <DropdownItem onClick={() => toggleList("ordered_list")}>
                     <div class="flex items-center gap-2"><ListOrdered size={16} /> Numbered List</div>
                 </DropdownItem>
                 <DropdownDivider />
                 <DropdownItem onClick={toggleQuote}>
                     <div class="flex items-center gap-2"><Quote size={16} /> Quote</div>
                 </DropdownItem>
-                <DropdownItem onClick={() => call(toggleInlineCodeCommand.key)}>
+                <DropdownItem onClick={toggleInlineCode}>
                     <div class="flex items-center gap-2"><Code size={16} /> Inline Code</div>
                 </DropdownItem>
                 <DropdownNested compact label={<div class="flex items-center gap-2"><SquareCode size={16} /> Code Block</div>}>
@@ -615,26 +799,27 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             <Link2 size={16} />
             </button>
             {/* Bullet List */}
-            <button onClick={() => call(wrapInBulletListCommand.key)} class="btn-icon" title="Bullet List">
+            <button onClick={() => toggleList("bullet_list")} class={clsx("btn-icon", activeFormats().bulletList && "bg-foreground")} aria-pressed={activeFormats().bulletList} title="Bullet List">
             <List size={16} />
             </button>
             {/* Numbered List */}
-            <button onClick={() => call(wrapInOrderedListCommand.key)} class="btn-icon" title="Numbered List">
+            <button onClick={() => toggleList("ordered_list")} class={clsx("btn-icon", activeFormats().orderedList && "bg-foreground")} aria-pressed={activeFormats().orderedList} title="Numbered List">
             <ListOrdered size={16} />
             </button>
             <div class="w-px h-4 bg-foreground/30 mx-1"></div>
             {/* Quote toggle */}
-            <button onClick={toggleQuote} class="btn-icon" title="Quote">
+            <button onClick={toggleQuote} class={clsx("btn-icon", activeFormats().blockquote && "bg-foreground")} aria-pressed={activeFormats().blockquote} title="Quote">
             <Quote size={16} />
             </button>
             {/* Inline Code */}
-            <button onClick={() => call(toggleInlineCodeCommand.key)} class="btn-icon" title="Inline Code">
+            <button onClick={toggleInlineCode} class={clsx("btn-icon", activeFormats().inlineCode && "bg-foreground")} aria-pressed={activeFormats().inlineCode} title="Inline Code">
             <Code size={16} />
             </button>
             {/* Code Block Dropdown */}
             <Dropdown
               compact
               align="right"
+              preserveFocus
               trigger={
                 <button class="btn-icon" title="Code Block">
                   <SquareCode size={16} />
@@ -662,6 +847,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             <Dropdown
               compact
               align="right"
+              preserveFocus
               trigger={
                 <button class="btn-icon" title="Table Options">
                   <Table size={16} />
@@ -700,6 +886,7 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             <Dropdown
               compact
               align="right"
+              preserveFocus
               trigger={
                 <button class="btn-icon" title="More Formatting">
                   <MoreHorizontal size={16} />

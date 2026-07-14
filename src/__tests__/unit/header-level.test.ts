@@ -19,7 +19,7 @@ describe('getLastHeaderLevel', () => {
   test('ignores lines where # is not at the start or lacks trailing space', () => {
     // Not at start of line
     expect(getLastHeaderLevel('text ## not a header')).toBe(0);
-    // No space after # — not a valid ATX header
+    // No space after #, so not a valid ATX header
     expect(getLastHeaderLevel('#nospace')).toBe(0);
     // Mix: one valid, one invalid
     expect(getLastHeaderLevel('## Valid\n#invalid')).toBe(2);

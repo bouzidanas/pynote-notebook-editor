@@ -1,4 +1,4 @@
-// AUTO-GENERATED FILE — do not edit by hand.
+// AUTO-GENERATED FILE. Do not edit by hand.
 // Regenerate with: npm run gen:presets
 //
 // Built-in theme presets, extracted from themed-notebooks/*.ipynb
@@ -7,7 +7,7 @@
 
 import type { Theme } from "./theme";
 
-// Deep partial — allows omitting nested keys. updateTheme() merges each
+// Deep partial. Allows omitting nested keys. updateTheme() merges each
 // sub-object independently, so missing keys keep their current/default values.
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
 

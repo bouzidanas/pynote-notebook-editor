@@ -1,15 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { computeSplit, isSplitShortcut } from "./markdownSplit";
 
-describe("computeSplit — smart cursor logic", () => {
+describe("computeSplit smart cursor logic", () => {
   it("places cursor in first cell when nearest content is to the left", () => {
-    // "hello|   world" — left has zero whitespace, right has three spaces.
+    // "hello|   world": left has zero whitespace, right has three spaces.
     const { focusFirst } = computeSplit("hello", "   world");
     expect(focusFirst).toBe(true);
   });
 
   it("places cursor in second cell when nearest content is to the right", () => {
-    // "hello   |world" — left has trailing whitespace, right has none.
+    // "hello   |world": left has trailing whitespace, right has none.
     const { focusFirst } = computeSplit("hello   ", "world");
     expect(focusFirst).toBe(false);
   });
@@ -39,7 +39,7 @@ describe("computeSplit — smart cursor logic", () => {
   });
 });
 
-describe("computeSplit — content is preserved verbatim", () => {
+describe("computeSplit content is preserved verbatim", () => {
   it("does NOT strip trailing newlines from the first cell", () => {
     const { beforeContent } = computeSplit("# Heading\n\n\n", "body");
     expect(beforeContent).toBe("# Heading\n\n\n");
@@ -88,7 +88,7 @@ const ev = (init: Partial<KeyboardEvent>): KeyboardEvent =>
     ...init,
   }) as KeyboardEvent;
 
-describe("isSplitShortcut — keyboard shortcut", () => {
+describe("isSplitShortcut keyboard shortcut", () => {
   it("matches Cmd+Shift+Enter (macOS)", () => {
     expect(isSplitShortcut(ev({ key: "Enter", shiftKey: true, metaKey: true }))).toBe(true);
   });

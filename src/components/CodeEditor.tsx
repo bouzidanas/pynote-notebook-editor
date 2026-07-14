@@ -13,11 +13,9 @@ import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE } from "../l
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
 
-// Custom duotoneDark theme whose token colors are driven by the shared syntax
-// palette CSS variables (--syntax-*). Because the colors are var() references,
-// the same generated CSS reacts live to scheme changes and per-token overrides
-// without rebuilding the extension. Anything not listed falls back to the base
-// Duotone Dark theme (editor chrome is themed separately via EditorView.theme).
+// duotoneDark variant with token colors driven by the --syntax-* CSS vars, so
+// the same generated CSS reacts live to scheme changes without rebuilding the
+// extension. Unlisted tags fall back to base Duotone Dark.
 const getCustomDuotoneDark = () => duotoneDarkInit({
   styles: [
     { tag: [tags.keyword, tags.controlKeyword, tags.definitionKeyword, tags.moduleKeyword, tags.atom, tags.bool, tags.attributeName, tags.quote], color: "var(--syntax-keyword)" },
@@ -127,15 +125,9 @@ function selectPreviousOccurrence(view: EditorView): boolean {
   return true;
 }
 
-// Smart selection matching - handles multi-select properly
-// when multiple selections exist, only match based on the main (first) selection.
-// - This prevents trying to match concatenated text during Ctrl+D operations.
-// - This allows both multi-select and match highlighting to work together smoothly.
-// - This aims to replace the highlightSelectionMatches extension.
-// - This extension highlights all other occurrences of the selected text,
-//   but is designed to still work when the selection contains multiple 
-//   occurrences of the same selected text. Instead of trying to find matches
-//   for the whole concatenated selection, it only matches based on the main selection.
+// Replacement for highlightSelectionMatches that plays nice with multi-select:
+// with multiple selections (Ctrl+D), match against the main selection only
+// instead of the concatenated text.
 function smartSelectionMatches() {
   const decorationMark = Decoration.mark({ class: "cm-selectionMatch" });
   
@@ -225,14 +217,14 @@ function jumpToMatchingBracket(view: EditorView): boolean {
 // Safari bakes the assumed horizontal scrollbar height into a scroller's
 // intrinsic (auto) height during load even when nothing overflows, and caches
 // that wrong height until a style invalidation forces a relayout (normally
-// the user's first click) — leaving a phantom 5px gap under the code in every
+// the user's first click), leaving a phantom 5px gap under the code in every
 // cell. Wrap-on editors are covered purely by CSS (index.css zeroes their
 // h-scrollbar height); this JS handles the wrap-off case, where a real
 // scrollbar must stay available for genuine overflow.
 // One module-level ResizeObserver watches the scrollers of all not-yet-
 // rectified cells (the phantom changes the scroller's height, so its
 // formation triggers the callback). A rectified cell is deregistered, and
-// when the last one deregisters the observer itself is dropped for GC — so
+// when the last one deregisters the observer itself is dropped for GC, so
 // with 1000 cells there is never more than one observer, and in steady state
 // there are none.
 const isWebKit = typeof navigator !== "undefined" &&
@@ -317,14 +309,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
     }
   });
 
-  // Exit edit mode when clicking outside the editor
-  // Uses document mousedown listener (only when cell is in edit mode) to detect clicks
-  // outside the editor boundaries. This reliably exits edit mode and closes the search panel
-  // when clicking cell background, output, or other cells.
-  // Note: The search panel is the only panel in this editor that needs explicit closing.
-  // Other UI elements (autocomplete, tooltips, lint diagnostics) automatically dismiss on outside clicks.
-  // Only ONE document listener exists at any time (from whichever cell is actively editing).
-  // The listener is automatically removed when the cell exits edit mode via onCleanup.
+  // Exit edit mode (and close the search panel) when clicking outside the
+  // editor. One document mousedown listener at a time, owned by whichever
+  // cell is editing; removed via onCleanup.
   createEffect(() => {
     const view = editorView();
     // Only attach listener when in edit mode (not readonly)
@@ -532,7 +519,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Dynamic Theme - Must use EditorView.theme() API, not global CSS
   // CodeMirror 6 requires styles for internal classes (.cm-*) to be registered as extensions
   // for proper scoping, lifecycle management, and access to dynamic JS values.
-  // See: explanations/codemirror-theming.md for detailed rationale
   createExtension(() => EditorView.theme({
     "&": {
       backgroundColor: "transparent !important",
@@ -608,7 +594,6 @@ const CodeEditor: Component<EditorProps> = (props) => {
     smartSelectionMatches(),
     // Search panel with custom theme
     // Theme must be embedded in search extension config to style dynamically created panel elements
-    // See: explanations/codemirror-theming.md
     search({
       top: true,
     }),
@@ -773,8 +758,8 @@ const CodeEditor: Component<EditorProps> = (props) => {
   createExtension(() => EditorView.editable.of(!notebookStore.presentationMode));
 
   // Focus ⟺ edit-mode invariant. The editor stays `editable` (focusable) while
-  // only selected, so a click that lands in the editor's own padding — where the
-  // quick-edit mousedown path doesn't run — can focus it and show a blinking
+  // only selected, so a click that lands in the editor's own padding (where the
+  // quick-edit mousedown path doesn't run) can focus it and show a blinking
   // cursor while the cell is still in select mode. If the editor ever gains focus
   // outside presentation mode, promote the cell to edit mode so the cursor never
   // misrepresents the cell's state. Idempotent: no-op once already editing.

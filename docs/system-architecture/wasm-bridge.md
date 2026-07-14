@@ -7,11 +7,11 @@ PyNote runs Python in a Web Worker to keep the UI responsive. The "bridge" is ho
 
 A **Web Worker** is a JavaScript script that runs in a background thread, separate from the main thread. You create one using the Web Workers API (`new Worker('script.js')`).
 
-**The main thread** is where your webpage lives—it handles DOM updates, user interactions (clicks, typing), and renders the UI. There's only one main thread, and it processes tasks sequentially. If any task takes too long (like running a complex Python computation), the page becomes unresponsive: buttons don't click, scrolling stutters, the tab might show "not responding."
+**The main thread** is where your webpage lives. It handles DOM updates, user interactions (clicks, typing), and renders the UI. There's only one main thread, and it processes tasks sequentially. If any task takes too long (like running a complex Python computation), the page becomes unresponsive: buttons don't click, scrolling stutters, the tab might show "not responding."
 
 **A Web Worker** runs in its own thread with its own event loop. It can do heavy computation without blocking the main thread. The tradeoff: workers can't access the DOM directly. They can only communicate with the main thread by sending messages back and forth (`postMessage` / `onmessage`).
 
-**Where does it run?** Both threads run in the same browser process, on the same machine. The OS schedules them across CPU cores. The worker doesn't run on a server—it's entirely client-side, just in a different thread.
+**Where does it run?** Both threads run in the same browser process, on the same machine. The OS schedules them across CPU cores. The worker doesn't run on a server; it's entirely client-side, just in a different thread.
 
 **Why PyNote uses one:** Pyodide (Python compiled to WebAssembly) can take seconds to execute code. Running it on the main thread would freeze the notebook UI. By running Pyodide in a worker, users can still scroll, edit other cells, or click buttons while Python executes.
 
@@ -20,7 +20,7 @@ A **Web Worker** is a JavaScript script that runs in a background thread, separa
 <details>
 <summary><strong>Background: What is Pyodide?</strong></summary>
 
-**Pyodide** is the CPython interpreter compiled to WebAssembly (WASM). It lets you run actual Python code in the browser—not a subset, not a transpiler, but real Python 3.11+ with most of the standard library.
+**Pyodide** is the CPython interpreter compiled to WebAssembly (WASM). It lets you run real Python 3.11+ in the browser, with most of the standard library.
 
 **How it works:** The CPython source code (written in C) gets compiled to WASM using Emscripten. The result is a ~10MB binary that browsers can execute. When you call `pyodide.runPython("print('hello')")`, it's running the same interpreter that would run on your machine, just compiled for a different target.
 
@@ -35,11 +35,11 @@ A **Web Worker** is a JavaScript script that runs in a background thread, separa
 - Packages with C extensions that haven't been compiled for WASM
 - Network access via sockets (but `fetch` works through JavaScript interop)
 
-**The virtual filesystem:** Pyodide provides `pyodide.FS`, an Emscripten filesystem API. You can create directories and write files that Python code can then import. This is how we install `pynote_ui`—we write the .py files to `pynote_ui/` in the virtual filesystem root, which Python can import directly.
+**The virtual filesystem:** Pyodide provides `pyodide.FS`, an Emscripten filesystem API. You can create directories and write files that Python code can then import. This is how we install `pynote_ui`: we write the .py files to `pynote_ui/` in the virtual filesystem root, which Python can import directly.
 
 </details>
 
-## Architecture Overview
+## The two threads
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -69,7 +69,7 @@ A **Web Worker** is a JavaScript script that runs in a background thread, separa
 └────────────────────────────────────────────────────────────────┘
 ```
 
-The **Kernel class** lives in the main thread because it's what UI components interact with. When a CodeCell wants to run Python, it calls `kernel.run(code)`. The Kernel then sends a message to the Worker, and when results come back, it routes them to the right callback. It's the main thread's side of the bridge—the Worker never sees the Kernel class directly, only the messages it sends.
+The **Kernel class** lives in the main thread because it's what UI components interact with. When a CodeCell wants to run Python, it calls `kernel.run(code)`. The Kernel then sends a message to the Worker, and when results come back, it routes them to the right callback. It's the main thread's side of the bridge; the Worker never sees the Kernel class directly, only the messages it sends.
 
 **Why a separate thread?** The browser's main thread can only do one thing at a time. If we ran Python there, the UI would freeze during execution. The Web Worker runs in a separate thread, so Python can compute while the UI stays responsive.
 
@@ -104,14 +104,14 @@ These are messages the worker's `postMessage()` sends back to `Kernel.worker.onm
 
 ## The `run_cell_code()` Function
 
-`run_cell_code(code, cell_id)` is a Python function defined in `pyodide.worker.ts` (as a string that gets executed when Pyodide initializes). It's the actual entry point for executing user code—when the worker receives a `run` message, it calls this function.
+`run_cell_code(code, cell_id)` is a Python function defined in `pyodide.worker.ts` (as a string that gets executed when Pyodide initializes). It's the actual entry point for executing user code. When the worker receives a `run` message, it calls this function.
 
 What it does:
-1. **Sets cell context** — stores `cell_id` in two contextvars: one for `print()` routing, one for `StateManager` to track which cell owns new UI elements. Both use contextvars, so they work correctly even if user code does `await` and another cell starts running.
-2. **Executes code** — calls `eval_code_async()` which handles top-level await and returns the last expression's value
-3. **Auto-wraps UI lists** — if result is a list of UI elements, wraps them in a `Group` for display
-4. **Catches exceptions** — formats tracebacks with internal Pyodide frames filtered out
-5. **Returns result** — either the expression value or an error dict that the worker sends back to Kernel
+1. Sets cell context by storing `cell_id` in two contextvars: one for `print()` routing, one for `StateManager` to track which cell owns new UI elements. Both use contextvars, so they work correctly even if user code does `await` and another cell starts running.
+2. Executes the code with `eval_code_async()`, which handles top-level await and returns the last expression's value
+3. Auto-wraps a result that is a list of UI elements in a `Group` for display
+4. Catches exceptions and formats tracebacks with internal Pyodide frames filtered out
+5. Returns either the expression value or an error dict that the worker sends back to Kernel
 
 Note: Before calling `run_cell_code()`, the worker's `runCode()` function calls `pyodide.loadPackagesFromImports(code)` to auto-install any imported packages.
 
@@ -120,9 +120,9 @@ Note: Before calling `run_cell_code()`, the worker's `runCode()` function calls 
 
 Pyodide offers several ways to execute Python code:
 
-- **`runPython(code)`** — Simplest option. Executes code and returns the result. But it can't handle top-level `await`.
-- **`runPythonAsync(code)`** — Can handle `await`, but doesn't return the value of the last expression (only explicit returns).
-- **`eval_code_async(code, globals, locals, ...)`** — The most flexible. Supports `await`, returns the last expression's value, and gives you control over the execution context.
+- **`runPython(code)`** is the simplest option. It executes code and returns the result, but it can't handle top-level `await`.
+- **`runPythonAsync(code)`** can handle `await`, but doesn't return the value of the last expression (only explicit returns).
+- **`eval_code_async(code, globals, locals, ...)`** is the most flexible. It supports `await`, returns the last expression's value, and gives you control over the execution context.
 
 **Why we need `eval_code_async`:** In a notebook, users expect `x = 5` followed by `x` to display `5`. They also expect `await fetch(...)` to work at the top level. `eval_code_async` handles both: it returns whatever the last line evaluates to, and it properly awaits any async code.
 
@@ -132,7 +132,7 @@ Note: The default `return_mode` is `"last_expr"`, which means `x = 5` on its own
 
 ## Kernel Class API (`src/lib/pyodide.ts`)
 
-The `Kernel` class owns the Worker instance and exposes methods for the rest of the app to interact with Python. It's a singleton—there's one Kernel for the whole app, accessed via `kernel` export.
+The `Kernel` class owns the Worker instance and exposes methods for the rest of the app to interact with Python. It's a singleton; there's one Kernel for the whole app, accessed via `kernel` export.
 
 ### Properties
 
@@ -163,7 +163,7 @@ Pyodide can't pass Python objects directly to JavaScript or vice versa. Data cro
 <details>
 <summary><strong>Background: What is a PyProxy?</strong></summary>
 
-When Python code returns an object to JavaScript (or vice versa), Pyodide doesn't copy the data. Instead, it creates a **proxy**—a thin wrapper that lets one language access the other's object.
+When Python code returns an object to JavaScript (or vice versa), Pyodide doesn't copy the data. Instead, it creates a **proxy**, a thin wrapper that lets one language access the other's object.
 
 - **PyProxy**: A JavaScript object that wraps a Python object. You can call methods on it, access attributes, etc., and Pyodide translates those operations to Python.
 - **JsProxy**: A Python object that wraps a JavaScript object. Same idea, opposite direction.
@@ -171,8 +171,8 @@ When Python code returns an object to JavaScript (or vice versa), Pyodide doesn'
 **The problem:** Proxies hold references across the language boundary. JavaScript's garbage collector can't see into Python's heap, so it doesn't know when the Python object is safe to free. If you don't explicitly release PyProxies, you get memory leaks.
 
 **The solution:** Call `.destroy()` on PyProxies when you're done with them, or convert them to native objects:
-- `pyProxy.toJs()` — converts Python dict/list to JS object/array (deep copy)
-- `pyodide.toPy(jsObj)` — converts JS object to Python dict (returns a PyProxy you must destroy)
+- `pyProxy.toJs()` converts Python dict/list to JS object/array (deep copy)
+- `pyodide.toPy(jsObj)` converts JS object to Python dict (returns a PyProxy you must destroy)
 
 In PyNote, we convert data at the boundary (using `toJs()` / `toPy()`) rather than passing proxies around, so we only need to worry about cleanup in the worker code.
 
@@ -181,7 +181,7 @@ In PyNote, we convert data at the boundary (using `toJs()` / `toPy()`) rather th
 ### Python → JavaScript (e.g., component updates)
 
 1. Python code calls `element.send_update(value=75)` which calls `StateManager.send_update(self.id, kwargs)`
-2. StateManager invokes `_comm_target(uid, data)`—a callback registered by the worker during init
+2. StateManager invokes `_comm_target(uid, data)`, a callback registered by the worker during init
 3. Worker's callback receives the PyProxy and converts: `data.toJs({ dict_converter: Object.fromEntries })`
 4. Worker calls `postMessage({ type: "component_update", uid, data: jsData })`
 
@@ -190,7 +190,7 @@ In PyNote, we convert data at the boundary (using `toJs()` / `toPy()`) rather th
 1. Kernel calls `worker.postMessage({ type: "interaction", uid, data })`
 2. Worker converts: `pyodide.toPy(data)` turns the JS object into a PyProxy pointing to a Python dict
 3. Worker calls `pynote_ui.handle_interaction(uid, pyData)` which routes to the right component
-4. Worker calls `pyData.destroy()` — **this is required** because PyProxies hold references that prevent garbage collection
+4. Worker calls `pyData.destroy()`; **this is required** because PyProxies hold references that prevent garbage collection
 
 ## Stream Handling (`print()` routing)
 
@@ -261,7 +261,7 @@ for frame in tb_list:
 
 This removes Pyodide's internal frames so users see a traceback pointing to their code, not the execution machinery.
 
-`run_cell_code()` returns errors as `{ "__pynote_error__": traceback_string }`. The worker checks for this key—if present, it sends `type: "error"` to Kernel instead of `type: "success"`.
+`run_cell_code()` returns errors as `{ "__pynote_error__": traceback_string }`. The worker checks for this key; if present, it sends `type: "error"` to Kernel instead of `type: "success"`.
 
 ## Concurrent Execution
 
@@ -269,10 +269,10 @@ The worker's `onmessage` handler does **not** await `runCode()`:
 
 ```javascript
 } else if (type === "run") {
-    runCode(id, code);  // No await—fires and continues
+    runCode(id, code);  // No await, fires and continues
 }
 ```
 
-`runCode()` is an async function, but we don't wait for it. This means if Kernel sends two `run` messages quickly, both executions start immediately—they don't queue. Each execution carries its `id`, and when results come back, Kernel uses that `id` to route to the correct callback.
+`runCode()` is an async function, but we don't wait for it. This means if Kernel sends two `run` messages quickly, both executions start immediately; they don't queue. Each execution carries its `id`, and when results come back, Kernel uses that `id` to route to the correct callback.
 
 This is what makes Direct and Hybrid execution modes possible. (In Queue mode, Kernel itself sequences the `run` messages so only one is in flight at a time.)

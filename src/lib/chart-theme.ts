@@ -313,7 +313,7 @@ export const getFrappeCSS = (): string => `
     font-family: var(--font-mono);
     font-size: 12px;
   }
-  /* Axis labels (x/y titles): same as title color, xs size, semi-bold */
+  /* Axis labels (x/y titles) use the title color at xs size, semi-bold */
   .frappe-chart .y-axis-title,
   .frappe-chart .x-axis-title {
     fill: color-mix(in srgb, ${currentTheme.colors.secondary} 70%, transparent) !important;

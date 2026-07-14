@@ -15,7 +15,7 @@ When the app loads, the `Kernel` class creates a Web Worker and sends an `init` 
    });
    ```
 
-2. **Pre-loads micropip** — the package installer is loaded at startup
+2. **Pre-loads micropip** (the package installer)
    ```typescript
    await pyodide.loadPackage("micropip");
    ```
@@ -28,14 +28,14 @@ When the app loads, the `Kernel` class creates a Web Worker and sends an `init` 
    pyodide.FS.writeFile('pynote_ui/__init__.py', initCode);
    ```
 
-4. **Sets up context-aware output capture** — replaces `sys.stdout` and `sys.stderr` with custom classes that route output to the correct cell
+4. **Sets up context-aware output capture**, replacing `sys.stdout` and `sys.stderr` with custom classes that route output to the correct cell
 
-5. **Sends `ready` message** — Kernel sets status to "ready", UI can now run code
+5. **Sends `ready` message**; Kernel sets status to "ready", UI can now run code
 
 <details>
 <summary><strong>Background: Pyodide's virtual filesystem</strong></summary>
 
-Pyodide uses Emscripten's virtual filesystem (`pyodide.FS`). It's an in-memory filesystem that Python code can read/write normally. When you `import pynote_ui`, Python looks for `pynote_ui/__init__.py` in the filesystem—we write those files there during initialization.
+Pyodide uses Emscripten's virtual filesystem (`pyodide.FS`). It's an in-memory filesystem that Python code can read/write normally. When you `import pynote_ui`, Python looks for `pynote_ui/__init__.py` in the filesystem; we write those files there during initialization.
 
 The filesystem is ephemeral. If you restart the kernel (terminate and recreate the worker), it's gone. That's why we write `pynote_ui` fresh on every init.
 
@@ -47,7 +47,7 @@ When you run a cell, here's what happens:
 
 1. **Frontend sends `run` message** with code and cell ID
 2. **Worker sets cell context** via `StateManager.set_current_cell(id)` (uses a ContextVar)
-3. **Worker calls `run_cell_code()`** — a Python helper defined in the worker
+3. **Worker calls `run_cell_code()`**, a Python helper defined in the worker
 4. **Output streams route to the cell** via the ContextVar-based output capture
 5. **Result is serialized and sent back**
 6. **Context is cleared**
@@ -108,9 +108,9 @@ Note: Unlike Jupyter, the current implementation uses the default `return_mode`,
 
 After execution, the worker checks what came back:
 
-1. **UIElement?** — Call `_repr_mimebundle_()` to get JSON, send as mimebundle
-2. **None?** — No result to display
-3. **Other?** — Convert to string via `repr()`, send as text
+1. **UIElement?** Call `_repr_mimebundle_()` to get JSON, send as mimebundle
+2. **None?** No result to display
+3. **Other?** Convert to string via `repr()`, send as text
 
 ```typescript
 if (result?._repr_mimebundle_) {
@@ -200,9 +200,9 @@ This scans the code for `import` statements and automatically loads any packages
 
 Three categories:
 
-1. **Pure Python packages** — Work fine, can be installed with `micropip.install('package')`
-2. **Packages with C extensions, pre-compiled for WASM** — NumPy, Pandas, Matplotlib, SciPy, etc. These are bundled with Pyodide and loaded via `pyodide.loadPackage()`
-3. **Packages with C extensions, NOT compiled for WASM** — Won't work. Common culprits: anything using native sockets, some ML frameworks
+1. **Pure Python packages** work fine and can be installed with `micropip.install('package')`
+2. **Packages with C extensions that are pre-compiled for WASM** (NumPy, Pandas, Matplotlib, SciPy, etc.) are bundled with Pyodide and loaded via `pyodide.loadPackage()`
+3. **Packages with C extensions NOT compiled for WASM** won't work. Common culprits: anything using native sockets, some ML frameworks
 
 Check https://pyodide.org/en/stable/usage/packages-in-pyodide.html for the list of available packages.
 
@@ -253,4 +253,4 @@ This clears everything:
 | postMessage overhead | ~1ms | JSON serialization + thread crossing |
 | Large data transfer | Varies | DataFrames over a few MB can be slow to serialize |
 
-Memory: Pyodide heap defaults to ~500MB. Large DataFrames or many packages can exhaust this. There's no automatic memory pressure release—if you run out, you need to restart the kernel.
+Memory: Pyodide heap defaults to ~500MB. Large DataFrames or many packages can exhaust this. There's no automatic memory pressure release; if you run out, you need to restart the kernel.

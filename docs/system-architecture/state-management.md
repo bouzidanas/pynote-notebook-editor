@@ -11,7 +11,7 @@ All notebook state lives in `src/lib/store.ts` using SolidJS's `createStore`.
 
 `createStore` returns a reactive proxy object and a setter function. When you read a property, SolidJS tracks which component read it. When you write via the setter, only components that depend on that specific property re-render.
 
-Unlike React's useState (which triggers full component re-renders), SolidJS updates are surgical—if you change `cells[2].isRunning`, only the DOM nodes that read `cells[2].isRunning` get updated.
+Unlike React's useState (which triggers full component re-renders), SolidJS updates are surgical: if you change `cells[2].isRunning`, only the DOM nodes that read `cells[2].isRunning` get updated.
 
 The setter uses a path-based API:
 ```typescript
@@ -23,7 +23,7 @@ setState("cells", 2, "isRunning", true);  // Update cells[2].isRunning
 
 ### Data Structures
 
-**CellData** — represents one cell:
+**CellData** represents one cell:
 
 ```typescript
 interface CellData {
@@ -56,7 +56,7 @@ interface CellData {
 }
 ```
 
-**NotebookState** — the whole notebook:
+**NotebookState** is the whole notebook:
 
 ```typescript
 interface NotebookState {
@@ -137,8 +137,8 @@ Python's module system means that when you `import pynote_ui`, you get the same 
 
 | Attribute | Purpose |
 |:----------|:--------|
-| `_instances` | `{uuid: object}` — every active UIElement |
-| `_instances_by_cell` | `{cell_id: [uuid, ...]}` — which cell owns which components |
+| `_instances` | `{uuid: object}`, every active UIElement |
+| `_instances_by_cell` | `{cell_id: [uuid, ...]}`, which cell owns which components |
 | `_current_cell_id` | ContextVar holding the currently executing cell's ID |
 | `_comm_target` | Callback to send updates to the frontend |
 

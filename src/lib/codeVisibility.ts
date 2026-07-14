@@ -48,7 +48,7 @@ export const setAutoRun = (value: boolean) => {
 // App-level scope toggle: when true (and `autoRun` is also true at the
 // resolved level), autorun also fires on page refresh / reload of an existing
 // session. Has no effect when autorun is off. Default: false (legacy
-// behavior — refreshes don't autorun).
+// behavior, refreshes don't autorun).
 let autoRunOnRefresh = false;
 
 export const shouldAutoRunOnRefresh = (): boolean => {

@@ -291,6 +291,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
             {/* Formatting Toolbar Toggle (Markdown cells in edit mode) */}
             <Show when={props.type === "markdown" && props.isEditing && props.onToggleFormattingToolbar}>
               <button 
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => { 
                   e.stopPropagation(); 
                   props.onToggleFormattingToolbar?.(); 

@@ -1,10 +1,8 @@
 # Observable Plot API in PyNote
 
-## Overview
-
 PyNote exposes the full power of **Observable Plot** through the `oplot.Plot` class and convenience functions. Observable Plot is a flexible, declarative plotting library that uses a **mark-based architecture** with **channels**, **transforms**, and **scales**.
 
-## Key Concepts
+## Marks, channels, transforms, and scales
 
 ### Marks
 Geometric shapes that represent data:
@@ -82,7 +80,7 @@ Plot(bar_data, x="category", y="value", mark="barY", sort={x: "-y"})
 
 ### Using Convenience Functions
 
-Convenience functions provide simpler interfaces with smart defaults:
+Convenience functions are simpler interfaces with smart defaults:
 
 ```python
 from pynote_ui.oplot import scatter, line, area, bar, histogram, boxplot, heatmap, density, rule
@@ -338,7 +336,7 @@ Plot(data, x="x", y="y", mark="dot",
 )
 ```
 
-## Summary: When to Use What
+## When to use what
 
 - **`Plot()`**: Maximum flexibility, direct control over mark type and all options
 - **Convenience functions**: Quick plots with sensible defaults

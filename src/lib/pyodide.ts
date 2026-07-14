@@ -290,7 +290,7 @@ class Kernel {
       const oldWorker = this.worker;
       this.worker = null;
 
-      // Terminate immediately — no need for cleanup since restart() creates
+      // Terminate immediately. No need for cleanup since restart() creates
       // a fresh Pyodide instance with empty caches anyway, and terminate()
       // on its own doesn't need cache clearing since everything is discarded.
       oldWorker.terminate();
