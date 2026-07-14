@@ -11,7 +11,7 @@
 Check out the new [interactive interview coding preparation series](https://pynote-notebook.vercel.app/?open=coding-prep)!
 
 > [!NOTE]
-> **Update 2026-03-02:** 
+> **Update 2026-02-19:** 
 > Major UI component enhancements! 🎨
 > - **New `.options()` method** for all 10 components - cleaner post-initialization property updates with method chaining support
 > - **Layout control** for Toggle & Checkbox - `align` (left/center/right), `spaced` (space-between), `reverse` (order reversal)
