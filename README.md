@@ -9,7 +9,7 @@
 > - **Under the hood** - Pyodide upgraded from 0.26 to 0.29, large files split up and the codebase reorganized, and unit + end-to-end (Playwright) test suites added
 
 > [!NOTE]
-> **Update 2026-02-7:** 
+> **Update 2026-03-02:** 
 > Major UI component enhancements! 🎨
 > - **New `.options()` method** for all 10 components - cleaner post-initialization property updates with method chaining support
 > - **Layout control** for Toggle & Checkbox - `align` (left/center/right), `spaced` (space-between), `reverse` (order reversal)
@@ -20,7 +20,7 @@
 > All changes are backward compatible.
 
 > [!NOTE]
-> **Update 2026-02-6:** 
+> **Update 2026-02-09:** 
 > Added a suite of new UI components for the `pynote_ui` module:
 > - New components: form, toggle, input, textarea, and more
 > - Full integration with PyNote's theming system
