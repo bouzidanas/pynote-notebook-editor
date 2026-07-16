@@ -159,10 +159,14 @@ export const createPythonLinter = (checkRedefinitions?: (defs: any[]) => any[]) 
 export const pythonLinter = createPythonLinter();
 
 // Autocomplete
+const NO_COMPLETION_NODES = new Set(["Comment", "String", "FormatString", "Escape", "FormatSpec"]);
+
 const pythonCompletionSource: CompletionSource = async (context) => {
-    // No completions inside comments
+    // No completions inside comments or string text. F-string text resolves to
+    // FormatString, but code inside {} resolves to its own expression nodes,
+    // so completions still work there.
     const nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1);
-    if (nodeBefore.name === "Comment") return null;
+    if (NO_COMPLETION_NODES.has(nodeBefore.name)) return null;
 
     // Match word or dot sequence before cursor
     // This regex matches variable names and dotted paths like "np.array"
