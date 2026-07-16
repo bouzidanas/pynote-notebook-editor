@@ -1,5 +1,6 @@
 import { linter, type Diagnostic, forEachDiagnostic } from "@codemirror/lint";
 import { type CompletionSource, autocompletion, type CompletionResult } from "@codemirror/autocomplete";
+import { syntaxTree } from "@codemirror/language";
 import { hoverTooltip } from "@codemirror/view";
 import { kernel } from "./pyodide";
 import { EditorView } from "@codemirror/view";
@@ -159,6 +160,10 @@ export const pythonLinter = createPythonLinter();
 
 // Autocomplete
 const pythonCompletionSource: CompletionSource = async (context) => {
+    // No completions inside comments
+    const nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1);
+    if (nodeBefore.name === "Comment") return null;
+
     // Match word or dot sequence before cursor
     // This regex matches variable names and dotted paths like "np.array"
     const word = context.matchBefore(/[\w.]+/);
