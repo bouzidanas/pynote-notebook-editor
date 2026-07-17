@@ -22,6 +22,13 @@
   --breakpoint-menu: 35rem;
   --breakpoint-lg: 56.25rem;
   
+  /* UI chrome text sizes. --ui-font-size-base (theme UI Typography) replaces
+     text-xs, the smallest preset the UI uses. text-sm keeps Tailwind's ratio
+     to text-xs (0.875 / 0.75), and the extra small sizes below scale down
+     from text-xs, so everything follows the base. */
+  --text-xs: var(--ui-font-size-base, 0.75rem);
+  --text-sm: calc(var(--ui-font-size-base, 0.75rem) * 1.16667);
+
   /* Extra small text sizes for UI components */
   --text-2xs: calc(var(--text-xs) * 0.833);
   --text-3xs: calc(var(--text-xs) * 0.7);

@@ -85,6 +85,13 @@ const AdvancedSections: Component = () => {
                     min={100}
                   />
                   <NumberUnitInput
+                    label="Base Font Size"
+                    value={currentTheme.uiTypography.baseFontSize}
+                    onChange={(v) => updateTheme({ uiTypography: { baseFontSize: v } })}
+                    placeholder="0.75rem"
+                    step={0.025}
+                  />
+                  <NumberUnitInput
                     label="Letter Spacing"
                     value={currentTheme.uiTypography.letterSpacing}
                     onChange={(v) => updateTheme({ uiTypography: { letterSpacing: v } })}

@@ -57,6 +57,7 @@ export interface Theme {
     baseFontSize: string;
     inlineFontSize: string;
     editorFontSize: string;
+    outputFontSize: string;
     letterSpacing: string;
   };
   editor: {
@@ -69,6 +70,7 @@ export interface Theme {
     fontFamily: string;
     fontWeight: string;
     menuFontWeight: string;
+    baseFontSize: string;
     letterSpacing: string;
   };
   // Shared border for UI element frames (dialogs, dropdowns, menus, toggles, inputs).
@@ -405,6 +407,7 @@ export const defaultTheme: Theme = {
     baseFontSize: "0.875rem",
     inlineFontSize: "0.875rem",
     editorFontSize: "1rem",
+    outputFontSize: "",
     letterSpacing: "",
   },
   editor: {
@@ -414,6 +417,7 @@ export const defaultTheme: Theme = {
     fontFamily: "",
     fontWeight: "",
     menuFontWeight: "",
+    baseFontSize: "",
     letterSpacing: "",
   },
   uiBorder: {
@@ -632,6 +636,8 @@ export const initTheme = () => {
     root.style.setProperty("--code-base-font-size", theme.codeTypography.baseFontSize);
     root.style.setProperty("--code-inline-font-size", theme.codeTypography.inlineFontSize);
     root.style.setProperty("--code-editor-font-size", theme.codeTypography.editorFontSize);
+    // Cell output text. Empty means follow the markdown base font size.
+    root.style.setProperty("--code-output-font-size", theme.codeTypography.outputFontSize || "var(--font-size-base)");
     root.style.setProperty("--code-letter-spacing", theme.codeTypography.letterSpacing || "normal");
 
     root.style.setProperty("--editor-max-code-height", theme.editor.maxCodeHeight);
@@ -641,6 +647,10 @@ export const initTheme = () => {
     root.style.setProperty("--ui-font-family", theme.uiTypography.fontFamily || "var(--font-mono)");
     root.style.setProperty("--ui-font-weight", theme.uiTypography.fontWeight || "var(--font-weight-base)");
     root.style.setProperty("--menu-font-weight", theme.uiTypography.menuFontWeight || "600");
+    // Base for UI chrome text sizes. Replaces text-xs (the smallest Tailwind
+    // preset the UI uses); the larger presets derive from it in index.css
+    // with the same ratios Tailwind uses, so 0.75rem reproduces the defaults.
+    root.style.setProperty("--ui-font-size-base", theme.uiTypography.baseFontSize || "0.75rem");
     root.style.setProperty("--ui-letter-spacing", theme.uiTypography.letterSpacing || "var(--letter-spacing-base)");
 
     // Shared UI element border (frames + dividers). Each of `border`/`divider`

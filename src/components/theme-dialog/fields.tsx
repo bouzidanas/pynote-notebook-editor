@@ -13,7 +13,11 @@ export const NumberUnitInput: Component<{
 }> = (itemProps) => {
 
   const parse = () => {
-    const match = String(itemProps.value).match(/^([-\d.]+)([a-z%]*)$/i);
+    // When the input is empty, step relative to the placeholder default if it
+    // is numeric (like "0.75rem"), so the first increment lands next to the
+    // default instead of next to zero.
+    const source = String(itemProps.value).trim() || itemProps.placeholder || "";
+    const match = source.match(/^([-\d.]+)([a-z%]*)$/i);
     return match ? { num: parseFloat(match[1]), unit: match[2] || '' } : { num: 0, unit: '' };
   };
 

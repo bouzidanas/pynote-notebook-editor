@@ -168,6 +168,13 @@ const CoreSections: Component = () => {
                 step={0.0625}
               />
               <NumberUnitInput
+                label="Output Font Size"
+                value={currentTheme.codeTypography.outputFontSize}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, outputFontSize: v } })}
+                placeholder="default"
+                step={0.0625}
+              />
+              <NumberUnitInput
                 label="Font Weight"
                 value={currentTheme.codeTypography.fontWeight}
                 onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, fontWeight: v } })}

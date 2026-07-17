@@ -271,7 +271,7 @@ const MarkdownWithUI: Component<{ content: string; styled: boolean }> = (props) 
   // Styled mode: prose handles spacing, no whitespace-pre-wrap needed
   // Plain mode: whitespace-pre-wrap preserves formatting
   const styledClass = "prose prose-invert max-w-none text-secondary [&]:whitespace-normal";
-  const plainClass = "font-mono text-sm text-secondary whitespace-pre-wrap";
+  const plainClass = "font-mono text-secondary whitespace-pre-wrap";
 
   // Render inline text (no <p> wrapper) using parseInline
   const renderInlineText = (content: string): string => {
@@ -508,12 +508,12 @@ export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
   // separate from any preceding output blocks (stderr/result).
   const containerClass = () =>
     props.position === "below"
-      ? "first:pb-4 flex flex-col gap-5 font-mono text-sm px-2 pt-3.5 pb-0 pl-1.25 border-foreground min-w-0"
-      : "first:pb-4 flex flex-col gap-5 font-mono text-sm p-2 pl-1.25 border-foreground min-w-0";
+      ? "first:pb-4 flex flex-col gap-5 font-mono px-2 pt-3.5 pb-0 pl-1.25 border-foreground min-w-0"
+      : "first:pb-4 flex flex-col gap-5 font-mono p-2 pl-1.25 border-foreground min-w-0";
 
   return (
     <Show when={hasContent()}>
-      <div class={containerClass()} data-testid={TESTID.cellOutput}>
+      <div class={containerClass()} style={{ "font-size": "var(--code-output-font-size, var(--font-size-base, 1rem))" }} data-testid={TESTID.cellOutput}>
         <Show when={segments().length > 0}>
           {/* Render all segments in one container for inline flow */}
           <div class="text-secondary whitespace-pre-wrap min-w-0">
@@ -545,7 +545,7 @@ export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
 export const OutputStderr: Component<OutputProps> = (props) => {
   return (
     <Show when={props.outputs?.stderr && props.outputs.stderr.length > 0}>
-      <div class="flex flex-col gap-0 font-mono text-sm px-2 pb-2 pt-0 pl-1 border-foreground max-h-60 overflow-y-auto">
+      <div class="flex flex-col gap-0 font-mono px-2 pb-2 pt-0 pl-1 border-foreground max-h-60 overflow-y-auto" style={{ "font-size": "var(--code-output-font-size, var(--font-size-base, 1rem))" }}>
         <For each={props.outputs?.stderr}>
           {(line) => <div class="text-warning whitespace-pre-wrap bg-warning/10 p-1 rounded-sm">{line}</div>}
         </For>
@@ -557,7 +557,7 @@ export const OutputStderr: Component<OutputProps> = (props) => {
 export const OutputError: Component<OutputProps> = (props) => {
   return (
     <Show when={props.outputs?.error}>
-      <div class="flex flex-col gap-1 font-mono text-sm p-2 pl-1 border-foreground max-h-100 overflow-y-auto">
+      <div class="flex flex-col gap-1 font-mono p-2 pl-1 border-foreground max-h-100 overflow-y-auto" style={{ "font-size": "var(--code-output-font-size, var(--font-size-base, 1rem))" }}>
         <div class="text-error whitespace-pre-wrap font-bold bg-error/20 p-2 rounded-sm">
           {props.outputs?.error}
         </div>
@@ -573,10 +573,10 @@ export const OutputResult: Component<OutputProps & { showGutter?: boolean }> = (
   const showGutter = () => props.showGutter !== false;
   return (
     <Show when={props.outputs?.result}>
-      <div class={`flex flex-col gap-1 font-mono text-sm p-2 border-foreground ${showGutter() ? "pl-1" : "pl-1.75"}`}>
+      <div class={`flex flex-col gap-1 font-mono p-2 border-foreground ${showGutter() ? "pl-1" : "pl-1.75"}`} style={{ "font-size": "var(--code-output-font-size, var(--font-size-base, 1rem))" }}>
         <div class="flex w-full">
           <Show when={showGutter()}>
-            <div class="w-10 bg-background border-r ui-border-color flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
+            <div class="w-10 bg-background border-r ui-border-color flex flex-col items-center pt-5.25 text-foreground font-extrabold select-none font-mono">Out:</div>
           </Show>
           <div class="flex-1 text-secondary/80 whitespace-pre-wrap border-l-4 ui-border-color bg-accent/5 pt-5 p-4">
             {props.outputs?.result}

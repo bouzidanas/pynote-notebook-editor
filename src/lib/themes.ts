@@ -137,12 +137,12 @@ const PRESETS = {
             "sm": "0.75rem"
         },
         "spacing": {
-            "line": "1.75",
+            "line": "1.65",
             "cell": "1rem",
             "block": "1.5rem"
         },
         "typography": {
-            "fontSize": "1.1rem",
+            "fontSize": "1.225rem",
             "headerDelta": "0.3rem",
             "headerColors": [
                 "#ee2f65",
@@ -150,22 +150,24 @@ const PRESETS = {
                 "#af0e3c",
                 "#780827"
             ],
-            "headerMarginBottom": "1.75rem",
+            "headerMarginBottom": "1.25rem",
             "letterSpacing": "-0.03em"
         },
         "codeTypography": {
             "fontFamily": "\"JetBrains Mono Variable\", monospace",
             "fontWeight": "400",
-            "baseFontSize": "0.875rem",
-            "inlineFontSize": "0.875rem",
-            "editorFontSize": "1rem"
+            "baseFontSize": "1.0625rem",
+            "inlineFontSize": "0.9375rem",
+            "editorFontSize": "1.0625rem",
+            "outputFontSize": "1.0625rem"
         },
         "editor": {
             "maxCodeHeight": "none"
         },
         "uiTypography": {
             "fontWeight": "600",
-            "menuFontWeight": "900"
+            "menuFontWeight": "900",
+            "baseFontSize": "0.85rem"
         },
         "uiBorder": {
             "color": "#171717",
