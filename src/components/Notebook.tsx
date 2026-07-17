@@ -14,6 +14,7 @@ import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRun, shouldAutoRunOnRefresh, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, defaultTheme } from "../lib/theme";
+import { loadThemeFonts } from "../lib/font-loader";
 import { TESTID } from "../lib/testids";
 import FileWorkspacePanel from "./FileWorkspacePanel";
 import SideShortcuts from "./notebook/SideShortcuts";
@@ -1109,7 +1110,7 @@ const Notebook: Component = () => {
   };
 
   // Process loaded notebook content (shared between file input and File System Access API)
-  const processLoadedNotebook = (content: string, filename: string, handle: FileSystemFileHandle | null) => {
+  const processLoadedNotebook = async (content: string, filename: string, handle: FileSystemFileHandle | null) => {
     try {
       const nb = JSON.parse(content);
       if (nb.cells && Array.isArray(nb.cells)) {
@@ -1205,16 +1206,22 @@ const Notebook: Component = () => {
           ? nb.metadata.PyNote.codeHiddenPlaceholder
           : undefined;
         
-        // Store the file handle for later saving (only if opened via File System Access API)
-        fileHandle = handle;
-        
         // If we have a file handle, load directly without page reload to preserve it
         if (handle) {
-          // Apply theme if document has one
+          // Apply theme if document has one. Give any Google fonts the theme
+          // references a short head start (bounded, so opening a file never
+          // hangs on the network) so the font usually arrives in the same
+          // paint as the rest of the theme. Past the cap it swaps in when
+          // ready instead.
           if (themeData) {
+            await loadThemeFonts(themeData, 250);
             updateTheme(themeData);
             setSessionHasTheme(true);
           }
+          
+          // Store the file handle for later saving. Assigned only now, after
+          // the font wait, so saves during the wait still target the old file.
+          fileHandle = handle;
           
           // Apply code visibility if document has settings
           if (documentVisibilityState) {

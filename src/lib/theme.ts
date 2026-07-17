@@ -1,6 +1,7 @@
 import { createStore } from "solid-js/store";
 import { createEffect } from "solid-js";
 import { resolveBorder } from "../components/ui-renderer/colorUtils";
+import { scheduleThemeFontLoad } from "./font-loader";
 
 export interface Theme {
   font: string;
@@ -577,6 +578,12 @@ export const initTheme = () => {
     const body = document.body;
     root.style.setProperty("--font-mono", theme.font);
     root.style.setProperty("--font-weight-base", theme.fontWeight || "normal");
+
+    // Catch-all for live edits (theme dialog font inputs): fetch any Google
+    // font the theme now references. Debounced since inputs fire per
+    // keystroke; the font swaps in when ready. Whole-theme loads (file open,
+    // session restore, boot) await loadThemeFonts before applying instead.
+    scheduleThemeFontLoad(theme);
 
     // Set base theme variables (--primary, --secondary, etc.)
     // The @theme inline block in index.css will map these to --color-* for Tailwind utilities
