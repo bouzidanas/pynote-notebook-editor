@@ -142,7 +142,7 @@ const PRESETS = {
             "block": "1.5rem"
         },
         "typography": {
-            "fontSize": "1.225rem",
+            "fontSize": "1.2rem",
             "headerDelta": "0.3rem",
             "headerColors": [
                 "#ee2f65",
