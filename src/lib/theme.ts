@@ -49,6 +49,7 @@ export interface Theme {
     headerDelta: string;
     headerColors?: string[];
     headerMarginBottom: string;
+    letterSpacing: string;
   };
   codeTypography: {
     fontFamily: string;
@@ -56,6 +57,7 @@ export interface Theme {
     baseFontSize: string;
     inlineFontSize: string;
     editorFontSize: string;
+    letterSpacing: string;
   };
   editor: {
     maxCodeHeight: string;
@@ -67,6 +69,7 @@ export interface Theme {
     fontFamily: string;
     fontWeight: string;
     menuFontWeight: string;
+    letterSpacing: string;
   };
   // Shared border for UI element frames (dialogs, dropdowns, menus, toggles, inputs).
   // Empty string = inherit current behavior (1px solid, foreground color).
@@ -394,6 +397,7 @@ export const defaultTheme: Theme = {
     headerDelta: "0.225rem",
     headerColors: ["#f38ba8", "#fab387", "#f9e2af", "#a6e3a1"],
     headerMarginBottom: "1.75rem",
+    letterSpacing: "",
   },
   codeTypography: {
     fontFamily: '"JetBrains Mono Variable", monospace',
@@ -401,6 +405,7 @@ export const defaultTheme: Theme = {
     baseFontSize: "0.875rem",
     inlineFontSize: "0.875rem",
     editorFontSize: "1rem",
+    letterSpacing: "",
   },
   editor: {
     maxCodeHeight: "none",
@@ -409,6 +414,7 @@ export const defaultTheme: Theme = {
     fontFamily: "",
     fontWeight: "",
     menuFontWeight: "",
+    letterSpacing: "",
   },
   uiBorder: {
     color: "",
@@ -619,12 +625,14 @@ export const initTheme = () => {
     root.style.setProperty("--font-size-base", theme.typography.fontSize);
     root.style.setProperty("--font-size-delta", theme.typography.headerDelta);
     root.style.setProperty("--header-margin-bottom", theme.typography.headerMarginBottom);
+    root.style.setProperty("--letter-spacing-base", theme.typography.letterSpacing || "normal");
 
     root.style.setProperty("--code-font-family", theme.codeTypography.fontFamily);
     root.style.setProperty("--code-font-weight", theme.codeTypography.fontWeight);
     root.style.setProperty("--code-base-font-size", theme.codeTypography.baseFontSize);
     root.style.setProperty("--code-inline-font-size", theme.codeTypography.inlineFontSize);
     root.style.setProperty("--code-editor-font-size", theme.codeTypography.editorFontSize);
+    root.style.setProperty("--code-letter-spacing", theme.codeTypography.letterSpacing || "normal");
 
     root.style.setProperty("--editor-max-code-height", theme.editor.maxCodeHeight);
 
@@ -633,6 +641,7 @@ export const initTheme = () => {
     root.style.setProperty("--ui-font-family", theme.uiTypography.fontFamily || "var(--font-mono)");
     root.style.setProperty("--ui-font-weight", theme.uiTypography.fontWeight || "var(--font-weight-base)");
     root.style.setProperty("--menu-font-weight", theme.uiTypography.menuFontWeight || "600");
+    root.style.setProperty("--ui-letter-spacing", theme.uiTypography.letterSpacing || "var(--letter-spacing-base)");
 
     // Shared UI element border (frames + dividers). Each of `border`/`divider`
     // may carry its own width, style and color; anything omitted falls back to

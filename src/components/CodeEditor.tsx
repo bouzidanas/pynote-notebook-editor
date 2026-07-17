@@ -528,6 +528,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
       fontSize: "var(--code-editor-font-size)",
       fontFamily: "var(--code-font-family)",
       fontWeight: "var(--code-font-weight)",
+      letterSpacing: "var(--code-letter-spacing, normal)",
     },
     ".cm-content": {
       caretColor: "var(--accent) !important",

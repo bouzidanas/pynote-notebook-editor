@@ -119,6 +119,10 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       props.onClose();
     } else {
       // Notebook-scoped save (existing behavior)
+      // Capture the layout selection first: the updateVisibility writes below
+      // re-run the dialog's sync effect, which resets localOutputLayout from
+      // the (not yet updated) theme and would clobber the user's choice.
+      const outputLayout = localOutputLayout();
       updateVisibility("showCode", settings.showCode);
       updateVisibility("showStdout", settings.showStdout);
       updateVisibility("showStderr", settings.showStderr);
@@ -131,7 +135,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       // Persist visibility to localStorage
       saveVisibilitySettings();
       // Update theme output layout
-      updateTheme({ outputLayout: localOutputLayout() });
+      updateTheme({ outputLayout });
       // Notify parent to trigger session autosave
       props.onSave?.();
       props.onClose();

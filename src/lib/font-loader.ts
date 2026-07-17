@@ -79,40 +79,7 @@ const injectAndLoad = async (family: string, css: string): Promise<void> => {
   ]);
 };
 
-// Boot fast path. When every family the theme needs is already in the session
-// cache, inject the CSS synchronously (so the faces are registered before
-// first paint) and let the binaries activate from the browser cache in
-// parallel instead of holding up render. font-display: block covers the frame
-// or two of disk-cache activation with invisible text rather than a visible
-// fallback-font swap. Returns false when some family needs a network fetch,
-// in which case the caller should use loadThemeFonts and wait.
-export const injectCachedThemeFonts = (theme: ThemeFontFields): boolean => {
-  if (typeof document === "undefined" || !document.fonts) return true;
-  for (const family of collectFamilies(theme)) {
-    if (attempted.has(family)) continue;
-    const cached = readCssCache(family);
-    if (cached === null) return false;
-    if (cached === NOT_AVAILABLE) {
-      attempted.set(family, Promise.resolve());
-      continue;
-    }
-    // Registration only, no explicit document.fonts.load: the first layout
-    // that uses the family kicks off the (browser-cached) fetch by itself,
-    // and font-display: block hides activation. Keeps pre-render work minimal.
-    const style = document.createElement("style");
-    style.setAttribute("data-google-font", family);
-    style.textContent = cached.replace(/font-display:\s*swap/g, "font-display: block");
-    document.head.appendChild(style);
-    attempted.set(family, Promise.resolve());
-  }
-  return true;
-};
-
 const fetchAndRegister = async (family: string): Promise<void> => {
-  const cached = readCssCache(family);
-  if (cached === NOT_AVAILABLE) return;
-  if (cached) return injectAndLoad(family, cached);
-
   const name = encodeURIComponent(family).replace(/%20/g, "+");
   // Variable fonts first (full weight range), then common static weights,
   // then regular only. Google rejects axis ranges a family doesn't support.
@@ -149,14 +116,34 @@ const loadFamily = (family: string): Promise<void> => {
   return pending;
 };
 
-// Load every non-bundled font family a theme references. Resolves when the
-// fonts are ready, or after timeoutMs so a dead network can't hold the theme
-// hostage (a late font still swaps in via font-display: swap).
+// Load every non-bundled font family a theme references. Cached families
+// (session cache from an earlier load) inject synchronously and activate from
+// the browser cache in parallel, costing callers nothing. Only families that
+// need a network fetch are waited on, capped at timeoutMs so a dead network
+// can't hold the theme hostage (a late font still swaps in when it arrives).
 export const loadThemeFonts = (theme: ThemeFontFields, timeoutMs = 2500): Promise<void> => {
   if (typeof document === "undefined" || !document.fonts) return Promise.resolve();
-  const families = collectFamilies(theme);
-  if (families.size === 0) return Promise.resolve();
-  const all = Promise.all([...families].map(loadFamily)).then(() => undefined);
+  const needsFetch: string[] = [];
+  for (const family of collectFamilies(theme)) {
+    if (attempted.has(family)) continue;
+    const cached = readCssCache(family);
+    if (cached === NOT_AVAILABLE) {
+      // Known not to be on Google Fonts (system font, typo). Nothing to do.
+      attempted.set(family, Promise.resolve());
+    } else if (cached !== null) {
+      // Cached CSS: register the faces now, activate in parallel. The
+      // font-display: block rewrite covers the frame or two of disk-cache
+      // activation with invisible text instead of a visible font swap.
+      attempted.set(
+        family,
+        injectAndLoad(family, cached.replace(/font-display:\s*swap/g, "font-display: block"))
+      );
+    } else {
+      needsFetch.push(family);
+    }
+  }
+  if (needsFetch.length === 0) return Promise.resolve();
+  const all = Promise.all(needsFetch.map(loadFamily)).then(() => undefined);
   // Offline: kick the attempts off (they fail fast and get retried on the
   // next page load) but don't make callers wait on a network we don't have.
   if (typeof navigator !== "undefined" && navigator.onLine === false) return Promise.resolve();

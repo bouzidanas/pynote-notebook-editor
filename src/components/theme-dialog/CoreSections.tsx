@@ -127,6 +127,13 @@ const CoreSections: Component = () => {
                 placeholder="0.225rem"
                 step={0.0125}
               />
+              <NumberUnitInput
+                label="Letter Spacing"
+                value={currentTheme.typography.letterSpacing}
+                onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, letterSpacing: v } })}
+                placeholder="normal"
+                step={0.01}
+              />
             </Section>
 
             {/* Code Typography Section */}
@@ -167,6 +174,13 @@ const CoreSections: Component = () => {
                 placeholder="400"
                 step={100}
                 min={100}
+              />
+              <NumberUnitInput
+                label="Letter Spacing"
+                value={currentTheme.codeTypography.letterSpacing}
+                onChange={(v) => updateTheme({ codeTypography: { ...currentTheme.codeTypography, letterSpacing: v } })}
+                placeholder="normal"
+                step={0.01}
               />
             </Section>
 

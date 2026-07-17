@@ -84,6 +84,13 @@ const AdvancedSections: Component = () => {
                     step={100}
                     min={100}
                   />
+                  <NumberUnitInput
+                    label="Letter Spacing"
+                    value={currentTheme.uiTypography.letterSpacing}
+                    onChange={(v) => updateTheme({ uiTypography: { letterSpacing: v } })}
+                    placeholder="app spacing"
+                    step={0.01}
+                  />
                 </div>
             </Section>
 

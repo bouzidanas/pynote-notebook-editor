@@ -3,38 +3,31 @@ import { render } from 'solid-js/web'
 import './index.css'
 import "katex/dist/katex.min.css";
 import App from './App.tsx'
-import { loadThemeFonts, injectCachedThemeFonts } from './lib/font-loader'
+import { loadThemeFonts } from './lib/font-loader'
 import { loadAppTheme } from './lib/theme'
 import { sessionManager } from './lib/session'
 
 const root = document.getElementById('root')
 
-// Google fonts referenced by the initial theme (session theme when one
-// exists, else the app theme). Rendering is only ever held up when BOTH are
-// true: a font actually needs a network fetch, and this is a session being
-// created (no restorable session data). Refreshes and reloads of an existing
-// session always render immediately; session-cached font CSS is registered
-// synchronously so the font is still there at first paint, and anything
-// uncached loads in the background and swaps in.
-const boot = (() => {
+// Fetch any Google fonts the initial theme references before first render,
+// so the first paint already uses them (no fallback-font flash). The theme
+// applied on mount is the session theme when one exists, else the app theme.
+const initialTheme = (() => {
   try {
     const sessionId = sessionManager.getSessionIdFromUrl();
     const session = sessionId ? sessionManager.loadSession(sessionId) : null;
-    return { theme: session?.theme || loadAppTheme(), existingSession: !!session };
+    return session?.theme || loadAppTheme();
   } catch {
-    return { theme: null, existingSession: false };
+    return null;
   }
 })();
 
 const start = () => render(() => <App />, root!)
-if (boot.theme) {
-  const allCached = injectCachedThemeFonts(boot.theme)
-  if (!allCached && !boot.existingSession) {
-    loadThemeFonts(boot.theme).then(start, start)
-  } else {
-    void loadThemeFonts(boot.theme)
-    start()
-  }
+if (initialTheme) {
+  // Resolves immediately when the theme's fonts are cached or bundled; only
+  // a genuinely un-fetched Google font holds first render, capped at 1.5s so
+  // a slow network can't leave the preloader background up for long.
+  loadThemeFonts(initialTheme, 1500).then(start, start)
 } else {
   start()
 }

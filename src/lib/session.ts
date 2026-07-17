@@ -1,3 +1,5 @@
+import { deleteFileHandle } from "./file-handles";
+
 export interface SessionMeta {
     id: string;
     filename: string;
@@ -63,6 +65,7 @@ export const sessionManager = {
             if (toRemove) {
                 evictedId = toRemove.id;
                 localStorage.removeItem(`${SESSION_PREFIX}${toRemove.id}`);
+                void deleteFileHandle(toRemove.id);
             }
         }
 
@@ -106,11 +109,15 @@ export const sessionManager = {
         localStorage.removeItem(`${SESSION_PREFIX}${id}`);
         const sessions = this.getSessions().filter(s => s.id !== id);
         localStorage.setItem(INDEX_KEY, JSON.stringify(sessions));
+        void deleteFileHandle(id);
     },
 
     clearAllSessions() {
         const sessions = this.getSessions();
-        sessions.forEach(s => localStorage.removeItem(`${SESSION_PREFIX}${s.id}`));
+        sessions.forEach(s => {
+            localStorage.removeItem(`${SESSION_PREFIX}${s.id}`);
+            void deleteFileHandle(s.id);
+        });
         localStorage.removeItem(INDEX_KEY);
     }
 };

@@ -31,7 +31,11 @@ const measure = async (label) => {
   await page.goto(URL, { waitUntil: "load" });
   await page.waitForSelector("#root > *", { timeout: 20000 });
   const ms = await page.evaluate(() => window.__firstRenderMs);
+  const marks = await page.evaluate(() =>
+    performance.getEntriesByType("mark").map((m) => `${m.name}@${m.startTime.toFixed(0)}`).join(" ")
+  );
   console.log(`${label}: firstRender=${ms?.toFixed(0)}ms, fontRequests=${requests.length}`);
+  console.log(`   marks: ${marks}`);
   for (const r of requests) console.log(`   ${r}`);
 };
 
@@ -58,31 +62,12 @@ await measure("B google font, first load");
 await measure("C google font, refresh");
 await measure("C google font, refresh 2");
 
-// D: existing session whose theme has a Google font, but nothing cached
-// (fresh tab). Must NOT block render; font swaps in when ready.
+// A again at the end: if this is now slow too, the C slowdown is an order
+// artifact of the harness, not the font path.
 await page.evaluate(() => {
-  const id = "timing-test-session";
-  localStorage.setItem(
-    "pynote-session-" + id,
-    JSON.stringify({ cells: [{ id: "c1", type: "markdown", content: "# hi" }], filename: "t.ipynb", theme: { font: '"Fira Code", monospace' } })
-  );
-  sessionStorage.clear();
+  localStorage.setItem("pynote-theme", JSON.stringify({ font: '"JetBrains Mono Variable", monospace' }));
 });
-const dUrl = URL + "?session=timing-test-session";
-requests.length = 0;
-await page.goto(dUrl, { waitUntil: "load" });
-await page.waitForSelector("#root > *", { timeout: 20000 });
-const dMs = await page.evaluate(() => window.__firstRenderMs);
-console.log(`D existing session, uncached google font: firstRender=${dMs?.toFixed(0)}ms, fontRequests=${requests.length}`);
-
-// E: refresh of the same session, font CSS now session-cached by D's
-// background load. This is the everyday refresh case.
-for (const n of [1, 2]) {
-  requests.length = 0;
-  await page.goto(dUrl, { waitUntil: "load" });
-  await page.waitForSelector("#root > *", { timeout: 20000 });
-  const eMs = await page.evaluate(() => window.__firstRenderMs);
-  console.log(`E existing session, cached google font, refresh ${n}: firstRender=${eMs?.toFixed(0)}ms, fontRequests=${requests.length}`);
-}
+await measure("A2 bundled font, at end");
+await measure("A2 bundled font, at end 2");
 
 await browser.close();
