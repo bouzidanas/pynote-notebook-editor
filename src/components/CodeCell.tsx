@@ -210,7 +210,10 @@ const CodeCell: Component<CodeCellProps> = (props) => {
         {/* Timeline Connector - show based on status dot visibility setting */}
         <Show when={visibility().showStatusDot && props.cell.outputs}>
            <div class="flex pl-1.5 relative z-0 h-5 -my-1.5">
-              <div class="w-10 relative flex items-center justify-center">
+              {/* Spacer matches the execution count gutter. When the count is
+                  hidden it collapses so the dot sits at the code container's
+                  left edge and the info row expands to full width. */}
+              <div class={clsx("relative flex items-center justify-center", visibility().showExecutionCount ? "w-10" : "w-0.75")}>
                   <div class={clsx(
                       "absolute -right-1.25 rounded-full transition-all duration-300",
                       // Size logic
@@ -268,7 +271,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
 
         {/* Result (Always Below Stderr) */}
         <Show when={visibility().showResult && props.cell.outputs}>
-          <OutputResult outputs={props.cell.outputs} />
+          <OutputResult outputs={props.cell.outputs} showGutter={visibility().showExecutionCount} />
         </Show>
 
         {/* Output Logs (Stdout/UI) Below (if layout is below) */}

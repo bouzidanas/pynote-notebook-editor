@@ -566,12 +566,18 @@ export const OutputError: Component<OutputProps> = (props) => {
   );
 };
 
-export const OutputResult: Component<OutputProps> = (props) => {
+export const OutputResult: Component<OutputProps & { showGutter?: boolean }> = (props) => {
+  // The Out: gutter mirrors the execution count gutter on the code container.
+  // When that count is hidden the gutter hides too and the content expands to
+  // full width, with padding matched to the code container's left edge (pl-1.75).
+  const showGutter = () => props.showGutter !== false;
   return (
     <Show when={props.outputs?.result}>
-      <div class="flex flex-col gap-1 font-mono text-sm p-2 pl-1 border-foreground">
+      <div class={`flex flex-col gap-1 font-mono text-sm p-2 border-foreground ${showGutter() ? "pl-1" : "pl-1.75"}`}>
         <div class="flex w-full">
-          <div class="w-10 bg-background border-r ui-border-color flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
+          <Show when={showGutter()}>
+            <div class="w-10 bg-background border-r ui-border-color flex flex-col items-center pt-5.25 text-sm text-foreground font-extrabold select-none font-mono">Out:</div>
+          </Show>
           <div class="flex-1 text-secondary/80 whitespace-pre-wrap border-l-4 ui-border-color bg-accent/5 pt-5 p-4">
             {props.outputs?.result}
           </div>

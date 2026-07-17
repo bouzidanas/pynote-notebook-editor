@@ -118,11 +118,11 @@ const PRESETS = {
         "pageWidth": "normal"
     },
     "neobrutal_light": {
-        "font": "\"JetBrains Mono Variable\", monospace",
-        "fontWeight": "600",
+        "font": "DM Sans",
+        "fontWeight": "500",
         "colors": {
             "primary": "#ec225c",
-            "secondary": "#525252",
+            "secondary": "#0a0a0a",
             "accent": "#4d4d4d",
             "background": "#f6f0e5",
             "foreground": "#e4ddcf",
@@ -142,15 +142,16 @@ const PRESETS = {
             "block": "1.5rem"
         },
         "typography": {
-            "fontSize": "1rem",
-            "headerDelta": "0.225rem",
+            "fontSize": "1.1rem",
+            "headerDelta": "0.3rem",
             "headerColors": [
                 "#ee2f65",
                 "#de124c",
                 "#af0e3c",
                 "#780827"
             ],
-            "headerMarginBottom": "1.75rem"
+            "headerMarginBottom": "1.75rem",
+            "letterSpacing": "-0.03em"
         },
         "codeTypography": {
             "fontFamily": "\"JetBrains Mono Variable\", monospace",
@@ -163,6 +164,7 @@ const PRESETS = {
             "maxCodeHeight": "none"
         },
         "uiTypography": {
+            "fontWeight": "600",
             "menuFontWeight": "900"
         },
         "uiBorder": {
@@ -187,8 +189,9 @@ const PRESETS = {
         },
         "sectionScoping": false,
         "tableOverflow": "scroll",
-        "outputLayout": "above",
-        "pageWidth": "normal"
+        "outputLayout": "below",
+        "pageWidth": "normal",
+        "preset": "neobrutal_light"
     },
 } satisfies Record<string, ThemePreset>;
 

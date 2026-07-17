@@ -381,7 +381,9 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
               {/* Result Preview */}
               <Show when={localSettings().showResult}>
                 <div class="flex gap-2 font-mono text-xs">
-                  <span class="text-foreground font-bold select-none">Out:</span>
+                  <Show when={localSettings().showExecutionCount}>
+                    <span class="text-foreground font-bold select-none">Out:</span>
+                  </Show>
                   <span class="text-secondary/80">42</span>
                 </div>
               </Show>
