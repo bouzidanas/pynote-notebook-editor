@@ -8,6 +8,7 @@ export const FONT_OPTIONS: ComboBoxOption[] = [
   { label: "IBM Plex Mono",               value: '"IBM Plex Mono", monospace' },
   { label: "Source Code Pro",             value: '"Source Code Pro Variable", monospace' },
   { label: "Google Sans Code",            value: '"Google Sans Code", monospace' },
+  { label: "DM Sans",                     value: '"DM Sans Variable", sans-serif' },
 ];
 
 // Collapsed/expanded state for the theme dialog sections.
