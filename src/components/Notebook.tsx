@@ -1015,7 +1015,8 @@ const Notebook: Component = () => {
               showStderr: codeVisibility.showStderr,
               showResult: codeVisibility.showResult,
               showError: codeVisibility.showError,
-              showStatusDot: codeVisibility.showStatusDot
+              showStatusDot: codeVisibility.showStatusDot,
+              showExecutionCount: codeVisibility.showExecutionCount
             }
           } : loadedDocumentCodeview ? {
             codeview: loadedDocumentCodeview
@@ -1178,7 +1179,8 @@ const Notebook: Component = () => {
            // Validate and extract only known keys
            const validKeys: (keyof CodeVisibilitySettings)[] = [
                "showCode", "showStdout", "showStderr", 
-               "showResult", "showError", "showStatusDot"
+               "showResult", "showError", "showStatusDot",
+               "showExecutionCount"
            ];
            
            const docSettings: Partial<CodeVisibilitySettings> = {};
