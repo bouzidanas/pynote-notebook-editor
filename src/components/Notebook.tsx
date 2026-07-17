@@ -14,6 +14,8 @@ import Dropdown, { DropdownItem, DropdownDivider } from "./ui/Dropdown";
 import { sessionManager } from "../lib/session";
 import { codeVisibility, setVisibilitySettings, resetUserOverride, getSessionState, restoreSessionState, setOnCellOverrideChange, applyDocumentSettings, shouldLoadMetadataSettings, shouldAutoRun, shouldAutoRunOnRefresh, type CodeVisibilitySettings } from "../lib/codeVisibility";
 import { currentTheme, updateTheme, saveThemeAppWide, loadAppTheme, defaultTheme } from "../lib/theme";
+import { loadThemeFonts } from "../lib/font-loader";
+import { saveFileHandle, loadFileHandle } from "../lib/file-handles";
 import { TESTID } from "../lib/testids";
 import FileWorkspacePanel from "./FileWorkspacePanel";
 import SideShortcuts from "./notebook/SideShortcuts";
@@ -699,6 +701,13 @@ const Notebook: Component = () => {
         } else {
           setSessionHasTheme(false);
         }
+
+        // Restore the opened file's handle (persisted in IndexedDB; survives
+        // reloads unlike the localStorage session). Save re-requests write
+        // permission if the browser dropped it.
+        loadFileHandle(sessionId).then((h) => {
+          if (h && !fileHandle) fileHandle = h;
+        });
         
         // Restore code visibility state if session has it
         if (data.codeVisibility) {
@@ -1006,7 +1015,8 @@ const Notebook: Component = () => {
               showStderr: codeVisibility.showStderr,
               showResult: codeVisibility.showResult,
               showError: codeVisibility.showError,
-              showStatusDot: codeVisibility.showStatusDot
+              showStatusDot: codeVisibility.showStatusDot,
+              showExecutionCount: codeVisibility.showExecutionCount
             }
           } : loadedDocumentCodeview ? {
             codeview: loadedDocumentCodeview
@@ -1017,7 +1027,16 @@ const Notebook: Component = () => {
               return pruneEmptyThemeOverrides(themeToExport, defaultTheme);
             })()
           } : loadedDocumentTheme ? {
-            theme: loadedDocumentTheme
+            // Write back the original document theme, but the above/below
+            // output toggle lives in the code visibility dialog and is stored
+            // on the theme, so when that dialog's save-to-export is on the
+            // current toggle state must win over the stale written-back value.
+            theme: codeVisibility.saveToExport
+              ? { ...loadedDocumentTheme, outputLayout: currentTheme.outputLayout }
+              : loadedDocumentTheme
+          } : codeVisibility.saveToExport ? {
+            // No theme in the document: persist just the output toggle.
+            theme: { outputLayout: currentTheme.outputLayout }
           } : {})
         }
       },
@@ -1053,8 +1072,10 @@ const Notebook: Component = () => {
       await writable.write(content);
       await writable.close();
       
-      // Update fileHandle for future saves
+      // Update fileHandle for future saves (and future reloads)
       fileHandle = handle;
+      const sid = sessionManager.getSessionIdFromUrl();
+      if (sid) void saveFileHandle(sid, handle);
       
       return true;
     } catch (err: any) {
@@ -1072,6 +1093,14 @@ const Notebook: Component = () => {
     // If we have a file handle from opening a file, save directly to it
     if (fileHandle) {
       try {
+        // A handle restored after a reload may have lost write permission;
+        // re-request it here (Save is a user gesture, so prompting is allowed).
+        const h = fileHandle as any;
+        if (h.queryPermission && (await h.queryPermission({ mode: "readwrite" })) !== "granted") {
+          if ((await h.requestPermission?.({ mode: "readwrite" })) !== "granted") {
+            throw new Error("write permission not granted");
+          }
+        }
         const writable = await fileHandle.createWritable();
         await writable.write(content);
         await writable.close();
@@ -1109,7 +1138,7 @@ const Notebook: Component = () => {
   };
 
   // Process loaded notebook content (shared between file input and File System Access API)
-  const processLoadedNotebook = (content: string, filename: string, handle: FileSystemFileHandle | null) => {
+  const processLoadedNotebook = async (content: string, filename: string, handle: FileSystemFileHandle | null) => {
     try {
       const nb = JSON.parse(content);
       if (nb.cells && Array.isArray(nb.cells)) {
@@ -1150,7 +1179,8 @@ const Notebook: Component = () => {
            // Validate and extract only known keys
            const validKeys: (keyof CodeVisibilitySettings)[] = [
                "showCode", "showStdout", "showStderr", 
-               "showResult", "showError", "showStatusDot"
+               "showResult", "showError", "showStatusDot",
+               "showExecutionCount"
            ];
            
            const docSettings: Partial<CodeVisibilitySettings> = {};
@@ -1205,16 +1235,22 @@ const Notebook: Component = () => {
           ? nb.metadata.PyNote.codeHiddenPlaceholder
           : undefined;
         
-        // Store the file handle for later saving (only if opened via File System Access API)
-        fileHandle = handle;
-        
         // If we have a file handle, load directly without page reload to preserve it
         if (handle) {
-          // Apply theme if document has one
+          // Apply theme if document has one. Give any Google fonts the theme
+          // references a short head start (bounded, so opening a file never
+          // hangs on the network) so the font usually arrives in the same
+          // paint as the rest of the theme. Past the cap it swaps in when
+          // ready instead.
           if (themeData) {
+            await loadThemeFonts(themeData, 250);
             updateTheme(themeData);
             setSessionHasTheme(true);
           }
+          
+          // Store the file handle for later saving. Assigned only now, after
+          // the font wait, so saves during the wait still target the old file.
+          fileHandle = handle;
           
           // Apply code visibility if document has settings
           if (documentVisibilityState) {
@@ -1241,6 +1277,9 @@ const Notebook: Component = () => {
           url.searchParams.set("session", newSessionId);
           url.searchParams.delete("open");
           window.history.replaceState({}, "", url.toString());
+          
+          // Persist the handle so saves keep targeting this file after reloads
+          void saveFileHandle(newSessionId, handle);
           
           // Trigger autosave to persist the new session
           autosaveNotebookImmediate();

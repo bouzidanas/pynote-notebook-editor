@@ -42,6 +42,7 @@ body {
   color: inherit;
   font-family: var(--font-mono);
   font-weight: var(--font-weight-base, normal);
+  letter-spacing: var(--letter-spacing-base, normal);
   line-height: var(--line-spacing);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -157,6 +158,7 @@ select:-webkit-autofill:active {
 @utility ui-font {
   font-family: var(--ui-font-family, var(--font-mono));
   font-weight: var(--ui-font-weight, normal);
+  letter-spacing: var(--ui-letter-spacing, var(--letter-spacing-base, normal));
 }
 
 /* Shared UI divider style + color, applied to chrome dividers/separators
@@ -490,6 +492,7 @@ select:-webkit-autofill:active {
     font-family: var(--code-font-family);
     font-size: var(--code-inline-font-size);
     font-weight: var(--code-font-weight);
+    letter-spacing: var(--code-letter-spacing, normal);
     background-color: color-mix(in srgb, var(--accent) 8%, transparent);
     padding: 0.2em 0.5em;
     border-radius: var(--radius-sm);
@@ -514,6 +517,7 @@ select:-webkit-autofill:active {
     font-family: var(--code-font-family) !important;
     font-size: var(--code-inline-font-size) !important;
     font-weight: var(--code-font-weight) !important;
+    letter-spacing: var(--code-letter-spacing, normal);
     background-color: color-mix(in srgb, var(--accent) 8%, transparent);
     padding: 0.2em 0.5em;
     border-radius: var(--radius-sm);
@@ -551,6 +555,7 @@ select:-webkit-autofill:active {
     font-family: var(--code-font-family) !important;
     font-size: var(--code-base-font-size) !important;
     font-weight: var(--code-font-weight) !important;
+    letter-spacing: var(--code-letter-spacing, normal);
     color: color-mix(in srgb, var(--secondary) 75%, transparent) !important;
 }
 

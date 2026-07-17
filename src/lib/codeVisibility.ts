@@ -8,6 +8,7 @@ export interface CodeVisibilitySettings {
     showResult: boolean;
     showError: boolean;
     showStatusDot: boolean;
+    showExecutionCount: boolean;
     saveToExport: boolean;
     showLineNumbers: boolean;
     lineWrap: boolean;
@@ -67,6 +68,7 @@ const defaultSettings: CodeVisibilitySettings = {
     showResult: true,
     showError: true,
     showStatusDot: true,
+    showExecutionCount: true,
     saveToExport: false,
     showLineNumbers: false,
     lineWrap: true,
@@ -95,7 +97,8 @@ let userHasOverriddenSettings = false;
 // Track if any setting is hidden (for showing toggle button)
 export const hasHiddenElements = () => {
     return !settings.showCode || !settings.showStdout || !settings.showStderr ||
-        !settings.showResult || !settings.showError || !settings.showStatusDot;
+        !settings.showResult || !settings.showError || !settings.showStatusDot ||
+        !settings.showExecutionCount;
 };
 
 // Per-cell override: when true, show all regardless of settings
@@ -310,6 +313,7 @@ export const getEffectiveVisibility = (
             showResult: cellMetadata.showResult ?? settings.showResult,
             showError: cellMetadata.showError ?? settings.showError,
             showStatusDot: cellMetadata.showStatusDot ?? settings.showStatusDot,
+            showExecutionCount: settings.showExecutionCount, // Notebook-level only
             saveToExport: settings.saveToExport, // This is app-level only
             showLineNumbers: settings.showLineNumbers, // This is app-level only
             lineWrap: settings.lineWrap, // This is app-level only

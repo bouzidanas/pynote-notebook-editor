@@ -183,6 +183,28 @@ describe("syntax, radii, spacing and typography inputs", () => {
     await tick();
     expect(cssVar("--font-mono")).toBe('"Test Mono", monospace');
   });
+
+  test("letter spacing maps to base, code and ui variables", async () => {
+    updateTheme({
+      typography: { letterSpacing: "0.05em" },
+      codeTypography: { letterSpacing: "0.1em" },
+      uiTypography: { letterSpacing: "0.02em" },
+    });
+    await tick();
+    expect(cssVar("--letter-spacing-base")).toBe("0.05em");
+    expect(cssVar("--code-letter-spacing")).toBe("0.1em");
+    expect(cssVar("--ui-letter-spacing")).toBe("0.02em");
+
+    updateTheme({
+      typography: { letterSpacing: "" },
+      codeTypography: { letterSpacing: "" },
+      uiTypography: { letterSpacing: "" },
+    });
+    await tick();
+    expect(cssVar("--letter-spacing-base")).toBe("normal");
+    expect(cssVar("--code-letter-spacing")).toBe("normal");
+    expect(cssVar("--ui-letter-spacing")).toBe("var(--letter-spacing-base)");
+  });
 });
 
 describe("layout inputs", () => {

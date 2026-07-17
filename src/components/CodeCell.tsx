@@ -37,7 +37,8 @@ const CodeCell: Component<CodeCellProps> = (props) => {
   const cellHasHiddenElements = () => {
     const v = visibility();
     return !v.showCode || !v.showStdout || !v.showStderr ||
-           !v.showResult || !v.showError || !v.showStatusDot;
+           !v.showResult || !v.showError || !v.showStatusDot ||
+           !v.showExecutionCount;
   };
 
   // Check if cell has any actual output content (regardless of visibility settings)
@@ -154,21 +155,23 @@ const CodeCell: Component<CodeCellProps> = (props) => {
             ...(currentTheme.codeBlock.outerPadding ? { padding: currentTheme.codeBlock.outerPadding } : {}),
           }}
         >
-           {/* Line numbers gutter could go here */}
-           <div
-             class={clsx(
-               "w-10 bg-background flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono shrink-0",
-               currentTheme.codeBlock.gutterBorderRightOn && !currentTheme.codeBlock.gutterBorderRight && "border-r ui-border-color",
-               props.cell.outputs?.executionKernelId === kernel.id ? "text-secondary/50 font-bold" : "text-foreground"
-             )}
-             style={{
-               ...(currentTheme.codeBlock.gutterBorderRightOn && currentTheme.codeBlock.gutterBorderRight ? { "border-right": currentTheme.codeBlock.gutterBorderRight } : {}),
-               ...(currentTheme.codeBlock.gutterRadius ? { "border-radius": currentTheme.codeBlock.gutterRadius } : {}),
-               ...(currentTheme.codeBlock.gutterBackground ? { background: currentTheme.codeBlock.gutterBackground } : {}),
-             }}
-           >
-              [{props.index + 1}]:
-           </div>
+           {/* Execution count gutter. When hidden, the editor (flex-1) takes the full width */}
+           <Show when={visibility().showExecutionCount}>
+             <div
+               class={clsx(
+                 "w-10 bg-background flex flex-col items-center pt-5.5 pr-1.5 text-xs select-none font-mono shrink-0",
+                 currentTheme.codeBlock.gutterBorderRightOn && !currentTheme.codeBlock.gutterBorderRight && "border-r ui-border-color",
+                 props.cell.outputs?.executionKernelId === kernel.id ? "text-secondary/50 font-bold" : "text-foreground"
+               )}
+               style={{
+                 ...(currentTheme.codeBlock.gutterBorderRightOn && currentTheme.codeBlock.gutterBorderRight ? { "border-right": currentTheme.codeBlock.gutterBorderRight } : {}),
+                 ...(currentTheme.codeBlock.gutterRadius ? { "border-radius": currentTheme.codeBlock.gutterRadius } : {}),
+                 ...(currentTheme.codeBlock.gutterBackground ? { background: currentTheme.codeBlock.gutterBackground } : {}),
+               }}
+             >
+                [{props.index + 1}]:
+             </div>
+           </Show>
            <div
              class="flex-1 min-w-0 bg-accent/2 relative"
              style={{

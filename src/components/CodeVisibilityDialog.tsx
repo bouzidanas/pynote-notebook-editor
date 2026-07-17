@@ -1,5 +1,5 @@
 import { type Component, createSignal, createEffect, Show } from "solid-js";
-import { X, Code, EyeOff, TriangleAlert, Terminal, FileOutput, AlertCircle, CircleDot, ArrowUp, ArrowDown, Hash, WrapText, RotateCcw } from "lucide-solid";
+import { X, Code, EyeOff, TriangleAlert, Terminal, FileOutput, AlertCircle, CircleDot, ArrowUp, ArrowDown, Hash, WrapText, RotateCcw, Brackets } from "lucide-solid";
 import clsx from "clsx";
 import { 
   codeVisibility, 
@@ -36,6 +36,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
     showResult: codeVisibility.showResult,
     showError: codeVisibility.showError,
     showStatusDot: codeVisibility.showStatusDot,
+    showExecutionCount: codeVisibility.showExecutionCount,
     saveToExport: codeVisibility.saveToExport,
     showLineNumbers: codeVisibility.showLineNumbers,
     lineWrap: codeVisibility.lineWrap,
@@ -57,6 +58,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       showResult: cellCv?.showResult ?? codeVisibility.showResult,
       showError: cellCv?.showError ?? codeVisibility.showError,
       showStatusDot: cellCv?.showStatusDot ?? codeVisibility.showStatusDot,
+      showExecutionCount: codeVisibility.showExecutionCount, // notebook-level only
       saveToExport: codeVisibility.saveToExport, // saveToExport applies at both levels
       showLineNumbers: codeVisibility.showLineNumbers,
       lineWrap: codeVisibility.lineWrap,
@@ -72,6 +74,7 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       showResult: codeVisibility.showResult,
       showError: codeVisibility.showError,
       showStatusDot: codeVisibility.showStatusDot,
+      showExecutionCount: codeVisibility.showExecutionCount,
       saveToExport: codeVisibility.saveToExport,
       showLineNumbers: codeVisibility.showLineNumbers,
       lineWrap: codeVisibility.lineWrap,
@@ -119,19 +122,24 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
       props.onClose();
     } else {
       // Notebook-scoped save (existing behavior)
+      // Capture the layout selection first: the updateVisibility writes below
+      // re-run the dialog's sync effect, which resets localOutputLayout from
+      // the (not yet updated) theme and would clobber the user's choice.
+      const outputLayout = localOutputLayout();
       updateVisibility("showCode", settings.showCode);
       updateVisibility("showStdout", settings.showStdout);
       updateVisibility("showStderr", settings.showStderr);
       updateVisibility("showResult", settings.showResult);
       updateVisibility("showError", settings.showError);
       updateVisibility("showStatusDot", settings.showStatusDot);
+      updateVisibility("showExecutionCount", settings.showExecutionCount);
       updateVisibility("saveToExport", settings.saveToExport);
       updateVisibility("showLineNumbers", settings.showLineNumbers);
       updateVisibility("lineWrap", settings.lineWrap);
       // Persist visibility to localStorage
       saveVisibilitySettings();
       // Update theme output layout
-      updateTheme({ outputLayout: localOutputLayout() });
+      updateTheme({ outputLayout });
       // Notify parent to trigger session autosave
       props.onSave?.();
       props.onClose();
@@ -290,6 +298,10 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
             </div>
             <div class="space-y-0.5">
               <CheckboxRow itemKey="showCode" label="Code Editor" icon={Code} iconColor="text-accent" hasEditorToggles={true} />
+              {/* Notebook-level only: hidden in cell scope */}
+              <Show when={applyScope() === "notebook"}>
+                <CheckboxRow itemKey="showExecutionCount" label="Execution Count" icon={Brackets} iconColor="text-secondary/70" />
+              </Show>
               <CheckboxRow itemKey="showStatusDot" label="Status Indicator" icon={CircleDot} iconColor="text-success" />
               <CheckboxRow itemKey="showStdout" label="Standard Output" icon={Terminal} iconColor="text-secondary" hasPositionToggle={true} />
               <CheckboxRow itemKey="showResult" label="Return Value" icon={FileOutput} iconColor="text-secondary/70" />
@@ -325,7 +337,9 @@ const CodeVisibilityDialog: Component<CodeVisibilityDialogProps> = (props) => {
                 !localSettings().showCode && "hidden"
               )}>
                 <div class="flex gap-2">
-                  <span class="text-secondary/50 select-none">[1]:</span>
+                  <Show when={localSettings().showExecutionCount}>
+                    <span class="text-secondary/50 select-none">[1]:</span>
+                  </Show>
                   <div class="flex gap-2 flex-1">
                     <Show when={localSettings().showLineNumbers}>
                       <div class="text-secondary/30 select-none text-right" style="min-width: 1.5em;">
