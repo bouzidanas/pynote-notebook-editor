@@ -143,7 +143,7 @@ const PRESETS = {
         },
         "typography": {
             "fontSize": "1.2rem",
-            "headerDelta": "0.28rem",
+            "headerDelta": "0.26rem",
             "headerColors": [
                 "#ee2f65",
                 "#de124c",
