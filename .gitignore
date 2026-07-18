@@ -34,19 +34,6 @@ node_modules
 # Cloned repos
 /no-magic/
 
-# AI assistant caches and config
-.claude/
-CLAUDE.md
-.cursor/
-.cursorrules
-.aider*
-.continue/
-.codeium/
-.windsurf/
-.github/copilot-instructions.local.md
-.copilot/
-.ai/
-
 # Local working notes, not part of the published project
 explanations/
 future-feature-specs/
