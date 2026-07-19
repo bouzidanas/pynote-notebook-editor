@@ -609,7 +609,7 @@ def _check_solution(func_name, cases=None, edge_cases=None,
 
 #### Concept Overview
 
-**1. Mutability vs. Immutability**
+**1. Mutability vs. Immutability:**
 In Python, every variable is a reference to an object in memory. 
 - **Mutable objects** (Lists, Dictionaries, Sets) can be changed after creation *in-place*. Modifying the object does not change its memory address.
 
