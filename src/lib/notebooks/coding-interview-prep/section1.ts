@@ -838,7 +838,7 @@ print(squares)  # [0, 4, 16, 36, 64]`,
     {
         id: "cp1-c13",
         type: "markdown",
-        content: `#### 3. Generators vs list comprehensions
+        content: `#### 3. Generators
 
 While a list comprehension generates the *entire sequence* and loads it into memory eagerly, a **generator expression** evaluates *lazily*. It suspends its state and yields one item at a time only when requested. This is crucial when dealing with massive datasets (e.g., millions of records) to prevent Out-Of-Memory (OOM) errors. Generator comprehensions use parentheses \`()\`.
 *Example:*`,
