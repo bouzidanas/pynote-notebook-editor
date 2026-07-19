@@ -607,9 +607,9 @@ def _check_solution(func_name, cases=None, edge_cases=None,
         type: "markdown",
         content: `## 2.1 Generators & Iterators
 
-#### Concept Overview
+### Concept Overview
 
-##### \`iter()\` and \`next()\`
+#### \`iter()\` and \`next()\`
 Every \`for\` loop in Python is sugar for the **iterator protocol**: it calls \`iter(obj)\` once to get an iterator, then repeatedly calls \`next(iterator)\` until \`StopIteration\` is raised.
 
 | Function | Role |
@@ -620,7 +620,7 @@ Every \`for\` loop in Python is sugar for the **iterator protocol**: it calls \`
 
 Knowing this lets you peek at the first value of any iterable, manually drive a generator, or implement custom iterables via \`__iter__\` / \`__next__\`.
 
-**The Magic of \`yield\`**
+#### The Magic of \`yield\`
 Generators are functions that use the \`yield\` keyword. Unlike \`return\` which terminates a function and destroys local state, \`yield\` pauses execution and preserves state. Calling \`next()\` resumes exactly where it stopped.`,
     },
     {
@@ -639,7 +639,7 @@ print(next(gen))  # "Part 2 computing..." then yields "B"`,
     {
         id: "cp2-c3",
         type: "markdown",
-        content: `**Why Use Generators?**
+        content: `#### Why Use Generators?
 - **Memory efficiency**: Process one item at a time instead of loading everything into memory
 - **Lazy evaluation**: Values computed only when needed
 - **Infinite sequences**: Generate values forever without memory issues`,
@@ -661,7 +661,7 @@ print(next(counter))  # 1`,
     {
         id: "cp2-c5",
         type: "markdown",
-        content: `**Generator Expressions**
+        content: `#### Generator Expressions
 Like list comprehensions, but lazy:`,
     },
     {
@@ -682,7 +682,7 @@ print("first 5 from gen :", [next(squares_gen) for _ in range(5)])`,
     {
         id: "cp2-c7",
         type: "markdown",
-        content: `#### Exercises
+        content: `### Exercises
 
 **Exercise 1 (10-15 min)**: Write a generator function that yields the first \`n\` numbers of the Fibonacci sequence.`,
     },
@@ -753,12 +753,12 @@ print("first 5 from gen :", [next(squares_gen) for _ in range(5)])`,
         type: "markdown",
         content: `## 2.2 Decorators & Closures
 
-#### Concept Overview
+### Concept Overview
 
-**First-Class Functions**
-In Python, functions are *first-class citizens* — they can be passed around like any other variable, stored in data structures, and returned from other functions.
+#### First-Class Functions
+In Python, functions are *first-class citizens*. This means that they can be passed around like any other variable, stored in data structures, and returned from other functions.
 
-**Closures**
+#### Closures
 A closure is a function that "remembers" variables from its enclosing scope, even after that scope has finished executing:`,
     },
     {
@@ -775,7 +775,7 @@ print(double(5))  # 10`,
     {
         id: "cp2-c12",
         type: "markdown",
-        content: `**Decorators**
+        content: `#### Decorators
 A decorator wraps a function with additional functionality without modifying the original function:`,
     },
     {
@@ -813,7 +813,7 @@ greet("Alice")
 - Input validation
 - Retry logic
 
-#### Exercises
+### Exercises
 
 **Exercise 1 (10-15 min)**: Write a \`@timer\` decorator that measures and prints the execution time of a function.`,
     },
@@ -858,9 +858,9 @@ def timer(func):
         type: "markdown",
         content: `## 2.3 OOP Fundamentals
 
-#### Concept Overview
+### Concept Overview
 
-**Classes and Objects**
+#### Classes and Objects
 A class is a blueprint; an object is an instance of that blueprint. Use classes to encapsulate data and behavior together.`,
     },
     {
@@ -883,7 +883,7 @@ print(rex.species, "(class attribute)")`,
     {
         id: "cp2-c19",
         type: "markdown",
-        content: `**Instance vs. Class vs. Static Methods**
+        content: `#### Instance vs. Class vs. Static Methods
 
 | Type | First Param | Access To | Use Case |
 |------|-------------|-----------|----------|
@@ -920,12 +920,12 @@ print(TextParser.is_valid(""))       # False`,
     {
         id: "cp2-c21",
         type: "markdown",
-        content: `**When to use which:**
+        content: `#### When to use which?
 - **Instance method**: Needs access to instance state (\`self.something\`)
 - **Class method**: Factory patterns, working with class-level state
 - **Static method**: Logically belongs to class but doesn't need instance/class access
 
-##### \`super()\` and Attribute Introspection
+#### \`super()\` and Attribute Introspection
 When working with classes you'll routinely reach for a small set of built-ins that operate **on objects and their attributes**:
 
 | Function | Role |
@@ -965,7 +965,7 @@ print(rex.color)                         # "chocolate"`,
     {
         id: "cp2-c23",
         type: "markdown",
-        content: `#### Exercises
+        content: `### Exercises
 
 **Exercise 1 (10-15 min)**: Implement a \`BankAccount\` class with \`deposit()\` and \`withdraw()\` methods. Raise \`ValueError\` for invalid operations.`,
     },
@@ -1133,11 +1133,11 @@ _check_solution(
         type: "markdown",
         content: `## 2.4 Magic Methods (Dunder Methods)
 
-#### Concept Overview
+### Concept Overview
 
 Python uses "double underscore" (dunder) methods to hook into built-in operations. When you use \`+\`, \`len()\`, or \`print()\`, Python calls the corresponding magic method.
 
-**Essential Magic Methods:**
+#### Essential Magic Methods
 
 | Operation | Method Called | Example |
 |-----------|---------------|---------|
@@ -1149,7 +1149,7 @@ Python uses "double underscore" (dunder) methods to hook into built-in operation
 | \`obj == other\` | \`__eq__(self, other)\` | Equality check |
 | \`for x in obj\` | \`__iter__(self)\` | Iteration |
 
-**\`__str__\` vs \`__repr__\`:**
+#### \`__str__\` vs \`__repr__\`
 - \`__str__\`: Human-readable output (for end users)
 - \`__repr__\`: Unambiguous, for debugging (should ideally recreate the object)`,
     },
@@ -1173,7 +1173,7 @@ print(repr(p)) # Point(3, 4)`,
     {
         id: "cp2-c28",
         type: "markdown",
-        content: `**Operator Overloading:**`,
+        content: `#### Operator Overloading`,
     },
     {
         id: "cp2-c29",
@@ -1196,7 +1196,7 @@ print(m3.dollars)  # 80`,
     {
         id: "cp2-c30",
         type: "markdown",
-        content: `#### Exercises
+        content: `### Exercises
 
 **Exercise 1 (10-15 min)**: Implement a \`Vector\` class for 2D coordinates. Overload the \`+\` operator so two vectors can be added naturally.`,
     },
@@ -1331,12 +1331,12 @@ _check_solution(
         type: "markdown",
         content: `## 2.5 Testing in Python
 
-#### Concept Overview
+### Concept Overview
 
-**1. Why Write Tests?**
+#### 1. Why Write Tests?
 Testing ensures your code behaves as expected, catches regressions when refactoring, and serves as living documentation. In interviews, demonstrating familiarity with testing shows engineering maturity.
 
-**2. The \`unittest\` Module (Built-in)**
+#### 2. The \`unittest\` Module (Built-in)
 Python's standard library includes \`unittest\`, inspired by Java's JUnit. Tests are organized into classes that inherit from \`unittest.TestCase\`.
 
 *Example:*`,
@@ -1365,7 +1365,7 @@ unittest.main(argv=[""], exit=False, verbosity=2)`,
     {
         id: "cp2-c35",
         type: "markdown",
-        content: `**3. \`pytest\` (Industry Standard)**
+        content: `#### 3. \`pytest\` (Industry Standard)
 \`pytest\` is the most popular Python testing framework. It's simpler, more powerful, and requires less boilerplate than \`unittest\`. Tests are plain functions starting with \`test_\`.
 
 *Example:*`,
@@ -1392,7 +1392,7 @@ print("All tests passed!")`,
     {
         id: "cp2-c37",
         type: "markdown",
-        content: `**4. Key Testing Concepts**
+        content: `#### 4. Key Testing Concepts
 - **Assertions**: \`assert condition, "error message"\` — raises \`AssertionError\` if condition is False.
 - **Fixtures**: Reusable setup/teardown logic. In \`pytest\`, use \`@pytest.fixture\`.
 - **Mocking**: Replace real objects with controlled fakes using \`unittest.mock.patch()\`.
@@ -1422,7 +1422,7 @@ print("Both fixture-based tests passed!")`,
     {
         id: "cp2-c39",
         type: "markdown",
-        content: `**5. Mocking External Dependencies**
+        content: `#### 5. Mocking External Dependencies
 When testing code that calls APIs, databases, or file systems, you mock those dependencies to isolate your unit under test.
 
 *Example:*`,
@@ -1454,7 +1454,7 @@ with patch.object(external_api, "get") as mock_get:
     {
         id: "cp2-c41",
         type: "markdown",
-        content: `#### Exercises
+        content: `### Exercises
 
 **Exercise 1 (10-15 min)**: Write a test function using \`pytest\` style (plain \`assert\`) that tests a \`is_palindrome(s)\` function. Include at least 3 test cases covering: a valid palindrome, a non-palindrome, and an edge case (empty string or single character).`,
     },
