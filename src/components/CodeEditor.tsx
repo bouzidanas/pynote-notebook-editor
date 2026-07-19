@@ -12,6 +12,11 @@ import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirro
 import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE } from "../lib/store";
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
+import { scheduleBracketHighlightRefresh } from "../lib/theme";
+
+// One-shot guard: the first mounted editor re-samples the bracket highlight
+// filter (see onMount below); later mounts see the same layers.
+let bracketFilterSampled = false;
 
 // duotoneDark variant with token colors driven by the --syntax-* CSS vars, so
 // the same generated CSS reacts live to scheme changes without rebuilding the
@@ -377,6 +382,14 @@ const CodeEditor: Component<EditorProps> = (props) => {
 
   // Restore editor state when component mounts (entering edit mode)
   onMount(() => {
+    // The theme effect runs before any editor exists, so its bracket-filter
+    // sample only saw the page background. Re-sample once real editor layers
+    // are in the DOM.
+    if (!bracketFilterSampled) {
+      bracketFilterSampled = true;
+      scheduleBracketHighlightRefresh();
+    }
+
     const savedState = props.cell.editorState;
     const view = editorView();
     
@@ -624,7 +637,8 @@ const CodeEditor: Component<EditorProps> = (props) => {
       },
       "&.cm-focused .cm-matchingBracket": {
         backgroundColor: "transparent !important",
-        filter: "brightness(1.8)",
+        // Set from the sampled code background: brightens on dark, darkens on light.
+        filter: "var(--bracket-highlight-filter, brightness(1.8))",
       },
       ".cm-panel.cm-search": {
         backgroundColor: "var(--color-background)",

@@ -277,11 +277,13 @@ const AdvancedSections: Component = () => {
                       step={0.125}
                       min={0}
                     />
-                    <InputField
+                    <ColorInput
+                      id="codeBlockOuterBackground"
                       label="Background"
                       value={currentTheme.codeBlock.outerBackground}
                       onChange={(v) => updateTheme({ codeBlock: { outerBackground: v } })}
                       placeholder="transparent"
+                      freeText
                     />
                     <InputField
                       label="Box Shadow"
@@ -319,11 +321,13 @@ const AdvancedSections: Component = () => {
                       step={0.125}
                       min={0}
                     />
-                    <InputField
+                    <ColorInput
+                      id="codeBlockInnerBackground"
                       label="Background"
                       value={currentTheme.codeBlock.innerBackground}
                       onChange={(v) => updateTheme({ codeBlock: { innerBackground: v } })}
                       placeholder="color-mix(in srgb, #89b4fa 2%, transparent)"
+                      freeText
                     />
                     <InputField
                       label="Box Shadow"
@@ -354,11 +358,13 @@ const AdvancedSections: Component = () => {
                       step={0.125}
                       min={0}
                     />
-                    <InputField
+                    <ColorInput
+                      id="codeBlockGutterBackground"
                       label="Background"
                       value={currentTheme.codeBlock.gutterBackground}
                       onChange={(v) => updateTheme({ codeBlock: { gutterBackground: v } })}
                       placeholder="var(--background)"
+                      freeText
                     />
                   </div>
                 </div>

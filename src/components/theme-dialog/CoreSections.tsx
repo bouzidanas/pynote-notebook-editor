@@ -222,6 +222,13 @@ const CoreSections: Component = () => {
                 step={0.05}
               />
               <NumberUnitInput
+                label="Cell Padding Adjust"
+                value={currentTheme.spacing.cellPadAdjust}
+                onChange={(v) => updateTheme({ spacing: { ...currentTheme.spacing, cellPadAdjust: v } })}
+                placeholder="0px"
+                step={1}
+              />
+              <NumberUnitInput
                 label="Block Margin"
                 value={currentTheme.spacing.block}
                 onChange={(v) => updateTheme({ spacing: { ...currentTheme.spacing, block: v } })}
@@ -229,11 +236,18 @@ const CoreSections: Component = () => {
                 step={0.125}
               />
               <NumberUnitInput
-                label="Header Margin"
+                label="Base Header Margin"
                 value={currentTheme.typography.headerMarginBottom}
                 onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, headerMarginBottom: v } })}
                 placeholder="1.5rem"
                 step={0.125}
+              />
+              <NumberUnitInput
+                label="Header Margin Delta"
+                value={currentTheme.typography.headerMarginDelta}
+                onChange={(v) => updateTheme({ typography: { ...currentTheme.typography, headerMarginDelta: v } })}
+                placeholder="0rem"
+                step={0.0625}
               />
             </Section>
 

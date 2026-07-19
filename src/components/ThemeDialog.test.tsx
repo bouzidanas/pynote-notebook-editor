@@ -134,4 +134,18 @@ describe("input wiring", () => {
     fireEvent.input(input, { target: { value: "0 2px 8px #000" } });
     expect(currentTheme.mdShadow).toBe("0 2px 8px #000");
   });
+
+  it("the code cell Background inputs pass any CSS value through verbatim", () => {
+    render(() => <ThemeDialog onClose={() => {}} onSave={() => {}} />);
+
+    // The Advanced sections start collapsed; expand Code Cell first.
+    fireEvent.click(screen.getByText("Advanced — Code Cell"));
+
+    const outer = screen.getByPlaceholderText("transparent") as HTMLInputElement;
+    const value = "url('/bg.png') center / cover no-repeat, linear-gradient(#111, #222)";
+    fireEvent.input(outer, { target: { value } });
+    // Free-text mode: stored and displayed with no color parsing or reformatting.
+    expect(currentTheme.codeBlock.outerBackground).toBe(value);
+    expect(outer.value).toBe(value);
+  });
 });

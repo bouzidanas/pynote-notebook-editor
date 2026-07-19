@@ -284,6 +284,12 @@ select:-webkit-autofill:active {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
+/* No top margin on a paragraph right after a header; the header's bottom
+   margin already provides the spacing there. Applies only to paragraphs. */
+.milkdown .editor :where(h1, h2, h3, h4, h5, h6) + p,
+.prose :where(h1, h2, h3, h4, h5, h6) + p {
+    margin-top: 0 !important;
+}
 /* Remove margins when p is at edges of the cell */
 .prose > p:first-child,
 .prose > .section-scope:first-child > p:first-child,
@@ -507,7 +513,7 @@ select:-webkit-autofill:active {
     color: color-mix(in srgb, var(--secondary) 75%, transparent);
 }
 
-/* Links in markdown / prose */
+/* Links in markdown */
 .milkdown .editor a,
 .prose a {
     color: var(--primary);
@@ -515,7 +521,6 @@ select:-webkit-autofill:active {
     text-underline-offset: 3px;
 }
 
-/* Markdown cell placeholder text */
 .markdown-placeholder {
     color: var(--foreground);
 }
@@ -640,26 +645,27 @@ select:-webkit-autofill:active {
     --nord10: var(--primary) !important; /* Headers usually use nord10 in this theme */
 }
 
-/* Prose headers override */
+/* Prose headers override. Margins scale with the same per-level multiples as
+   the header font sizes: base + N * delta, N = 4 for h1 down to 1 for h4. */
 .prose :where(h1) {
     color: var(--header-color-1) !important;
     font-weight: bold !important;
-    margin-bottom: var(--header-margin-bottom) !important;
+    margin-bottom: calc(var(--header-margin-bottom) + 4 * var(--header-margin-delta, 0rem)) !important;
 }
 .prose :where(h2) {
     color: var(--header-color-2) !important;
     font-weight: bold !important;
-    margin-bottom: var(--header-margin-bottom) !important;
+    margin-bottom: calc(var(--header-margin-bottom) + 3 * var(--header-margin-delta, 0rem)) !important;
 }
 .prose :where(h3) {
     color: var(--header-color-3) !important;
     font-weight: bold !important;
-    margin-bottom: var(--header-margin-bottom) !important;
+    margin-bottom: calc(var(--header-margin-bottom) + 2 * var(--header-margin-delta, 0rem)) !important;
 }
 .prose :where(h4) {
     color: var(--header-color-4) !important;
     font-weight: bold !important;
-    margin-bottom: var(--header-margin-bottom) !important;
+    margin-bottom: calc(var(--header-margin-bottom) + var(--header-margin-delta, 0rem)) !important;
 }
 .prose :where(h5, h6) {
     color: var(--header-color-4) !important;
@@ -668,8 +674,17 @@ select:-webkit-autofill:active {
 }
 
 /* Milkdown headers override */
-.milkdown .editor :where(h1, h2, h3, h4) {
-    margin-bottom: var(--header-margin-bottom) !important;
+.milkdown .editor :where(h1) {
+    margin-bottom: calc(var(--header-margin-bottom) + 4 * var(--header-margin-delta, 0rem)) !important;
+}
+.milkdown .editor :where(h2) {
+    margin-bottom: calc(var(--header-margin-bottom) + 3 * var(--header-margin-delta, 0rem)) !important;
+}
+.milkdown .editor :where(h3) {
+    margin-bottom: calc(var(--header-margin-bottom) + 2 * var(--header-margin-delta, 0rem)) !important;
+}
+.milkdown .editor :where(h4) {
+    margin-bottom: calc(var(--header-margin-bottom) + var(--header-margin-delta, 0rem)) !important;
 }
 
 /* Prose text color */

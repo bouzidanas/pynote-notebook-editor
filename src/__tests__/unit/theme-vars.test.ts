@@ -125,21 +125,42 @@ describe("syntax, radii, spacing and typography inputs", () => {
   });
 
   test("spacing maps to line/cell/block variables", async () => {
-    updateTheme({ spacing: { line: "1.8", cell: "12px", block: "24px" } });
+    updateTheme({ spacing: { line: "1.8", cell: "12px", block: "24px", cellPadAdjust: "3px" } });
     await tick();
     expect(cssVar("--line-spacing")).toBe("1.8");
     expect(cssVar("--cell-margin")).toBe("12px");
     expect(cssVar("--block-margin")).toBe("24px");
+    expect(cssVar("--cell-pad-adjust")).toBe("3px");
   });
 
   test("typography maps to font-size and header variables", async () => {
     updateTheme({
-      typography: { fontSize: "18px", headerDelta: "4px", headerMarginBottom: "10px" },
+      typography: { fontSize: "18px", headerDelta: "4px", headerMarginBottom: "10px", headerMarginDelta: "2px" },
     });
     await tick();
     expect(cssVar("--font-size-base")).toBe("18px");
     expect(cssVar("--font-size-delta")).toBe("4px");
     expect(cssVar("--header-margin-bottom")).toBe("10px");
+    expect(cssVar("--header-margin-delta")).toBe("2px");
+  });
+
+  test("bracket highlight filter follows the background lightness", async () => {
+    // The sample is scheduled lazily (idle callback, setTimeout fallback in
+    // jsdom), so give it an extra macrotask beyond the effect flush. With no
+    // editor mounted it falls back to the page background color.
+    const settle = async () => { await tick(); await tick(); };
+
+    await settle();
+    // Default theme is dark, so the filter brightens.
+    expect(cssVar("--bracket-highlight-filter")).toBe("brightness(1.8)");
+
+    updateTheme({ colors: { background: "#f5f5f0" } });
+    await tick();
+    expect(cssVar("--bracket-highlight-filter")).toBe("brightness(0.55)");
+
+    updateTheme({ colors: { background: "#161618" } });
+    await tick();
+    expect(cssVar("--bracket-highlight-filter")).toBe("brightness(1.8)");
   });
 
   test("header colors cascade: missing levels inherit the previous one", async () => {

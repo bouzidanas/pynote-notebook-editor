@@ -57,14 +57,14 @@ const PreviewPane: Component = () => {
               <h1 style={{
                 color: currentTheme.typography.headerColors?.[0] || currentTheme.colors.primary,
                 "font-size": `calc(${currentTheme.typography.fontSize} + 3 * ${currentTheme.typography.headerDelta})`,
-                "margin-bottom": currentTheme.typography.headerMarginBottom,
+                "margin-bottom": `calc(${currentTheme.typography.headerMarginBottom} + 3 * ${currentTheme.typography.headerMarginDelta || "0rem"})`,
               }}>
                 Heading 1
               </h1>
               <h2 style={{
                 color: currentTheme.typography.headerColors?.[1] || currentTheme.colors.primary,
                 "font-size": `calc(${currentTheme.typography.fontSize} + 2 * ${currentTheme.typography.headerDelta})`,
-                "margin-bottom": currentTheme.typography.headerMarginBottom,
+                "margin-bottom": `calc(${currentTheme.typography.headerMarginBottom} + 2 * ${currentTheme.typography.headerMarginDelta || "0rem"})`,
               }}>
                 Heading 2
               </h2>
@@ -82,7 +82,7 @@ const PreviewPane: Component = () => {
               <h3 style={{
                 color: currentTheme.typography.headerColors?.[2] || currentTheme.colors.primary,
                 "font-size": `calc(${currentTheme.typography.fontSize} + 1 * ${currentTheme.typography.headerDelta})`,
-                "margin-bottom": currentTheme.typography.headerMarginBottom,
+                "margin-bottom": `calc(${currentTheme.typography.headerMarginBottom} + 1 * ${currentTheme.typography.headerMarginDelta || "0rem"})`,
               }}>
                 Heading 3
               </h3>

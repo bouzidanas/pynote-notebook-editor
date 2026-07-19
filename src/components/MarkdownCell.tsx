@@ -213,12 +213,12 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
           when={props.cell.isEditing} 
           fallback={
             <div 
-              class="prose prose-invert max-w-none p-3.5 max-xs:p-2.5 text-secondary"
+              class="prose prose-invert max-w-none p-3.5 py-[calc(var(--spacing)*3.5_+_var(--cell-pad-adjust,0px))] max-xs:p-2.5 max-xs:py-[calc(var(--spacing)*2.5_+_var(--cell-pad-adjust,0px))] text-secondary"
               innerHTML={parsedContent()}
             />
           }
         >
-          <div class="p-3.5 max-xs:p-2.5">
+          <div class="p-3.5 py-[calc(var(--spacing)*3.5_+_var(--cell-pad-adjust,0px))] max-xs:p-2.5 max-xs:py-[calc(var(--spacing)*2.5_+_var(--cell-pad-adjust,0px))]">
             <MarkdownEditor
               value={props.cell.content}
               onChange={(val) => actions.updateCell(props.cell.id, val)}

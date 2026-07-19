@@ -10,6 +10,10 @@ const ColorInput: Component<{
   onChange: (value: string) => void;
   id: string;
   placeholder?: string;
+  // Free-text mode: the main input accepts any CSS value verbatim (no hex
+  // normalization, no hex/rgb/hsl cycling). The swatch and picker stay as a
+  // quick way to drop a color into the field.
+  freeText?: boolean;
 }> = (itemProps) => {
   const { openPickerId, setOpenPickerId } = useThemeDialog();
 
@@ -105,19 +109,20 @@ const ColorInput: Component<{
           type="button"
           onClick={togglePicker}
           class="w-9 h-9 shrink-0 rounded-full border-2 border-foreground cursor-pointer hover:opacity-80 transition-opacity"
-          style={{ "background-color": itemProps.value || itemProps.placeholder }}
+          style={{ background: itemProps.value || itemProps.placeholder }}
         />
         <div class="relative flex-1">
           <input
             type="text"
-            value={getFormattedColor()}
+            value={itemProps.freeText ? itemProps.value : getFormattedColor()}
             placeholder={itemProps.placeholder}
             onInput={(e) => {
-              const hex = parseColorInput(e.currentTarget.value);
-              itemProps.onChange(hex);
+              const raw = e.currentTarget.value;
+              itemProps.onChange(itemProps.freeText ? raw : parseColorInput(raw));
             }}
             class="w-full h-9 px-2 pr-6 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
           />
+          <Show when={!itemProps.freeText}>
           <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
             <button
               type="button"
@@ -135,6 +140,7 @@ const ColorInput: Component<{
               <ChevronDown size={12} />
             </button>
           </div>
+          </Show>
         </div>
       </div>
 
@@ -205,14 +211,15 @@ const ColorInput: Component<{
             <div class="flex-1 relative">
               <input
                 type="text"
-                value={getFormattedColor()}
+                value={itemProps.freeText ? itemProps.value : getFormattedColor()}
                 placeholder={itemProps.placeholder}
                 onInput={(e) => {
-                  const hex = parseColorInput(e.currentTarget.value);
-                  itemProps.onChange(hex);
+                  const raw = e.currentTarget.value;
+                  itemProps.onChange(itemProps.freeText ? raw : parseColorInput(raw));
                 }}
                 class="w-full px-2 py-2 pr-8 text-sm bg-background ui-border rounded-sm text-secondary focus:outline-none focus:border-accent transition-colors font-mono"
               />
+              <Show when={!itemProps.freeText}>
               <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col">
                 <button
                   type="button"
@@ -229,6 +236,7 @@ const ColorInput: Component<{
                   <ChevronDown size={12} />
                 </button>
               </div>
+              </Show>
             </div>
             <Show when={'EyeDropper' in window}>
               <button

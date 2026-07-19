@@ -17,11 +17,7 @@ export interface Theme {
     warning: string;
     info: string;
   };
-  // Syntax highlighting palette. `syntaxScheme` selects a built-in token
-  // palette (see SYNTAX_SCHEMES); each field in `syntax` is an optional override
-  // that wins when non-empty, otherwise the scheme's value is used. The same
-  // palette drives all three highlighters: the CodeMirror editor (code cells),
-  // the Lezer-based markdown Python highlighter, and highlight.js (other langs).
+  // Syntax highlighting palette. 
   syntaxScheme: string;
   syntax: {
     keyword: string;
@@ -43,12 +39,19 @@ export interface Theme {
     line: string;
     cell: string;
     block: string;
+    // Added to the default top/bottom padding of code and markdown cells.
+    // "0px" leaves the defaults untouched; negative values shrink them.
+    cellPadAdjust: string;
   };
   typography: {
     fontSize: string;
     headerDelta: string;
     headerColors?: string[];
     headerMarginBottom: string;
+    // Added per level on top of headerMarginBottom, with the same multiples
+    // as the header font-size scale (h4 gets 1x, h1 gets 4x). "0rem" keeps
+    // every header at the base margin.
+    headerMarginDelta: string;
     letterSpacing: string;
   };
   codeTypography: {
@@ -63,9 +66,7 @@ export interface Theme {
   editor: {
     maxCodeHeight: string;
   };
-  // App UI chrome typography (dialogs, dropdowns, menus, toolbars). Empty
-  // string = inherit the shared app font (theme.font) and normal weight. Only
-  // applies to UI chrome via the `ui-font` utility, never markdown/code/widgets.
+  // App UI chrome typography (dialogs, dropdowns, menus, toolbars).
   uiTypography: {
     fontFamily: string;
     fontWeight: string;
@@ -74,25 +75,13 @@ export interface Theme {
     letterSpacing: string;
   };
   // Shared border for UI element frames (dialogs, dropdowns, menus, toggles, inputs).
-  // Empty string = inherit current behavior (1px solid, foreground color).
-  // `color` is the shared default color for both frames and dividers.
-  // `border`/`divider` accept either a thickness alone (e.g. "2px") or a full
-  // CSS border value (thickness + style + color, e.g. "2px dashed #89b4fa").
-  // Any part omitted falls back to: 1px width, solid style, the shared `color`.
-  // `menu` is a separate border for menu/toolbar buttons, which are branded
-  // (default 2px solid primary) and may need different styling from frames.
   uiBorder: {
     color: string;
     border: string;
     divider: string;
     menu: string;
   };
-  // Markdown element borders. Empty string = inherit the current look.
-  // `color` is the shared default color for both frames and cell dividers.
-  // `border` applies to fully bordered elements (tables, images, videos, code
-  // blocks); `divider` applies to the dividers inside table cells. Each accepts
-  // a thickness alone ("3px") or a full CSS border value ("3px dashed #89b4fa");
-  // any omitted part falls back to 2px width, solid style and the group's color.
+  // Markdown element borders. 
   mdBorder: {
     color: string;
     border: string;
@@ -393,12 +382,14 @@ export const defaultTheme: Theme = {
     line: "1.75",
     cell: "1rem",
     block: "1.5rem",
+    cellPadAdjust: "0px",
   },
   typography: {
     fontSize: "1rem",
     headerDelta: "0.225rem",
     headerColors: ["#f38ba8", "#fab387", "#f9e2af", "#a6e3a1"],
     headerMarginBottom: "1.75rem",
+    headerMarginDelta: "0rem",
     letterSpacing: "",
   },
   codeTypography: {
@@ -582,11 +573,82 @@ export const parseUiBorder = (value: string, fallbackColor: string, fallbackWidt
   };
 };
 
+// The matching-bracket highlight brightens the glyph, which is wrong on light
+// code backgrounds (it should darken instead). Any number of containers can
+// paint translucent layers behind the editor, so instead of modeling that
+// stack we sample it: walk up from a mounted editor compositing each
+// element's computed background-color (the browser has already resolved
+// var()/color-mix() to rgba) until the result is opaque, then pick the filter
+// from its luminance. Background images are invisible to this (they are not
+// background-color); with no editor mounted we fall back to the page
+// background color.
+type RGBA = { r: number; g: number; b: number; a: number };
+
+const parseCssColor = (value: string): RGBA | null => {
+  const v = (value || "").trim();
+  if (v === "transparent") return { r: 0, g: 0, b: 0, a: 0 };
+  const hex = /^#([a-f\d]{6})$/i.exec(v);
+  if (hex) {
+    const n = parseInt(hex[1], 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255, a: 1 };
+  }
+  const rgb = /^rgba?\(([^)]+)\)$/i.exec(v);
+  if (rgb) {
+    const parts = rgb[1].replace(/\//g, " ").split(/[,\s]+/).filter(Boolean).map(parseFloat);
+    if (parts.length >= 3 && parts.slice(0, 3).every((p) => !isNaN(p))) {
+      return { r: parts[0], g: parts[1], b: parts[2], a: isNaN(parts[3]) ? 1 : parts[3] };
+    }
+  }
+  return null;
+};
+
+// Standard "top over bottom" alpha compositing.
+const compositeOver = (top: RGBA, bottom: RGBA): RGBA => {
+  const a = top.a + bottom.a * (1 - top.a);
+  if (a === 0) return { r: 0, g: 0, b: 0, a: 0 };
+  const mix = (t: number, b: number) => (t * top.a + b * bottom.a * (1 - top.a)) / a;
+  return { r: mix(top.r, bottom.r), g: mix(top.g, bottom.g), b: mix(top.b, bottom.b), a };
+};
+
+export const refreshBracketHighlightFilter = () => {
+  let acc: RGBA = { r: 0, g: 0, b: 0, a: 0 };
+  let el: Element | null = document.querySelector(".cm-editor .cm-scroller");
+  while (el && acc.a < 0.999) {
+    const layer = parseCssColor(getComputedStyle(el).backgroundColor);
+    if (layer && layer.a > 0) acc = compositeOver(acc, layer);
+    el = el.parentElement;
+  }
+  if (acc.a < 0.999) {
+    const fallback = parseCssColor(theme.colors.background);
+    if (fallback) acc = compositeOver(acc, { ...fallback, a: 1 });
+  }
+  const luminance = (0.2126 * acc.r + 0.7152 * acc.g + 0.0722 * acc.b) / 255;
+  document.documentElement.style.setProperty(
+    "--bracket-highlight-filter",
+    luminance > 0.5 ? "brightness(0.55)" : "brightness(1.8)",
+  );
+};
+
+// The filter is interaction feedback, not part of the theme paint, so sample
+// lazily. Running at idle (after the theme's own style recalc has landed)
+// means the computed-style reads hit a clean cache and force nothing.
+// Repeated calls before the sample runs coalesce into one.
+let bracketRefreshPending = false;
+export const scheduleBracketHighlightRefresh = () => {
+  if (bracketRefreshPending) return;
+  bracketRefreshPending = true;
+  const run = () => {
+    bracketRefreshPending = false;
+    refreshBracketHighlightFilter();
+  };
+  if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 200 });
+  else setTimeout(run, 0);
+};
+
 export const initTheme = () => {
   createEffect(() => {
     const root = document.documentElement;
-    const body = document.body;
-    root.style.setProperty("--font-mono", theme.font);
+    const body = document.body;    root.style.setProperty("--font-mono", theme.font);
     root.style.setProperty("--font-weight-base", theme.fontWeight || "normal");
 
     // Catch-all for live edits (theme dialog font inputs): fetch any Google
@@ -625,10 +687,12 @@ export const initTheme = () => {
     root.style.setProperty("--line-spacing", theme.spacing.line);
     root.style.setProperty("--cell-margin", theme.spacing.cell);
     root.style.setProperty("--block-margin", theme.spacing.block);
+    root.style.setProperty("--cell-pad-adjust", theme.spacing.cellPadAdjust || "0px");
 
     root.style.setProperty("--font-size-base", theme.typography.fontSize);
     root.style.setProperty("--font-size-delta", theme.typography.headerDelta);
     root.style.setProperty("--header-margin-bottom", theme.typography.headerMarginBottom);
+    root.style.setProperty("--header-margin-delta", theme.typography.headerMarginDelta || "0rem");
     root.style.setProperty("--letter-spacing-base", theme.typography.letterSpacing || "normal");
 
     root.style.setProperty("--code-font-family", theme.codeTypography.fontFamily);
@@ -730,5 +794,9 @@ export const initTheme = () => {
     // Update meta theme color for browser UI (avoids white flash in new tabs)
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) metaTheme.setAttribute('content', theme.colors.background);
+
+    // Re-sample the code background for the bracket highlight (lazily, off
+    // the theme-apply path).
+    scheduleBracketHighlightRefresh();
   });
 }
