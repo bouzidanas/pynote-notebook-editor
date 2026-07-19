@@ -607,9 +607,10 @@ def _check_solution(func_name, cases=None, edge_cases=None,
         type: "markdown",
         content: `## 1.1 Strings, Lists & Tuples
 
-#### Concept Overview
+### Concept Overview
 
-**1. Mutability vs. Immutability:**
+#### 1. Mutability vs. Immutability
+
 In Python, every variable is a reference to an object in memory. 
 - **Mutable objects** (Lists, Dictionaries, Sets) can be changed after creation *in-place*. Modifying the object does not change its memory address.
 
@@ -698,7 +699,8 @@ print(list("hello"), list(set([1,1,2])), tuple([1,2,3]), dict(Counter("aab")))`,
 
 These are commonly used utility functions in Python. Mastering them pays off well beyond interviews: they show up in nearly every script, library, and production codebase.
 
-**Driving loops & iteration:**
+##### Driving loops & iteration
+
 You use these when *moving through* a sequence. They replace the manual \`for i in range(len(x))\` index-juggling pattern.
 
 | Function | Role |
@@ -738,7 +740,8 @@ for i in range(0, 10, 2):
     {
         id: "cp1-c7",
         type: "markdown",
-        content: `**Asking questions (predicates & comparisons):**
+        content: `##### Asking questions (predicates & comparisons)
+
 You use these inside \`if\` statements, guards, and assertions. They answer a yes/no or "which one wins" question. Most short-circuit, so they're cheap.
 
 | Function | Role |
@@ -780,7 +783,8 @@ print(double(3.5))`,
     {
         id: "cp1-c9",
         type: "markdown",
-        content: `**Reshaping, aggregating & transforming:**
+        content: `##### Reshaping, aggregating & transforming
+
 You use these to *produce a new value* from a collection: a sum, a sorted copy, a filtered or mapped sequence. They're the workhorses of "process this data" steps.
 
 | Function | Role |
@@ -818,7 +822,8 @@ print([n for n in nums if n % 2 == 0])`,
     {
         id: "cp1-c11",
         type: "markdown",
-        content: `**2. List Comprehensions:**
+        content: `#### 2. List Comprehensions
+
 A list comprehension is a concise and highly optimized way to construct lists. It operates under the hood in C, making it fundamentally faster than a standard \`for\` loop combined with \`.append()\`.
 *Syntax*: \`[expression for item in iterable if condition]\`
 *Example:*`,
@@ -833,7 +838,8 @@ print(squares)  # [0, 4, 16, 36, 64]`,
     {
         id: "cp1-c13",
         type: "markdown",
-        content: `**3. Generators vs list comprehensions:**
+        content: `#### 3. Generators vs list comprehensions
+
 While a list comprehension generates the *entire sequence* and loads it into memory eagerly, a **generator expression** evaluates *lazily*. It suspends its state and yields one item at a time only when requested. This is crucial when dealing with massive datasets (e.g., millions of records) to prevent Out-Of-Memory (OOM) errors. Generator comprehensions use parentheses \`()\`.
 *Example:*`,
     },
@@ -855,11 +861,12 @@ print(next(gen_comp)) # 1`,
     {
         id: "cp1-c15",
         type: "markdown",
-        content: `**4. Tuples & Slicing:**
+        content: `#### 4. Tuples & Slicing
+
 Tuples are generally used for fixed-size configurations or returning multiple variables from a function. Because tuples are immutable, they are *hashable* (assuming their contents are also immutable), which means they can be used as Dictionary Keys!
 Slicing \`[start:stop:step]\` creates a shallow copy of a sequence. \`my_array[::-1]\` reverses it!
 
-#### Exercises
+### Exercises
 
 **Exercise 1 (5-10 min)**: Write a function that takes a list of words and returns a new list containing only the words that have at least \`n\` characters.`,
     },
@@ -1009,16 +1016,16 @@ def filter_words(words: List[str], min_length: int) -> List[str]:
         type: "markdown",
         content: `## 1.2 Dictionaries & Sets
 
-#### Concept Overview
+### Concept Overview
 
-**1. Hash Tables & Lookups:**
+#### 1. Hash Tables & Lookups
 Python's \`dict\` and \`set\` are implemented relying on Hash Tables. When you insert a key into a dictionary, Python runs a mathematical hash function \`hash(key)\` to determine strictly where in memory the data should be stored (a bucket index). 
 - **Time Complexity:** Looking up, verifying membership (\`if x in my_set\`), inserting, and deleting generally take **$O(1)$ constant time**. Comparatively, searching a list is $O(N)$ linear time!
   
-**2. Hash Collisions:**
+#### 2. Hash Collisions
 Sometimes two entirely different keys will result in the same hash index. This is a collision. Python dicts resolve this using *open addressing and pseudo-random probing*—if bucket $A$ is full, the compiler mathematically probes to bucket $B$ until it finds an empty slot.
 
-**3. Sets:**
+#### 3. Sets
 A \`set\` is effectively a dictionary containing just keys. Sets enforce mathematical uniqueness (implicitly dropping duplicates) and offer optimized Set Operations:
 *Example:*`,
     },
@@ -1034,7 +1041,7 @@ print(fruits_A & fruits_B) # Intersection: {'Cherry'}`,
     {
         id: "cp1-c23",
         type: "markdown",
-        content: `**4. The \`collections\` Module:**
+        content: `#### 4. The \`collections\` Module
 Python offers advanced variants of dictionaries tailored to specific use-cases:
 - \`defaultdict\`: Automatically provides a default value if a key doesn't exist, eliminating \`KeyError\`.
 - \`Counter\`: specialized subset designed exclusively to construct frequency maps from an iterable.
@@ -1280,9 +1287,9 @@ def list_intersection(list1: List[int], list2: List[int]) -> List[int]:
         type: "markdown",
         content: `## 1.3 Hash Tables & Hashability
 
-#### Concept Overview
+### Concept Overview
 
-**1. What Does "Hashable" Mean?**
+#### 1. What Does "Hashable" Mean?
 An object is **hashable** if it meets two strict requirements:
 1. It has a **hash value** (an integer) that **never changes** during its entire lifetime.
 2. It can be **compared to other objects** (using \`==\`).
@@ -1303,7 +1310,7 @@ print(hash(42))         # Integers are hashable
     {
         id: "cp1-c35",
         type: "markdown",
-        content: `**2. How Hash Tables Work Internally:**
+        content: `#### 2. How Hash Tables Work Internally
 A Dictionary is essentially a giant array (a list of slots). When you provide a key:
 1. Python runs the key through \`hash(key)\` to get an integer
 2. That integer maps directly to a specific slot (bucket) in memory
@@ -1311,7 +1318,7 @@ A Dictionary is essentially a giant array (a list of slots). When you provide a 
 
 This is why dict lookups are $O(1)$ — no scanning required!
 
-**3. The Problem with Mutability:**
+#### 3. The Problem with Mutability
 Here's the fundamental conflict that makes mutable objects unhashable:
 
 | Scenario | Problem |
@@ -1337,7 +1344,8 @@ print("Tuple as key works:", my_dict)`,
     {
         id: "cp1-c37",
         type: "markdown",
-        content: `**4. The "Immutable ≠ Hashable" Nuance**
+        content: `#### 4. The "Immutable ≠ Hashable" Nuance
+
 Not all immutable objects are hashable!`,
     },
     {
@@ -1359,7 +1367,7 @@ except TypeError as e:
         type: "markdown",
         content: `**Why?** The list inside can change, which would change the "identity" of the tuple. **To be hashable, the entire chain of data must be unchangeable.**
 
-**5. Real-World Uses for Tuple Keys:**
+#### 5. Real-World Uses for Tuple Keys
 Because tuples are hashable, they can act as **composite keys** — a single key made of multiple values. A single number isn't always enough to identify something uniquely, so you pack multiple fields into one tuple.
 
 | Use Case | Key Pattern | Example |
@@ -1369,7 +1377,7 @@ Because tuples are hashable, they can act as **composite keys** — a single key
 | **Composite IDs** | \`(field1, field2)\` | \`data[(first_name, last_name, dob)] = record\` |
 | **Deduplication** | \`(item1, item2)\` | \`unique_pairs = {(a, b) for a, b in pairs}\` |
 
-**Multi-Dimensional Coordinates:**
+##### Multi-Dimensional Coordinates
 When building a game, map, or grid-based system, a single integer can't identify a position — you need an \`(x, y)\` pair. Using a tuple as the dictionary key lets you instantly look up what exists at any coordinate in $O(1)$ time.`,
     },
     {
@@ -1384,7 +1392,7 @@ print(grid[(5, 10)])  # "treasure" — O(1) lookup!`,
     {
         id: "cp1-c41",
         type: "markdown",
-        content: `**Caching Function Results (Memoization):**
+        content: `##### Caching Function Results (Memoization)
 If a function takes multiple arguments and is expensive to compute, you can cache its result in a dictionary keyed by the tuple of its arguments. On subsequent calls with the same inputs, you skip the computation entirely and return the cached result.`,
     },
     {
@@ -1404,7 +1412,7 @@ print("cache =", cache)`,
     {
         id: "cp1-c43",
         type: "markdown",
-        content: `**Database-Style Composite IDs:**
+        content: `##### Database-Style Composite IDs
 When you need to link data to an entity identified by multiple fields, a tuple key is safer and cleaner than concatenating strings (e.g., \`"John_Doe_1990"\`) to create a unique ID.`,
     },
     {
@@ -1418,7 +1426,7 @@ print(records[("Alice", "Smith", "1990-01-15")])`,
     {
         id: "cp1-c45",
         type: "markdown",
-        content: `**Deduplication of Groups:**
+        content: `##### Deduplication of Groups
 If you have a list of paired entries and want to find only the unique ones, converting them to tuples and adding them to a \`set\` lets the hash table automatically discard duplicates.`,
     },
     {
@@ -1431,11 +1439,11 @@ print(unique_trips)  # 2 unique pairs — duplicate ('NYC','LDN') was removed`,
     {
         id: "cp1-c47",
         type: "markdown",
-        content: `**Summary of Benefits:**
+        content: `#### Summary of Benefits
 - **Integrity**: Using a tuple guarantees the key cannot change while it's sitting in the dictionary.
 - **Speed**: Looking up a hashed tuple in a dictionary takes $O(1)$ time regardless of how many millions of items are stored.
 
-#### Exercises
+### Exercises
 
 **Exercise 1 (10-15 min)**: Write a function that takes a list of coordinate pairs (each pair is a list \`[x, y]\`) and returns the count of unique coordinates. Use a set with tuple conversion for $O(n)$ deduplication.`,
     },
@@ -1522,9 +1530,9 @@ def count_unique_coordinates(coords: List[List[int]]) -> int:
         type: "markdown",
         content: `## 1.4 File I/O, Scripting & Automation
 
-#### Concept Overview
+### Concept Overview
 
-##### The \`open()\` Built-in
+#### The \`open()\` Built-in
 Nearly every file operation starts with the \`open(path, mode)\` built-in. It returns a **file object** that supports reading, writing, and iteration, and is itself a context manager (so it pairs naturally with \`with\`).
 
 | Mode | Meaning |
@@ -1538,7 +1546,7 @@ Nearly every file operation starts with the \`open(path, mode)\` built-in. It re
 
 Useful methods on the returned file object: \`.read()\`, \`.readline()\`, \`.readlines()\`, \`.write(s)\`, \`.writelines(iter)\`, \`.close()\`. Iterating the file object yields one line at a time (the memory-efficient pattern shown below).
 
-**1. Context Managers (\`with\` statement):**
+##### 1. Context Managers (\`with\` statement)
 Whenever your application interacts with external systems (like Hard Drive Files, Databases, Network sockets), an Operating System connection/file descriptor opens. If you do not close this connection, you introduce resource leaks.
 Using the \`with\` statement utilizes a Context Manager which magically guarantees \`.close()\` is executed when the indentation block succeeds *or even if it throws an exception globally*.
 
@@ -1559,7 +1567,7 @@ print(content)`,
     {
         id: "cp1-c52",
         type: "markdown",
-        content: `**2. Processing Large Files Memory-Efficiently:**
+        content: `##### 2. Processing Large Files Memory-Efficiently
 Calling \`file.read()\` or \`file.readlines()\` on a 15GB Text file will allocate 15GB of RAM immediately and crash standard machines. Using a standard \`for\` loop over the file object treats the file uniquely as a streaming iterator. Python manages the stream natively, dumping line $N$ out of RAM before pulling line $N+1$.
 
 *Example:*`,
@@ -1583,13 +1591,13 @@ with open("demo.log", "r") as file:
     {
         id: "cp1-c54",
         type: "markdown",
-        content: `**3. Scripting Basics: \`json\` and \`subprocess\`:**
+        content: `##### 3. Scripting Basics: \`json\` and \`subprocess\`
 Python tooling scripts frequently deal with data parsers and triggering shell actions:
 - \`json.loads(string_data)\`: Read a JSON string into a Python dict.
 - \`json.dumps(dict_data)\`: Format a Python dict directly into a JSON formatted string.
 - \`subprocess\`: A robust standard library replacement to the old \`os.system\`. Use \`subprocess.run(["cmd", "arg"])\` to execute standard terminal apps natively from Python.
 
-#### Exercises
+### Exercises
 
 **Exercise 1 (10-15 min)**: Given a path to a potentially large log file, return the count of lines that contain the substring \`"ERROR"\`. Ensure your solution handles large scale efficiently.`,
     },
@@ -1895,9 +1903,9 @@ _check_solution(
         type: "markdown",
         content: `## 1.5 Exception Handling
 
-#### Concept Overview
+### Concept Overview
 
-**1. The try/except/else/finally Pattern:**
+#### 1. The try/except/else/finally Pattern
 Exception handling is fundamental to robust Python code. The full pattern provides fine-grained control:`,
     },
     {
@@ -1926,7 +1934,7 @@ finally:
     {
         id: "cp1-c68",
         type: "markdown",
-        content: `**2. Raising Exceptions:**
+        content: `#### 2. Raising Exceptions
 Use \`raise\` to signal errors. Prefer specific built-in exceptions:
 - \`ValueError\`: Invalid argument value
 - \`TypeError\`: Wrong type passed
@@ -1951,7 +1959,7 @@ except ValueError as e:
     {
         id: "cp1-c70",
         type: "markdown",
-        content: `**3. Custom Exceptions:**
+        content: `#### 3. Custom Exceptions
 Create domain-specific exceptions by inheriting from \`Exception\`:`,
     },
     {
@@ -1974,7 +1982,7 @@ except InsufficientFundsError as e:
     {
         id: "cp1-c72",
         type: "markdown",
-        content: `**4. Context Managers for Exception Safety:**
+        content: `#### 4. Context Managers for Exception Safety
 The \`with\` statement ensures cleanup even when exceptions occur:`,
     },
     {
@@ -1994,7 +2002,7 @@ with open("data.txt") as f:
     {
         id: "cp1-c74",
         type: "markdown",
-        content: `#### Exercises
+        content: `### Exercises
 
 **Exercise 1 (10-15 min)**: Write a \`safe_divide(a, b)\` function that returns \`a / b\`. If \`b\` is zero, return \`None\` instead of crashing. If either input is not a number, raise a \`TypeError\` with a descriptive message.`,
     },
