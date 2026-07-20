@@ -195,6 +195,62 @@ const PRESETS = {
         "pageWidth": "normal",
         "preset": "neobrutal_light"
     },
+    "play_light": {
+        "font": "Inter, sans-serif",
+        "fontWeight": "500",
+        "colors": {
+            "primary": "#171717",
+            "secondary": "#364153",
+            "accent": "#171717",
+            "background": "#f7f7f7",
+            "foreground": "#cececf",
+            "success": "#22c55e",
+            "error": "#dc2626",
+            "warning": "#eab308",
+            "info": "#89dceb"
+        },
+        "syntaxScheme": "github-light",
+        "radii": {
+            "lg": "9999px",
+            "sm": "1.1rem"
+        },
+        "spacing": {
+            "line": "1.75",
+            "cell": "0.7rem",
+            "block": "1.5rem",
+            "cellPadAdjust": "0px"
+        },
+        "typography": {
+            "fontSize": "1.125rem",
+            "headerDelta": "0.3rem",
+            "headerColors": [
+                "#101828",
+                "#101828",
+                "#101828",
+                "#101828"
+            ],
+            "headerMarginBottom": "0.25rem",
+            "headerMarginDelta": "0.1625rem"
+        },
+        "codeTypography": {
+            "fontFamily": "\"JetBrains Mono Variable\", monospace",
+            "fontWeight": "400",
+            "baseFontSize": "0.875rem",
+            "inlineFontSize": "0.875rem",
+            "editorFontSize": "1rem"
+        },
+        "editor": {
+            "maxCodeHeight": "none"
+        },
+        "codeBlock": {
+            "innerRadius": "1.1rem",
+            "gutterBorderRightOn": true
+        },
+        "sectionScoping": true,
+        "tableOverflow": "scroll",
+        "outputLayout": "below",
+        "pageWidth": "normal"
+    },
 } satisfies Record<string, ThemePreset>;
 
 export const BUILTIN_THEMES = PRESETS;
@@ -207,6 +263,7 @@ export const THEME_PRESETS: { type: BuiltinThemeType; label: string }[] = [
     { type: "lucide_dark", label: "Lucide Dark" },
     { type: "magic_dark", label: "Magic Dark" },
     { type: "neobrutal_light", label: "Neobrutal Light" },
+    { type: "play_light", label: "Play Light" },
 ];
 
 /** Check if a string is a valid built-in theme type. */
