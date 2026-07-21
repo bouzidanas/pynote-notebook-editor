@@ -1,3 +1,17 @@
+![Pynote in action](https://github.com/bouzidanas/pynote-notebook-editor/blob/main/public/pynote-vis.gif)
+
+# PyNote Notebook Editor
+
+> [!IMPORTANT]
+>**Copyright © 2026 Anas Bouzid. All Rights Reserved.**
+> *This project is currently in development. Open-source release is planned for the future.*
+
+
+# [Live Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)  |  [GitHub](https://github.com/bouzidanas/pynote-notebook-editor)
+
+> [!TIP]
+> In PyNote, press `Ctrl-\` to see shortcuts!
+
 > [!NOTE]
 > **Update 2026-07-14:** 
 > Lots of new additions to multiple UI areas:
@@ -45,18 +59,6 @@ Check out the new [interactive interview coding preparation series](https://pyno
 > - Duplicate line/selection
 > - Line operations (move up/down, delete line)
 > - Tooltips for hover info about modules, functions, classes, and variables
-
-# PyNote Notebook Editor
-
-> [!IMPORTANT]
->**Copyright © 2026 Anas Bouzid. All Rights Reserved.**
-> *This project is currently in development. Open-source release is planned for the future.*
-
-
-# [Live Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)  |  [GitHub](https://github.com/bouzidanas/pynote-notebook-editor)
-
-> [!TIP]
-> In PyNote, press `Ctrl-\` to see shortcuts!
 
 ## What is PyNote?
 
