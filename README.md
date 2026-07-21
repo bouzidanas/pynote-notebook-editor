@@ -12,6 +12,8 @@
 > [!TIP]
 > In PyNote, press `Ctrl-\` to see shortcuts!
 
+---
+
 > [!NOTE]
 > **Update 2026-07-14:** 
 > Lots of new additions to multiple UI areas:
