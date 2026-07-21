@@ -2,12 +2,7 @@
 
 # PyNote Notebook Editor
 
-> [!IMPORTANT]
->**Copyright © 2026 Anas Bouzid. All Rights Reserved.**
-> *This project is currently in development. Open-source release is planned for the future.*
-
-
-# [Live Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)  |  [GitHub](https://github.com/bouzidanas/pynote-notebook-editor)
+# [Starter notebook](https://pynote-notebook.vercel.app) | [Live Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)
 
 > [!TIP]
 > In PyNote, press `Ctrl-\` to see shortcuts!
