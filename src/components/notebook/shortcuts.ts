@@ -40,7 +40,7 @@ export const SHORTCUTS = {
     { label: "Undo", keys: "Ctrl + Z" },
     { label: "Redo", keys: "Ctrl + Shift + Z" },
     { label: "Comment Toggle", keys: "Ctrl + /" },
-    { label: "Accept Completion", keys: "Ctrl + Space" },
+    { label: "Accept Completion", keys: "Ctrl/⌥(Mac) + Space" },
     { label: "Start Completion", keys: "Ctrl + Shift + Space" },
     { label: "Multi-Select Next", keys: "Ctrl + D" },
     { label: "Multi-Select Previous", keys: "Ctrl + Shift + D" },
