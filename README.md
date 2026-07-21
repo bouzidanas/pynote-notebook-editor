@@ -1,8 +1,8 @@
 ![Pynote in action](https://github.com/bouzidanas/pynote-notebook-editor/blob/main/public/pynote-vis.gif)
 
-## PyNote Notebook Editor
+# PyNote Notebook Editor
 
-# [Start using](https://pynote-notebook.vercel.app) | [Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)
+## [Start using](https://pynote-notebook.vercel.app) | [Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)
 
 > [!TIP]
 > In PyNote, press `Ctrl-\` to see shortcuts!
