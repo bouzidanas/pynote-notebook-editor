@@ -2,7 +2,7 @@
 
 # PyNote Notebook Editor
 
-# [Starter notebook](https://pynote-notebook.vercel.app) | [Live Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)
+# [Start using](https://pynote-notebook.vercel.app) | [Tutorial](https://pynote-notebook.vercel.app/?open=tutorial)
 
 > [!TIP]
 > In PyNote, press `Ctrl-\` to see shortcuts!
