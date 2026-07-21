@@ -12,7 +12,7 @@
 > [!TIP]
 > In PyNote, press `Ctrl-\` to see shortcuts!
 
----
+## Progress and updates
 
 > [!NOTE]
 > **Update 2026-07-14:** 
