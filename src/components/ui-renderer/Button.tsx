@@ -145,7 +145,7 @@ const Button: Component<ButtonProps> = (p) => {
     const { border } = resolveBorder(borderValue);
     const noBorder = border === "none";
     
-    const classes = ["btn", "font-mono", "rounded-sm", buttonClass, sizeConfig().textSize];
+    const classes = ["btn", "font-mono", "rounded-[var(--component-radius)]", buttonClass, sizeConfig().textSize];
     
     // Add non-border classes unless border="none"
     if (!noBorder) {
@@ -275,7 +275,7 @@ const Button: Component<ButtonProps> = (p) => {
       </style>
       <button
         class={buttonClasses()}
-        style={{ ...componentStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
+        style={{ ...componentStyles(), ...resolveBackground(allProps().background), padding: `calc(${sizeConfig().padding}px + var(--component-pad-${size()}))` }}
         onClick={handleClick}
         disabled={disabled() || loading()}
       >

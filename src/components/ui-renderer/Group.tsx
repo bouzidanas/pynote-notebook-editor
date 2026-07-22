@@ -282,7 +282,7 @@ const Group: Component<GroupProps> = (p) => {
             UA min-inline-size:min-content so it still shrinks like the div. */}
         <Dynamic
           component={allProps().label ? "fieldset" : "div"}
-          class={`relative rounded-sm w-full min-w-0 ${containerBorderClass()}`}
+          class={`relative rounded-[var(--component-radius)] w-full min-w-0 ${containerBorderClass()}`}
           style={{ padding: computePadding(), ...containerBorderStyle(), ...resolveBackground(allProps().background) }}
         >
           <Show when={allProps().label}>

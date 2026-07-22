@@ -147,7 +147,7 @@ const Toggle: Component<ToggleProps> = (p) => {
 
   // Layout classes based on align, spaced, and reverse
   const layoutClasses = () => {
-    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "component-border", "rounded-sm", sizeConfig().textSize];
+    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "component-border", "rounded-[var(--component-radius)]", sizeConfig().textSize];
     
     // Handle reverse (order)
     if (reverse()) {
@@ -178,7 +178,7 @@ const Toggle: Component<ToggleProps> = (p) => {
   return (
     <label 
       class={layoutClasses()}
-      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `calc(${sizeConfig().padding}px + var(--component-pad-${size()}))` }}
     >
       <input
         type="checkbox"

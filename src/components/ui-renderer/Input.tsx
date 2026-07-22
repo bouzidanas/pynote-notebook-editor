@@ -143,7 +143,7 @@ const Input: Component<InputProps> = (p) => {
       "input",
       "font-mono",
       "component-border",
-      "rounded-sm",
+      "rounded-[var(--component-radius)]",
       "bg-base-100/30",
       "focus-visible:outline-none",
       "focus-visible:border-primary",
@@ -173,7 +173,7 @@ const Input: Component<InputProps> = (p) => {
       <input
       type={allProps().input_type ?? "text"}
       class={inputClasses()}
-      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `calc(${sizeConfig().padding}px + var(--component-pad-${size()}))` }}
       value={value()}
       placeholder={allProps().placeholder ?? ""}
       onInput={handleInput}

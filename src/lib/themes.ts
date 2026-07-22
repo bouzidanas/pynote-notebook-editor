@@ -242,6 +242,12 @@ const PRESETS = {
         "editor": {
             "maxCodeHeight": "none"
         },
+        "componentRadius": "1.375rem",
+        "componentPadding": {
+            "md": "-1px",
+            "lg": "-1px",
+            "xl": "-2px"
+        },
         "codeBlock": {
             "innerRadius": "1.1rem",
             "gutterBorderRightOn": true

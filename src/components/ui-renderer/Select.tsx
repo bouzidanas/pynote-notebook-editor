@@ -138,12 +138,12 @@ const Select: Component<SelectProps> = (p) => {
   // Size presets - fontSize uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, fontSize: "var(--text-3xs)", iconSize: 8 };
-      case "sm": return { padding: 8, fontSize: "var(--text-2xs)", iconSize: 10 };
-      case "md": return { padding: 12, fontSize: "var(--text-sm)", iconSize: 12 };
-      case "lg": return { padding: 14, fontSize: "var(--text-xl)", iconSize: 14 };
-      case "xl": return { padding: 16, fontSize: "var(--text-3xl)", iconSize: 16 };
-      default: return { padding: 12, fontSize: "var(--text-sm)", iconSize: 12 };
+      case "xs": return { padding: 6, fontSize: "var(--text-3xs)", lineHeight: "inherit", iconSize: 8 };
+      case "sm": return { padding: 8, fontSize: "var(--text-2xs)", lineHeight: "inherit", iconSize: 10 };
+      case "md": return { padding: 12, fontSize: "var(--text-sm)", lineHeight: "var(--text-sm--line-height)", iconSize: 12 };
+      case "lg": return { padding: 14, fontSize: "var(--text-xl)", lineHeight: "var(--text-xl--line-height)", iconSize: 14 };
+      case "xl": return { padding: 16, fontSize: "var(--text-3xl)", lineHeight: "var(--text-3xl--line-height)", iconSize: 16 };
+      default: return { padding: 12, fontSize: "var(--text-sm)", lineHeight: "var(--text-sm--line-height)", iconSize: 12 };
     }
   };
 
@@ -175,11 +175,12 @@ const Select: Component<SelectProps> = (p) => {
             
             /* Custom border styling */
             ${applyBorder()}
-            border-radius: var(--radius-sm);
+            border-radius: var(--component-radius);
             
             /* Size-based padding and font */
-            padding: ${sizeConfig().padding}px;
+            padding: calc(${sizeConfig().padding}px + var(--component-pad-${size()}));
             font-size: ${sizeConfig().fontSize};
+            line-height: ${sizeConfig().lineHeight};
             
             /* Background */
             background-color: var(--background);
@@ -201,10 +202,10 @@ const Select: Component<SelectProps> = (p) => {
              and reserve room for it on the right. */
           @supports not (appearance: base-select) {
             .${selectClass} {
-              padding-right: ${sizeConfig().padding * 2 + sizeConfig().iconSize}px;
+              padding-right: calc(${sizeConfig().padding * 2 + sizeConfig().iconSize}px + var(--component-pad-${size()}));
               background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${sizeConfig().iconSize}' height='${sizeConfig().iconSize}' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
               background-repeat: no-repeat;
-              background-position: right ${sizeConfig().padding}px center;
+              background-position: right calc(${sizeConfig().padding}px + var(--component-pad-${size()})) center;
             }
           }
           
@@ -238,7 +239,7 @@ const Select: Component<SelectProps> = (p) => {
           .${selectClass} option {
             background-color: var(--background);
             color: var(--secondary);
-            padding: ${sizeConfig().padding}px;
+            padding: calc(${sizeConfig().padding}px + var(--component-pad-${size()}));
             font-size: ${sizeConfig().fontSize};
           }
           
@@ -256,7 +257,7 @@ const Select: Component<SelectProps> = (p) => {
             appearance: base-select;
             background-color: var(--background);
             border: 2px solid ${colorValue()};
-            border-radius: var(--radius-sm);
+            border-radius: var(--component-radius);
           }
           
           /* Style selected option in picker */
@@ -273,7 +274,7 @@ const Select: Component<SelectProps> = (p) => {
         `}
       </style>
       <select
-        class={`${selectClass} font-mono rounded-sm cursor-pointer`}
+        class={`${selectClass} font-mono rounded-[var(--component-radius)] cursor-pointer`}
         style={{ ...componentStyles(), ...resolveBackground(allProps().background) }}
         value={value()}
         onChange={handleChange}

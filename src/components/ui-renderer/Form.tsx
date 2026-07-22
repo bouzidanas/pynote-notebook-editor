@@ -266,7 +266,7 @@ const Form: Component<FormProps> = (p) => {
     <FormContext.Provider value={contextValue}>
       <div style={componentStyles()}>
         <fieldset 
-          class={`rounded-sm w-full ${fieldsetBorderClass()}`}
+          class={`rounded-[var(--component-radius)] w-full ${fieldsetBorderClass()}`}
           style={{ padding: computePadding(), ...fieldsetBorderStyle(), ...resolveBackground(p.props.background) }}
         >
           <Show when={p.props.label}>

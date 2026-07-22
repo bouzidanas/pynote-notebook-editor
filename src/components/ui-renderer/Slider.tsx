@@ -5,11 +5,11 @@ import { resolveColor, resolveBorder, resolveBackground } from "./colorUtils";
 
 // Size presets for custom slider styling
 const SIZE_PRESETS = {
-  xs: { trackHeight: 4, thumbSize: 10, padding: 2, labelSize: "text-[7px]", valueSize: "text-[length:var(--text-3xs)]", tickSize: "text-[6px]", thumbOffset: -3 },
-  sm: { trackHeight: 5, thumbSize: 12, padding: 2, labelSize: "text-[8px]", valueSize: "text-[length:var(--text-2xs)]", tickSize: "text-[7px]", thumbOffset: -3.5 },
-  md: { trackHeight: 7, thumbSize: 16, padding: 3, labelSize: "text-xs", valueSize: "text-sm", tickSize: "text-[9px]", thumbOffset: -4.5 },
-  lg: { trackHeight: 9, thumbSize: 20, padding: 4, labelSize: "text-sm", valueSize: "text-xl", tickSize: "text-xs", thumbOffset: -5.5 },
-  xl: { trackHeight: 12, thumbSize: 26, padding: 5, labelSize: "text-base", valueSize: "text-3xl", tickSize: "text-sm", thumbOffset: -7 },
+  xs: { trackHeight: 4, thumbSize: 10, padding: 8, labelSize: "text-[7px]", valueSize: "text-[length:var(--text-3xs)]", tickSize: "text-[6px]", thumbOffset: -3 },
+  sm: { trackHeight: 5, thumbSize: 12, padding: 8, labelSize: "text-[8px]", valueSize: "text-[length:var(--text-2xs)]", tickSize: "text-[7px]", thumbOffset: -3.5 },
+  md: { trackHeight: 7, thumbSize: 16, padding: 12, labelSize: "text-xs", valueSize: "text-sm", tickSize: "text-[9px]", thumbOffset: -4.5 },
+  lg: { trackHeight: 9, thumbSize: 20, padding: 16, labelSize: "text-sm", valueSize: "text-xl", tickSize: "text-xs", thumbOffset: -5.5 },
+  xl: { trackHeight: 12, thumbSize: 26, padding: 20, labelSize: "text-base", valueSize: "text-3xl", tickSize: "text-sm", thumbOffset: -7 },
 } as const;
 
 interface SliderProps {
@@ -45,6 +45,9 @@ const Slider: Component<SliderProps> = (p) => {
   
   // Get size preset (default to md)
   const sizeConfig = () => SIZE_PRESETS[size()];
+
+  // Theme padding shift for this size preset (uniform across all components).
+  const padShift = (px: number) => `calc(${px}px + var(--component-pad-${size()}))`;
 
   const percentage = () => {
       const min = allProps().min;
@@ -157,13 +160,13 @@ const Slider: Component<SliderProps> = (p) => {
     if (border === false) {
       return "0px"; // false: Remove bottom padding
     }
-    return `${Math.max(4, (sizeConfig().padding - 1) * 4)}px`; // Default bottom padding
+    return padShift(Math.max(4, sizeConfig().padding - 4)); // Default bottom padding
   };
   
   return (
     <div 
         ref={containerRef}
-        class={`flex flex-col ${outerBorderClass()} rounded-sm bg-base-100/30 overflow-hidden`}
+        class={`flex flex-col ${outerBorderClass()} rounded-[var(--component-radius)] bg-base-100/30 overflow-hidden`}
         style={{ ...usePyNoteThemeStyles(() => containerRef), ...componentStyles(), ...outerBorderStyle(), ...resolveBackground(allProps().background) }}
     >
       <style>
@@ -212,7 +215,7 @@ const Slider: Component<SliderProps> = (p) => {
       </style>
       <div 
         class={`flex items-center justify-between gap-3 bg-base-200/50 ${headerBorderClass()}`}
-        style={{ padding: `${Math.max(4, (sizeConfig().padding - 1) * 4)}px ${sizeConfig().padding * 4}px ${headerBottomPadding()} ${sizeConfig().padding * 4}px`, ...headerBorderStyle() }}
+        style={{ padding: `${padShift(Math.max(4, sizeConfig().padding - 4))} ${padShift(sizeConfig().padding)} ${headerBottomPadding()} ${padShift(sizeConfig().padding)}`, ...headerBorderStyle() }}
       >
         <span class={`${sizeConfig().labelSize} font-semibold uppercase tracking-wider text-secondary/70`}>{allProps().label}</span>
         <span class={`font-mono ${sizeConfig().valueSize} font-bold`} style={{ color: colorValue() }}>{value()}</span>
@@ -220,7 +223,7 @@ const Slider: Component<SliderProps> = (p) => {
       
       <div 
         class={`flex flex-col gap-1`}
-        style={{ padding: `${sizeConfig().padding * 4}px`, "padding-bottom": `${Math.max(4, (sizeConfig().padding - 1) * 4)}px` }}
+        style={{ padding: padShift(sizeConfig().padding), "padding-bottom": padShift(Math.max(4, sizeConfig().padding - 4)) }}
       >
           <input 
             type="range" 

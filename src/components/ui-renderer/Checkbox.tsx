@@ -42,8 +42,8 @@ const Checkbox: Component<CheckboxProps> = (p) => {
   // Size presets - uses CSS variables for global customization
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", checkboxSize: 16 };
-      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 20 };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", checkboxSize: 14 };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", checkboxSize: 17 };
       case "md": return { padding: 12, textSize: "text-sm", checkboxSize: 19.5 };
       case "lg": return { padding: 14, textSize: "text-xl", checkboxSize: 28 };
       case "xl": return { padding: 16, textSize: "text-3xl", checkboxSize: 32 };
@@ -186,7 +186,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
 
   // Layout classes based on align, spaced, and reverse
   const layoutClasses = () => {
-    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "component-border", "rounded-sm", sizeConfig().textSize];
+    const classes = ["flex", "items-center", "cursor-pointer", "font-mono", "text-secondary", "bg-base-200/50", "component-border", "rounded-[var(--component-radius)]", sizeConfig().textSize];
     
     // Handle reverse (order)
     if (reverse()) {
@@ -221,7 +221,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
       </style>
       <label 
       class={layoutClasses()}
-      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `${sizeConfig().padding}px` }}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), padding: `calc(${sizeConfig().padding}px + var(--component-pad-${size()}))` }}
     >
       <input
         type="checkbox"

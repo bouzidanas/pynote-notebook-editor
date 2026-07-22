@@ -124,6 +124,21 @@ describe("syntax, radii, spacing and typography inputs", () => {
     expect(cssVar("--radius-sm")).toBe("6px");
   });
 
+  test("component radius and padding shifts map to variables with defaults", async () => {
+    updateTheme({ componentRadius: "4px", componentPadding: { md: "2px", xl: "-3px" } });
+    await tick();
+    expect(cssVar("--component-radius")).toBe("4px");
+    expect(cssVar("--component-pad-md")).toBe("2px");
+    expect(cssVar("--component-pad-xl")).toBe("-3px");
+    // Blank sizes fall back to no shift.
+    expect(cssVar("--component-pad-xs")).toBe("0px");
+
+    updateTheme({ componentRadius: "", componentPadding: { md: "", xl: "" } });
+    await tick();
+    expect(cssVar("--component-radius")).toBe("var(--radius-sm)");
+    expect(cssVar("--component-pad-md")).toBe("0px");
+  });
+
   test("spacing maps to line/cell/block variables", async () => {
     updateTheme({ spacing: { line: "1.8", cell: "12px", block: "24px", cellPadAdjust: "3px" } });
     await tick();

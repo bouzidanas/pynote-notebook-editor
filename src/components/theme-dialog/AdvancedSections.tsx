@@ -373,17 +373,14 @@ const AdvancedSections: Component = () => {
             {/* Advanced: pynote_ui Components Section */}
             <Section id="advPynoteUi" title="Advanced — pynote_ui Components">
                 <div class="space-y-3">
-                  <p class="text-[10px] leading-relaxed text-secondary/60">
-                    Sets the default border for embedded pynote_ui components
-                    (Button, Input, Slider, etc). Enter exactly what you'd
-                    pass to a component's <span class="font-mono">border</span>{" "}
-                    argument: a preset (<span class="font-mono">primary</span>), a
-                    color (<span class="font-mono">#89b4fa</span>), a full CSS
-                    border (<span class="font-mono">3px dashed #89b4fa</span>) or{" "}
-                    <span class="font-mono">none</span>.
-                    Components given their own <span class="font-mono">border</span>{" "}
-                    are unaffected.
-                  </p>
+                  <NumberUnitInput
+                    label="Border Radius"
+                    value={currentTheme.componentRadius}
+                    onChange={(v) => updateTheme({ componentRadius: v })}
+                    placeholder="var(--radius-sm)"
+                    step={0.125}
+                    min={0}
+                  />
 
                   <InputField
                     label="Default Border"
@@ -391,6 +388,28 @@ const AdvancedSections: Component = () => {
                     onChange={(v) => updateTheme({ componentBorder: v })}
                     placeholder="2px solid foreground"
                   />
+
+                  <div class="space-y-1">
+                    <h4 class="text-[11px] font-bold text-secondary/70 uppercase">Size Preset Padding</h4>
+                    <p class="text-[10px] leading-relaxed text-secondary/60">
+                      Added to the built-in padding of every component at that
+                      size (negative values shrink). All components shift
+                      together, so their relative sizes stay the same.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2">
+                      <For each={["xs", "sm", "md", "lg", "xl"] as const}>
+                        {(sz) => (
+                          <NumberUnitInput
+                            label={sz.toUpperCase()}
+                            value={currentTheme.componentPadding[sz]}
+                            onChange={(v) => updateTheme({ componentPadding: { [sz]: v } })}
+                            placeholder="0px"
+                            step={1}
+                          />
+                        )}
+                      </For>
+                    </div>
+                  </div>
                 </div>
             </Section>
     </>

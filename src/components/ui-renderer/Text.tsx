@@ -23,11 +23,11 @@ const renderMarkdown = (src: string): string => {
 
 // Size presets for Text component - uses Tailwind's CSS variables
 const SIZE_PRESETS = {
-  xs: { padding: "p-1.5", textSize: "text-[length:var(--text-3xs)]" },
-  sm: { padding: "p-2", textSize: "text-[length:var(--text-2xs)]" },
-  md: { padding: "p-3", textSize: "text-sm" },
-  lg: { padding: "p-3.5", textSize: "text-xl" },
-  xl: { padding: "p-4", textSize: "text-3xl" },
+  xs: { padding: 6, textSize: "text-[length:var(--text-3xs)]" },
+  sm: { padding: 8, textSize: "text-[length:var(--text-2xs)]" },
+  md: { padding: 12, textSize: "text-sm" },
+  lg: { padding: 14, textSize: "text-xl" },
+  xl: { padding: 16, textSize: "text-3xl" },
 } as const;
 
 interface TextProps {
@@ -159,8 +159,8 @@ const Text: Component<TextProps> = (p) => {
 
   return (
     <div 
-      class={`${sizeConfig().padding} bg-base-200/50 component-border rounded-sm font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}${isMarkdown() ? " prose prose-sm max-w-none" : ""}`}
-      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), color: colorValue() }}
+      class={`bg-base-200/50 component-border rounded-[var(--component-radius)] font-mono [overflow-wrap:anywhere] ${sizeConfig().textSize}${isMarkdown() ? " prose prose-sm max-w-none" : ""}`}
+      style={{ ...componentStyles(), ...borderStyles(), ...resolveBackground(allProps().background), color: colorValue(), padding: `calc(${sizeConfig().padding}px + var(--component-pad-${size()}))` }}
       {...(isMarkdown() ? { innerHTML: renderedHtml() } : {})}
     >
       {isMarkdown() ? null : content()}

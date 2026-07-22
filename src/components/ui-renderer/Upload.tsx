@@ -98,12 +98,12 @@ const Upload: Component<UploadProps> = (p) => {
 
   const sizeConfig = () => {
     switch (size()) {
-      case "xs": return { paddingClass: "p-1.5", textSize: "text-[length:var(--text-3xs)]", iconSize: 20, fileTextSize: "text-[10px]" };
-      case "sm": return { paddingClass: "p-2", textSize: "text-[length:var(--text-2xs)]", iconSize: 24, fileTextSize: "text-xs" };
-      case "md": return { paddingClass: "p-3", textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
-      case "lg": return { paddingClass: "p-3.5", textSize: "text-xl", iconSize: 40, fileTextSize: "text-sm" };
-      case "xl": return { paddingClass: "p-4", textSize: "text-3xl", iconSize: 48, fileTextSize: "text-base" };
-      default: return { paddingClass: "p-3", textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
+      case "xs": return { padding: 6, textSize: "text-[length:var(--text-3xs)]", iconSize: 20, fileTextSize: "text-[10px]" };
+      case "sm": return { padding: 8, textSize: "text-[length:var(--text-2xs)]", iconSize: 24, fileTextSize: "text-xs" };
+      case "md": return { padding: 12, textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
+      case "lg": return { padding: 14, textSize: "text-xl", iconSize: 40, fileTextSize: "text-sm" };
+      case "xl": return { padding: 16, textSize: "text-3xl", iconSize: 48, fileTextSize: "text-base" };
+      default: return { padding: 12, textSize: "text-sm", iconSize: 32, fileTextSize: "text-xs" };
     }
   };
 
@@ -412,11 +412,12 @@ const Upload: Component<UploadProps> = (p) => {
         data-testid={TESTID.uploadComponent}
         data-component-id={componentId}
         data-label={label()}
-        class={`${uploadClass} rounded-sm cursor-pointer select-none font-mono flex-col ${sizeConfig().paddingClass} ${borderClass()} ${hidden() ? "hidden" : "flex"} ${allProps().height == null ? "min-h-[120px]" : ""} ${isDragOver() ? "drag-over" : ""}`}
+        class={`${uploadClass} rounded-[var(--component-radius)] cursor-pointer select-none font-mono flex-col ${borderClass()} ${hidden() ? "hidden" : "flex"} ${allProps().height == null ? "min-h-[120px]" : ""} ${isDragOver() ? "drag-over" : ""}`}
         style={{
           ...componentStyles(),
           ...borderStyle(),
           ...resolveBackground(allProps().background),
+          padding: `calc(${sizeConfig().padding}px + var(--component-pad-${size()}))`,
         }}
         onClick={handleZoneClick}
       >

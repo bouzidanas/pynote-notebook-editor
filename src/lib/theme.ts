@@ -98,6 +98,17 @@ export interface Theme {
   // or "none". Only changes the *default*: components given an explicit
   // `border=` argument in Python keep their own.
   componentBorder: string;
+  // Border radius for embedded pynote_ui component boxes. Empty string = the
+  // app's small radius (var(--radius-sm)).
+  componentRadius: string;
+  // Per size preset padding shift for pynote_ui components. 
+  componentPadding: {
+    xs: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+  };
   cellBorder: {
     radius: string;
     default: string;
@@ -424,6 +435,14 @@ export const defaultTheme: Theme = {
   },
   mdShadow: "",
   componentBorder: "",
+  componentRadius: "",
+  componentPadding: {
+    xs: "",
+    sm: "",
+    md: "",
+    lg: "",
+    xl: "",
+  },
   cellBorder: {
     radius: "",
     default: "",
@@ -484,6 +503,7 @@ export const loadAppTheme = (): Theme => {
         uiTypography: { ...defaultTheme.uiTypography, ...parsed.uiTypography },
         uiBorder: { ...defaultTheme.uiBorder, ...parsed.uiBorder },
         mdBorder: { ...defaultTheme.mdBorder, ...parsed.mdBorder },
+        componentPadding: { ...defaultTheme.componentPadding, ...parsed.componentPadding },
         cellBorder: { ...defaultTheme.cellBorder, ...parsed.cellBorder },
         cellShadow: { ...defaultTheme.cellShadow, ...parsed.cellShadow },
         codeBlock: { ...defaultTheme.codeBlock, ...parsed.codeBlock },
@@ -516,6 +536,8 @@ export const updateTheme = (newTheme: any) => {
   if (newTheme.mdBorder) setTheme("mdBorder", (mb) => ({ ...mb, ...newTheme.mdBorder }));
   if (newTheme.mdShadow !== undefined) setTheme("mdShadow", newTheme.mdShadow);
   if (newTheme.componentBorder !== undefined) setTheme("componentBorder", newTheme.componentBorder);
+  if (newTheme.componentRadius !== undefined) setTheme("componentRadius", newTheme.componentRadius);
+  if (newTheme.componentPadding) setTheme("componentPadding", (cp) => ({ ...cp, ...newTheme.componentPadding }));
   if (newTheme.cellBorder) setTheme("cellBorder", (cb) => ({ ...cb, ...newTheme.cellBorder }));
   if (newTheme.cellShadow) setTheme("cellShadow", (cs) => ({ ...cs, ...newTheme.cellShadow }));
   if (newTheme.codeBlock) setTheme("codeBlock", (cb) => ({ ...cb, ...newTheme.codeBlock }));
@@ -758,6 +780,17 @@ export const initTheme = () => {
     const cbInput = theme.componentBorder.trim();
     const cbResolved = cbInput ? resolveBorder(cbInput).border : undefined;
     root.style.setProperty("--component-border", cbResolved || "2px solid var(--foreground)");
+
+    // pynote_ui component sizing. Radius falls back to the app's small radius;
+    // the padding shifts land in calc() next to each component's hardcoded
+    // padding, so blank means 0px (no shift).
+    root.style.setProperty("--component-radius", theme.componentRadius.trim() || "var(--radius-sm)");
+    const cp = theme.componentPadding;
+    root.style.setProperty("--component-pad-xs", cp.xs.trim() || "0px");
+    root.style.setProperty("--component-pad-sm", cp.sm.trim() || "0px");
+    root.style.setProperty("--component-pad-md", cp.md.trim() || "0px");
+    root.style.setProperty("--component-pad-lg", cp.lg.trim() || "0px");
+    root.style.setProperty("--component-pad-xl", cp.xl.trim() || "0px");
 
     // Header Colors Logic
     const colors = theme.typography.headerColors || [];
