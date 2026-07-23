@@ -65,7 +65,7 @@ export type OutputSegment =
   | { type: "text"; content: string }
   | { type: "ui"; data: { id: string; type: string; props: any } }
   | { type: "markdown"; content: string; styled: boolean }
-  | { type: "image"; format: "png" | "svg"; data: string };
+  | { type: "image"; format: "png" | "svg"; data: string; align: "left" | "center" | "right" };
 
 // Sub-segment within markdown (text or UI)
 export type MarkdownSubSegment =
@@ -193,7 +193,12 @@ export function parseStdoutWithUI(stdout: string[]): OutputSegment[] {
     } else if (m.type === "image") {
       try {
         const imgData = JSON.parse(m.content);
-        segments.push({ type: "image", format: imgData.format === "svg" ? "svg" : "png", data: String(imgData.data ?? "") });
+        segments.push({
+          type: "image",
+          format: imgData.format === "svg" ? "svg" : "png",
+          data: String(imgData.data ?? ""),
+          align: imgData.align === "left" || imgData.align === "right" ? imgData.align : "center"
+        });
       } catch (e) {
         segments.push({ type: "text", content: m.content });
       }
@@ -552,16 +557,18 @@ export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
                   );
                 } else if (segment.type === "image") {
                   if (segment.format === "svg") {
+                    const justify = segment.align === "center" ? "justify-center" : segment.align === "right" ? "justify-end" : "justify-start";
                     return (
                       <div
-                        class="mt-2 first:mt-0 min-w-0 max-w-full overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
+                        class={`flex ${justify} mt-2 first:mt-0 min-w-0 max-w-full overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto`}
                         innerHTML={DOMPurify.sanitize(segment.data)}
                       />
                     );
                   }
+                  const margin = segment.align === "center" ? "mx-auto" : segment.align === "right" ? "ml-auto" : "";
                   return (
                     <img
-                      class="block mt-2 first:mt-0 max-w-full h-auto"
+                      class={`block ${margin} mt-2 first:mt-0 max-w-full h-auto`}
                       src={`data:image/png;base64,${segment.data}`}
                       alt="figure"
                     />

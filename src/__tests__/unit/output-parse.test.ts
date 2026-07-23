@@ -63,19 +63,30 @@ describe('parseStdoutWithUI', () => {
   });
 
   test('png image marker parses into image segment', () => {
-    const input = `before${img(JSON.stringify({ format: 'png', data: 'aGVsbG8=' }))}after`;
+    const input = `before${img(JSON.stringify({ format: 'png', data: 'aGVsbG8=', align: 'center' }))}after`;
     const result = parseStdoutWithUI([input]);
     expect(result).toHaveLength(3);
     expect(result[0]).toEqual({ type: 'text', content: 'before' });
-    expect(result[1]).toEqual({ type: 'image', format: 'png', data: 'aGVsbG8=' });
+    expect(result[1]).toEqual({ type: 'image', format: 'png', data: 'aGVsbG8=', align: 'center' });
     expect(result[2]).toEqual({ type: 'text', content: 'after' });
+  });
+
+  test('image align defaults to center and honors left/right', () => {
+    const noAlign = parseStdoutWithUI([img(JSON.stringify({ format: 'png', data: 'aa==' }))]);
+    expect(noAlign[0]).toEqual({ type: 'image', format: 'png', data: 'aa==', align: 'center' });
+
+    const left = parseStdoutWithUI([img(JSON.stringify({ format: 'png', data: 'aa==', align: 'left' }))]);
+    expect(left[0]).toMatchObject({ align: 'left' });
+
+    const bogus = parseStdoutWithUI([img(JSON.stringify({ format: 'png', data: 'aa==', align: 'diagonal' }))]);
+    expect(bogus[0]).toMatchObject({ align: 'center' });
   });
 
   test('svg image marker keeps svg markup as data', () => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
     const result = parseStdoutWithUI([img(JSON.stringify({ format: 'svg', data: svg }))]);
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ type: 'image', format: 'svg', data: svg });
+    expect(result[0]).toEqual({ type: 'image', format: 'svg', data: svg, align: 'center' });
   });
 
   test('malformed JSON in image marker falls back to text segment', () => {

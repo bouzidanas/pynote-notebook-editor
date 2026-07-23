@@ -52,6 +52,7 @@ MARKER_IMG_END = "\\x02/PYNOTE_IMG\\x02"
 _matplotlib_config = {
     "format": "png",   # "png" or "svg"
     "dpi": None,        # None = use the figure's own dpi
+    "align": "center",  # "left", "center", or "right"
 }
 _matplotlib_ready = False
 
@@ -62,9 +63,13 @@ def configure_matplotlib(**kwargs):
     Args:
         format: "png" (default) or "svg"
         dpi: Raster resolution for PNG output (None = figure default)
+        align: Horizontal placement of figures in the output,
+               "left", "center" (default), or "right"
     """
     if "format" in kwargs and kwargs["format"] not in ("png", "svg"):
         raise ValueError('format must be "png" or "svg"')
+    if "align" in kwargs and kwargs["align"] not in ("left", "center", "right"):
+        raise ValueError('align must be "left", "center", or "right"')
     _matplotlib_config.update(kwargs)
 
 def _render_mpl_figure(fig):
@@ -83,6 +88,7 @@ def _render_mpl_figure(fig):
             kwargs["dpi"] = _matplotlib_config["dpi"]
         fig.savefig(buf, **kwargs)
         payload = {"format": "png", "data": base64.b64encode(buf.getvalue()).decode("ascii")}
+    payload["align"] = _matplotlib_config["align"]
     print(MARKER_IMG_START + json.dumps(payload) + MARKER_IMG_END)
 
 def setup_matplotlib():
