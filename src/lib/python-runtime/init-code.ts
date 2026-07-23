@@ -3,9 +3,15 @@
 export const INIT_CODE = `
 import sys
 import io
+import os
 import contextvars
 import ast
 from pyodide.code import eval_code_async
+
+# Force matplotlib onto the headless AGG backend. The Pyodide default (webagg)
+# imports document from the js module, which does not exist in a worker. Set
+# before matplotlib can ever be imported; harmless if it never is.
+os.environ["MPLBACKEND"] = "agg"
 
 # Context variable to track which cell is currently executing
 current_cell_id = contextvars.ContextVar("current_cell_id", default=None)
@@ -29,6 +35,102 @@ class ContextAwareOutput(io.TextIOBase):
 
 sys.stdout = ContextAwareOutput("stdout")
 sys.stderr = ContextAwareOutput("stderr")
+
+# ---------------------------------------------------------------------------
+# Matplotlib rendering (static figures)
+#
+# Figures are rendered to PNG or SVG and printed to stdout wrapped in image
+# markers, same pattern as pynote_ui's markers, so they route to the right
+# cell and interleave with prints. Display triggers match Jupyter inline:
+# plt.show() renders immediately, and any pyplot figures still open at the
+# end of a cell are rendered and closed by _flush_matplotlib_figures().
+# ---------------------------------------------------------------------------
+
+MARKER_IMG_START = "\\x02PYNOTE_IMG\\x02"
+MARKER_IMG_END = "\\x02/PYNOTE_IMG\\x02"
+
+_matplotlib_config = {
+    "format": "png",   # "png" or "svg"
+    "dpi": None,        # None = use the figure's own dpi
+}
+_matplotlib_ready = False
+
+def configure_matplotlib(**kwargs):
+    """
+    Configure matplotlib figure output.
+
+    Args:
+        format: "png" (default) or "svg"
+        dpi: Raster resolution for PNG output (None = figure default)
+    """
+    if "format" in kwargs and kwargs["format"] not in ("png", "svg"):
+        raise ValueError('format must be "png" or "svg"')
+    _matplotlib_config.update(kwargs)
+
+def _render_mpl_figure(fig):
+    """Render a figure and print it to stdout wrapped in image markers."""
+    import json
+    fmt = _matplotlib_config["format"]
+    if fmt == "svg":
+        buf = io.StringIO()
+        fig.savefig(buf, format="svg")
+        payload = {"format": "svg", "data": buf.getvalue()}
+    else:
+        import base64
+        buf = io.BytesIO()
+        kwargs = {"format": "png"}
+        if _matplotlib_config["dpi"]:
+            kwargs["dpi"] = _matplotlib_config["dpi"]
+        fig.savefig(buf, **kwargs)
+        payload = {"format": "png", "data": base64.b64encode(buf.getvalue()).decode("ascii")}
+    print(MARKER_IMG_START + json.dumps(payload) + MARKER_IMG_END)
+
+def setup_matplotlib():
+    """
+    One-time matplotlib setup, called by the worker once the matplotlib
+    package has been loaded. Locks in the AGG backend and patches
+    pyplot.show() to render figures into the current cell's output.
+    Idempotent.
+    """
+    global _matplotlib_ready
+    if _matplotlib_ready:
+        return
+    import matplotlib
+    matplotlib.use("agg", force=True)
+    import matplotlib.pyplot as plt
+
+    def _pynote_show(*args, **kwargs):
+        from matplotlib._pylab_helpers import Gcf
+        for manager in Gcf.get_all_fig_managers():
+            _render_mpl_figure(manager.canvas.figure)
+        plt.close("all")
+
+    plt.show = _pynote_show
+    _matplotlib_ready = True
+
+def _flush_matplotlib_figures():
+    """
+    Render any pyplot figures still open at the end of a cell, then close
+    them. Gives Jupyter-like display without an explicit plt.show(), and
+    covers the case where matplotlib was installed mid-cell via micropip
+    (setup_matplotlib self-applies on the first flush that sees pyplot).
+    """
+    if "matplotlib.pyplot" not in sys.modules:
+        return
+    try:
+        if not _matplotlib_ready:
+            setup_matplotlib()
+        import matplotlib.pyplot as plt
+        from matplotlib._pylab_helpers import Gcf
+        managers = Gcf.get_all_fig_managers()
+        if not managers:
+            return
+        for manager in managers:
+            _render_mpl_figure(manager.canvas.figure)
+        plt.close("all")
+    except Exception:
+        import traceback
+        traceback.print_exc()
 
 # Completion filtering configuration
 # This can be customized for different filtering strategies (basic, AI-based, etc.)
@@ -403,6 +505,10 @@ async def run_cell_code(code, cell_id):
             
         return { "__pynote_error__": generated_tb }
     finally:
+        # Render any matplotlib figures the cell left open (Jupyter-like
+        # implicit display). Must happen before the contextvar reset so the
+        # image output still routes to this cell.
+        _flush_matplotlib_figures()
         current_cell_id.reset(token)
         # Clear cell context after execution. However, components created in callbacks
         # will inherit their parent component's cell_id (captured during on_update registration),

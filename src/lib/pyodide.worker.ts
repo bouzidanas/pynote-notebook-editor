@@ -12,6 +12,7 @@ import { PYNOTE_UI_FPLOT_PY } from "./python-runtime/pynote-ui/fplot";
 let pyodide: any = null;
 const WORKSPACE_ROOT = "/workspace";
 let workspacePersistenceEnabled = false;
+let matplotlibReady = false;
 
 const normalizePath = (inputPath: string): string => {
     const source = inputPath.trim();
@@ -394,6 +395,15 @@ async function runCode(id: string, code: string) {
 
     try {
         await pyodide.loadPackagesFromImports(code);
+
+        // Patch pyplot.show() before the first matplotlib cell executes, so
+        // figures render into cell output instead of warning on AGG.
+        if (!matplotlibReady && pyodide.loadedPackages?.matplotlib) {
+            const setup_matplotlib = pyodide.globals.get("setup_matplotlib");
+            setup_matplotlib();
+            setup_matplotlib.destroy();
+            matplotlibReady = true;
+        }
 
         const run_cell_code = pyodide.globals.get("run_cell_code");
         const result = await run_cell_code(code, id);

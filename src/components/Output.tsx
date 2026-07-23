@@ -27,6 +27,8 @@ export const MARKER_MD_STYLED_START = "\x02PYNOTE_MD_STYLED\x02";
 export const MARKER_MD_STYLED_END = "\x02/PYNOTE_MD_STYLED\x02";
 export const MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02";
 export const MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02";
+export const MARKER_IMG_START = "\x02PYNOTE_IMG\x02";
+export const MARKER_IMG_END = "\x02/PYNOTE_IMG\x02";
 
 // Configure marked for markdown rendering (same as MarkdownCell)
 const displayMath = {
@@ -62,7 +64,8 @@ const purifyOptions = {
 export type OutputSegment =
   | { type: "text"; content: string }
   | { type: "ui"; data: { id: string; type: string; props: any } }
-  | { type: "markdown"; content: string; styled: boolean };
+  | { type: "markdown"; content: string; styled: boolean }
+  | { type: "image"; format: "png" | "svg"; data: string };
 
 // Sub-segment within markdown (text or UI)
 export type MarkdownSubSegment =
@@ -91,8 +94,14 @@ export function parseStdoutWithUI(stdout: string[]): OutputSegment[] {
     "gs"
   );
 
+  // Parse image elements (matplotlib figures)
+  const imgPattern = new RegExp(
+    `${escapeRegex(MARKER_IMG_START)}(.+?)${escapeRegex(MARKER_IMG_END)}`,
+    "gs"
+  );
+
   // Find all markers with their positions
-  type MarkerMatch = { index: number; end: number; type: "ui" | "markdown"; content: string; styled?: boolean };
+  type MarkerMatch = { index: number; end: number; type: "ui" | "markdown" | "image"; content: string; styled?: boolean };
   const matches: MarkerMatch[] = [];
 
   let match;
@@ -122,6 +131,15 @@ export function parseStdoutWithUI(stdout: string[]): OutputSegment[] {
       type: "markdown",
       content: match[1],
       styled: false
+    });
+  }
+
+  while ((match = imgPattern.exec(combined)) !== null) {
+    matches.push({
+      index: match.index,
+      end: match.index + match[0].length,
+      type: "image",
+      content: match[1]
     });
   }
 
@@ -169,6 +187,13 @@ export function parseStdoutWithUI(stdout: string[]): OutputSegment[] {
       try {
         const uiData = JSON.parse(m.content);
         segments.push({ type: "ui", data: uiData });
+      } catch (e) {
+        segments.push({ type: "text", content: m.content });
+      }
+    } else if (m.type === "image") {
+      try {
+        const imgData = JSON.parse(m.content);
+        segments.push({ type: "image", format: imgData.format === "svg" ? "svg" : "png", data: String(imgData.data ?? "") });
       } catch (e) {
         segments.push({ type: "text", content: m.content });
       }
@@ -524,6 +549,22 @@ export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
                     <div class="mt-2 first:mt-0 min-w-0 w-full">
                       <UIOutputRenderer data={segment.data} />
                     </div>
+                  );
+                } else if (segment.type === "image") {
+                  if (segment.format === "svg") {
+                    return (
+                      <div
+                        class="mt-2 first:mt-0 min-w-0 max-w-full overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto"
+                        innerHTML={DOMPurify.sanitize(segment.data)}
+                      />
+                    );
+                  }
+                  return (
+                    <img
+                      class="block mt-2 first:mt-0 max-w-full h-auto"
+                      src={`data:image/png;base64,${segment.data}`}
+                      alt="figure"
+                    />
                   );
                 } else if (segment.type === "markdown") {
                   return <MarkdownWithUI content={segment.content} styled={segment.styled} />;

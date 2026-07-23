@@ -8,11 +8,14 @@ import {
   MARKER_MD_STYLED_END,
   MARKER_MD_PLAIN_START,
   MARKER_MD_PLAIN_END,
+  MARKER_IMG_START,
+  MARKER_IMG_END,
 } from '../../components/Output';
 
 const ui = (json: string) => `${MARKER_UI_START}${json}${MARKER_UI_END}`;
 const mdStyled = (text: string) => `${MARKER_MD_STYLED_START}${text}${MARKER_MD_STYLED_END}`;
 const mdPlain = (text: string) => `${MARKER_MD_PLAIN_START}${text}${MARKER_MD_PLAIN_END}`;
+const img = (json: string) => `${MARKER_IMG_START}${json}${MARKER_IMG_END}`;
 
 describe('parseStdoutWithUI', () => {
   test('empty input returns empty array', () => {
@@ -57,6 +60,28 @@ describe('parseStdoutWithUI', () => {
   test('plain markdown segment has styled=false', () => {
     const result = parseStdoutWithUI([mdPlain('hello')]);
     expect(result[0]).toEqual({ type: 'markdown', content: 'hello', styled: false });
+  });
+
+  test('png image marker parses into image segment', () => {
+    const input = `before${img(JSON.stringify({ format: 'png', data: 'aGVsbG8=' }))}after`;
+    const result = parseStdoutWithUI([input]);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toEqual({ type: 'text', content: 'before' });
+    expect(result[1]).toEqual({ type: 'image', format: 'png', data: 'aGVsbG8=' });
+    expect(result[2]).toEqual({ type: 'text', content: 'after' });
+  });
+
+  test('svg image marker keeps svg markup as data', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
+    const result = parseStdoutWithUI([img(JSON.stringify({ format: 'svg', data: svg }))]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ type: 'image', format: 'svg', data: svg });
+  });
+
+  test('malformed JSON in image marker falls back to text segment', () => {
+    const result = parseStdoutWithUI([img('{oops')]);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ type: 'text', content: '{oops' });
   });
 
   test('handles split across multiple stdout chunks', () => {
