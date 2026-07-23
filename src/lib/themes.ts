@@ -250,6 +250,7 @@ const PRESETS = {
         },
         "codeBlock": {
             "innerRadius": "1.1rem",
+            "innerBackground": "color-mix(in oklab, var(--color-accent) 5%, transparent)",
             "gutterBorderRightOn": true
         },
         "sectionScoping": true,
