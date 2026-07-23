@@ -620,9 +620,13 @@ const Notebook: Component = () => {
     // Spread proxy to plain object first (SolidJS store proxies may not
     // enumerate dynamically-added properties through direct rest destructuring),
     // then exclude transient UI-only keys that are meaningless after reload.
+    // Outputs are intentionally not persisted: they are live kernel results
+    // (pynote_ui components and built-in plots can't be restored without a
+    // kernel anyway) and cells that haven't run after a reload should show
+    // none. Opt-in output persistence is a planned future feature.
     const data = {
       cells: notebookStore.cells.map(cell => {
-        const { isEditing, isRunning, isQueued, editorAction, canUndo, canRedo, ...rest } = { ...cell };
+        const { isEditing, isRunning, isQueued, editorAction, canUndo, canRedo, outputs, ...rest } = { ...cell };
         return rest;
       }),
       filename: notebookStore.filename,
@@ -666,11 +670,14 @@ const Notebook: Component = () => {
 
     const data = sessionManager.loadSession(sessionId);
     if (data && Array.isArray(data.cells)) {
-        // Sanitize cells to ensure no stale running state
+        // Sanitize cells to ensure no stale running state. Also drop outputs
+        // that older sessions saved before outputs were excluded from
+        // persistence; a cell that hasn't run this load has no output.
         const sanitizedCells = data.cells.map((c: any) => ({
              ...c,
              isRunning: false,
-             isQueued: false
+             isQueued: false,
+             outputs: undefined
         }));
 
         // Validate execution mode from session (or fall back to app default)
