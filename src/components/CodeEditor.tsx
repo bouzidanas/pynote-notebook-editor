@@ -725,6 +725,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
     keymap.of([
       // Custom completion keymap (replaces default since we disabled it)
       { key: "Ctrl-Space", mac: "Alt-Space", run: (view) => { acceptCompletion(view); return true; } },
+      { mac: "Alt-\u00a0", run: (view) => { acceptCompletion(view); return true; } },
       { key: "Escape", run: closeCompletion },
       { key: "ArrowDown", run: moveCompletionSelection(true) },
       { key: "ArrowUp", run: moveCompletionSelection(false) },
