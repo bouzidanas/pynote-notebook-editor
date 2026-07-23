@@ -498,6 +498,10 @@ export const actions = {
 
   clearCellOutput: (id: string) => {
     setStore("cells", (c) => c.id === id, "outputs", undefined);
+    // Autosave so a cleared output doesn't come back on reload
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
   },
 
   deleteCell: (id: string) => {
@@ -1063,6 +1067,10 @@ export const actions = {
     } finally {
       actions.setCellRunning(id, false);
 
+      if ((actions as any).__autosaveCallback) {
+        (actions as any).__autosaveCallback();
+      }
+
       // Process next in queue
       const nextId = actions.popFromQueue();
       if (nextId) {
@@ -1091,6 +1099,10 @@ export const actions = {
 
   clearAllOutputs: () => {
     setStore("cells", {}, "outputs", undefined);
+    // Autosave so cleared outputs don't come back on reload
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
   },
 
   resetExecutionState: () => {
