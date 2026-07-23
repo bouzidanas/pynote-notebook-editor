@@ -9,7 +9,7 @@ import { tags } from "@lezer/highlight";
 import { bracketMatching, matchBrackets, indentOnInput, indentUnit } from "@codemirror/language";
 import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
 import { search, searchKeymap, SearchCursor, closeSearchPanel } from "@codemirror/search";
-import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE } from "../lib/store";
+import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE, APP_TAB_ACCEPTS_COMPLETION } from "../lib/store";
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
 import { scheduleBracketHighlightRefresh } from "../lib/theme";
@@ -730,6 +730,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
       { key: "ArrowDown", run: moveCompletionSelection(true) },
       { key: "ArrowUp", run: moveCompletionSelection(false) },
       { key: "Ctrl-Shift-Space", run: startCompletion },
+      ...(APP_TAB_ACCEPTS_COMPLETION ? [{ key: "Tab", run: acceptCompletion }] : []),
       // Other custom bindings
       { key: "Mod-Enter", run: () => false },
       { key: "Mod-/", run: toggleComment },

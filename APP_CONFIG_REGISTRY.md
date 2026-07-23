@@ -12,6 +12,7 @@ Hardcoded configuration parameters across the codebase. All values are compile-t
 | 11 | `APP_QUICK_EDIT_MODE` | `true` | Single-click enters edit mode on code cells |
 | 14 | `APP_SHOW_TRAILING_ADD_BUTTONS` | `true` | Show "+ Code" / "+ Text" buttons at bottom of cell list |
 | 17 | `APP_ENABLE_CELL_DND` | `true` | Enable drag-and-drop cell reordering (hides grip icon + disables sensors when off) |
+| 32 | `APP_TAB_ACCEPTS_COMPLETION` | `true` | Tab inserts the selected completion when the autocomplete popup is open; otherwise Tab indents as usual |
 | 100 | `MAX_HISTORY` | `100` | Maximum undo/redo history entries retained |
 
 ## src/lib/codeVisibility.ts

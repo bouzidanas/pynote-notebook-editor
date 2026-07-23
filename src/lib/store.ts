@@ -26,6 +26,12 @@ export const APP_QUIET_MODE = false;
 // Default visibility of the markdown formatting toolbar when entering edit mode (default: off)
 export const APP_DEFAULT_SHOW_FORMATTING = false;
 
+// Tab inserts the selected completion when the autocomplete popup is open (default: on)
+// When off (or when no completion is active), Tab indents as usual. Some users
+// prefer off because Tab is also used for spacing while the popup happens to be
+// open (like aligning a comment at the end of a code line).
+export const APP_TAB_ACCEPTS_COMPLETION = true;
+
 // Cell-level visibility metadata (for code cells only)
 // These override document/app settings for this specific cell
 // true = force show, false = force hide, undefined = use global setting
