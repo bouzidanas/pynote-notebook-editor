@@ -1,9 +1,34 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import solid from 'vite-plugin-solid'
 import tailwindcss from '@tailwindcss/vite'
 
+// The default theme and every preset use JetBrains Mono Variable (the two
+// non-mono preset body fonts are only downloaded when those themes are
+// active, so they aren't preloaded; taxing every visitor for them would
+// cost more than it saves). The browser only discovers the woff2 after
+// downloading and parsing the CSS bundle, so preloading the latin subset
+// from index.html starts that download immediately and first paint isn't
+// waiting on the font. The file is content-hashed, which is why the tag is
+// injected at build time.
+const preloadThemeFont = (): Plugin => ({
+  name: 'preload-theme-font',
+  transformIndexHtml: {
+    order: 'post',
+    handler(_html, ctx) {
+      if (!ctx.bundle) return; // dev server, assets aren't hashed
+      return Object.keys(ctx.bundle)
+        .filter((name) => /jetbrains-mono-latin-wght-normal.*\.woff2$/.test(name))
+        .map((name) => ({
+          tag: 'link',
+          attrs: { rel: 'preload', as: 'font', type: 'font/woff2', href: '/' + name, crossorigin: '' },
+          injectTo: 'head' as const,
+        }));
+    },
+  },
+})
+
 export default defineConfig({
-  plugins: [solid(), tailwindcss()],
+  plugins: [solid(), tailwindcss(), preloadThemeFont()],
   worker: {
     format: 'es',
   },

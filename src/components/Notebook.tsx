@@ -1371,7 +1371,7 @@ const Notebook: Component = () => {
   };
 
   return (
-    <div class="pb-32">
+    <main class="pb-32">
        {/* Global Toolbar */}
        <div 
          class={`sticky top-0 z-[200000] bg-background/80 backdrop-blur-md [border-bottom-width:var(--ui-divider-width,1px)] ui-divider mb-8 shadow-sm transition-transform duration-300 ${notebookStore.presentationMode ? "-translate-y-full" : ""}`}
@@ -2075,7 +2075,7 @@ const Notebook: Component = () => {
            </Transition>
          </div>
        </Portal>
-    </div>
+    </main>
   );
 };
 

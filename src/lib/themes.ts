@@ -118,7 +118,7 @@ const PRESETS = {
         "pageWidth": "normal"
     },
     "neobrutal_light": {
-        "font": "DM Sans",
+        "font": "\"DM Sans Variable\", sans-serif",
         "fontWeight": "500",
         "colors": {
             "primary": "#ec225c",

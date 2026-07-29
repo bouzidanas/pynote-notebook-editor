@@ -338,7 +338,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
             </Show>
             
             {/* Quick Actions */}
-            <button onClick={(e) => { e.stopPropagation(); props.onDelete(); }} class="p-2 -m-1 hover:text-primary rounded-sm text-foreground">
+            <button onClick={(e) => { e.stopPropagation(); props.onDelete(); }} class="p-2 -m-1 hover:text-primary rounded-sm text-foreground" title="Delete Cell">
               <Trash2 size={14} />
             </button>
           </div>

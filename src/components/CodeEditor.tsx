@@ -586,6 +586,7 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Base extensions
   extensionsConfig = [
     EditorState.allowMultipleSelections.of(true),
+    EditorView.contentAttributes.of({ "aria-label": "Python code" }),
     drawSelection(),
     python(),
     pythonIntellisense,

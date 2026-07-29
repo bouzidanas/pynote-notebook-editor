@@ -1,13 +1,32 @@
-import { type Component, createSignal, Show, createEffect, createMemo } from "solid-js";
+import { type Component, createSignal, Show, createEffect, createMemo, lazy } from "solid-js";
 import { type CellData, actions, notebookStore, APP_DEFAULT_SHOW_FORMATTING } from "../lib/store";
 import { currentTheme } from "../lib/theme";
 import CellWrapper, { getLastHeaderLevel } from "./CellWrapper";
-import MarkdownEditor from "./MarkdownEditor";
 import { marked } from "marked";
 import markedKatex from "marked-katex-extension";
 import katex from "katex";
 import DOMPurify from "dompurify";
 import { highlightPython, isPythonLanguage, isSupportedLanguage, highlightWithHljs } from "../lib/syntax-highlighter";
+
+// The markdown editor drags the whole milkdown/prosemirror chunk with it, and
+// phones only need it once a cell enters edit mode. Touch-primary devices
+// defer the chunk (fetched when idle so first edit doesn't stall); desktop
+// starts the fetch immediately, matching the old eager-import behavior.
+const IS_TOUCH_PRIMARY =
+  typeof window !== "undefined" &&
+  !!window.matchMedia?.("(pointer: coarse)").matches;
+
+const loadMarkdownEditor = () => import("./MarkdownEditor");
+const MarkdownEditor = lazy(loadMarkdownEditor);
+if (typeof window !== "undefined") {
+  if (!IS_TOUCH_PRIMARY) {
+    void loadMarkdownEditor();
+  } else if ("requestIdleCallback" in window) {
+    requestIdleCallback(() => void loadMarkdownEditor());
+  } else {
+    setTimeout(() => void loadMarkdownEditor(), 2000);
+  }
+}
 
 const displayMath = {
   name: 'displayMath',
