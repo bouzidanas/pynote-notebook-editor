@@ -141,16 +141,8 @@ const Button: Component<ButtonProps> = (p) => {
   
   // Build button classes
   const buttonClasses = () => {
-    const borderValue = allProps().border;
-    const { border } = resolveBorder(borderValue);
-    const noBorder = border === "none";
-    
     const classes = ["btn", "font-mono", "rounded-[var(--component-radius)]", buttonClass, sizeConfig().textSize];
-    
-    // Add non-border classes unless border="none"
-    if (!noBorder) {
-      classes.push("hover:bg-foreground", "active:bg-primary", "active:text-background");
-    }
+    classes.push("hover:bg-foreground", "active:bg-primary", "active:text-background");
     
     // Style
     const style = allProps().style;
@@ -169,12 +161,6 @@ const Button: Component<ButtonProps> = (p) => {
   // Generate color styles for background and active states
   const generateColorStyles = () => {
     const colorVar = resolveColor(allProps().color, "primary");
-    const borderValue = allProps().border;
-    const { border } = resolveBorder(borderValue);
-    const noBorder = border === "none";
-    
-    // Only apply color styling if not border="none"
-    if (noBorder) return "";
     
     // Primary type: always has background, hover brightens
     // Maintain consistent font-weight since text is always light-on-dark

@@ -1,0 +1,12 @@
+{
+  "file_hashes": {},
+  "indexed_at_commit": "791c20e3e6d1ff0165a0621751b158d5ffacdcf6",
+  "indexed_at_timestamp": "2026-08-09T02:03:08.951398+00:00",
+  "schema_version": 3,
+  "stats": {
+    "total_edges": 0,
+    "total_files": 0,
+    "total_nodes": 0
+  },
+  "vexp_version": "2.5.3"
+}
