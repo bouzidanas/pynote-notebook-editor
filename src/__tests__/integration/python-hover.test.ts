@@ -7,6 +7,7 @@ interface HoverResult {
   type?: string;
   name?: string;
   doc?: string;
+  value?: string;
 }
 
 let pyodide: PyodideAPI;
@@ -17,6 +18,9 @@ beforeAll(async () => {
   pyodide.runPython(`
 value = 5
 limit = 10
+large_list = list(range(100))
+cycle = []
+cycle.append(cycle)
 
 def documented_function(required, value=1, min=0, optional=None):
     """Return a value.
@@ -41,6 +45,12 @@ class CallableObject:
         return 1
 
 callable_object = CallableObject()
+
+class BrokenRepr:
+  def __repr__(self):
+    raise RuntimeError("cannot format")
+
+broken_repr = BrokenRepr()
 `);
 }, 15_000);
 
@@ -63,10 +73,37 @@ describe('Python hover inspection', () => {
     expect(inspectHover('value = 5', 'value')).toMatchObject({
       found: true,
       type: 'int',
+      value: '5',
     });
     expect(inspectHover('holder.value = 7', 'holder.value')).toMatchObject({
       found: true,
       type: 'int',
+      value: '7',
+    });
+  });
+
+  test('reads the current runtime value after the namespace changes', () => {
+    expect(inspectHover('value = 5', 'value').value).toBe('5');
+    pyodide.runPython('value = 42');
+    expect(inspectHover('value = 5', 'value').value).toBe('42');
+  });
+
+  test('bounds large and cyclic container previews', () => {
+    const largePreview = inspectHover('large_list', 'large_list').value;
+    expect(largePreview).toContain('0');
+    expect(largePreview).toContain('...');
+    expect(largePreview!.length).toBeLessThanOrEqual(1200);
+
+    const cyclePreview = inspectHover('cycle', 'cycle').value;
+    expect(cyclePreview).toContain('...');
+    expect(cyclePreview!.length).toBeLessThanOrEqual(1200);
+  });
+
+  test('contains errors raised by custom repr implementations', () => {
+    expect(inspectHover('broken_repr', 'broken_repr')).toMatchObject({
+      found: true,
+      type: 'BrokenRepr',
+      value: '<runtime value unavailable>',
     });
   });
 
@@ -115,16 +152,20 @@ describe('Python hover inspection', () => {
     ['callable object', 'callable_object()', 'callable_object'],
     ['built-in function', 'len([1, 2])', 'len'],
   ])('classifies %s consistently as a function', (_label, code, word) => {
-    expect(inspectHover(code, word)).toMatchObject({
+    const result = inspectHover(code, word);
+    expect(result).toMatchObject({
       found: true,
       type: 'function',
     });
+    expect(result).not.toHaveProperty('value');
   });
 
   test('keeps classes distinct from functions', () => {
-    expect(inspectHover('Holder()', 'Holder')).toMatchObject({
+    const result = inspectHover('Holder()', 'Holder');
+    expect(result).toMatchObject({
       found: true,
       type: 'class',
     });
+    expect(result).not.toHaveProperty('value');
   });
 });
