@@ -6,6 +6,7 @@ import io
 import os
 import contextvars
 import ast
+import reprlib
 from pyodide.code import eval_code_async
 
 # Force matplotlib onto the headless AGG backend. The Pyodide default (webagg)
@@ -370,6 +371,43 @@ def get_completions(code, offset):
     except Exception:
         return []
 
+_runtime_value_repr = reprlib.Repr()
+_runtime_value_repr.maxlevel = 3
+_runtime_value_repr.maxlist = 10
+_runtime_value_repr.maxtuple = 10
+_runtime_value_repr.maxset = 10
+_runtime_value_repr.maxfrozenset = 10
+_runtime_value_repr.maxdict = 8
+_runtime_value_repr.maxarray = 10
+_runtime_value_repr.maxdeque = 10
+_runtime_value_repr.maxstring = 300
+_runtime_value_repr.maxother = 500
+
+def _format_runtime_value(obj):
+    """Return a bounded representation suitable for a hover tooltip."""
+    try:
+        obj_type = type(obj)
+        if obj_type.__module__ == "numpy" and obj_type.__name__ == "ndarray":
+            numpy_module = sys.modules.get("numpy")
+            if numpy_module is not None:
+                summary = f"array(shape={obj.shape}, dtype={obj.dtype})"
+                contents = numpy_module.array2string(
+                    obj, threshold=16, edgeitems=2, max_line_width=88
+                )
+                preview = f"{summary}\\n{contents}"
+            else:
+                preview = _runtime_value_repr.repr(obj)
+        elif obj_type.__module__ in ("builtins", "collections", "array"):
+            preview = _runtime_value_repr.repr(obj)
+        else:
+            preview = repr(obj)
+    except Exception:
+        return "<runtime value unavailable>"
+
+    if len(preview) > 1200:
+        return preview[:1197] + "..."
+    return preview
+
 def get_hover_help(code, offset):
     """
     Get docstring and type info for tooltip.
@@ -490,11 +528,14 @@ def get_hover_help(code, offset):
                     if len(doc) > 300:
                         doc = doc[:297] + "..."
                         
-                    return {
+                    result = {
                         "type": obj_type,
                         "doc": doc,
                         "found": True
                     }
+                    if not (inspect.ismodule(obj) or inspect.isclass(obj) or callable(obj)):
+                        result["value"] = _format_runtime_value(obj)
+                    return result
                 except:
                     pass
         return {"found": False}

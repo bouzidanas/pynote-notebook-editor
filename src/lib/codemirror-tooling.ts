@@ -14,6 +14,10 @@ export const tooltipTheme = EditorView.theme({
     // Hover tooltips (docstrings, help) - inherit base tooltip style with blue left border
     ".cm-tooltip-custom": {
         borderLeft: "5px solid #66d",
+        maxHeight: "min(55vh, 520px)",
+        maxWidth: "min(70vw, 720px)",
+        overflow: "auto",
+        overscrollBehavior: "contain",
         padding: "4px 8px",
         fontSize: "12px",
         backgroundColor: "color-mix(in srgb, var(--accent) 9%, transparent)"
@@ -27,6 +31,27 @@ export const tooltipTheme = EditorView.theme({
     ".cm-tooltip-body": {
         color: "var(--color-secondary)",
         lineHeight: "1.5",
+        whiteSpace: "pre-wrap"
+    },
+    ".cm-tooltip-value": {
+        borderTop: "1px solid color-mix(in srgb, var(--color-secondary) 20%, transparent)",
+        marginTop: "8px",
+        paddingTop: "6px"
+    },
+    ".cm-tooltip-value-label": {
+        color: "var(--color-secondary)",
+        fontWeight: "600",
+        marginBottom: "3px"
+    },
+    ".cm-tooltip-value-content": {
+        color: "var(--color-secondary)",
+        fontFamily: "var(--code-font-family)",
+        lineHeight: "1.4",
+        margin: "0",
+        maxHeight: "240px",
+        maxWidth: "min(70vw, 720px)",
+        overflow: "auto",
+        overflowWrap: "anywhere",
         whiteSpace: "pre-wrap"
     },
 
@@ -279,6 +304,23 @@ export const pythonHover = hoverTooltip(async (view, pos, _side) => {
 
                 dom.appendChild(header);
                 dom.appendChild(body);
+
+                if (result.value !== undefined) {
+                    const valueSection = document.createElement("div");
+                    valueSection.className = "cm-tooltip-value";
+
+                    const valueLabel = document.createElement("div");
+                    valueLabel.className = "cm-tooltip-value-label";
+                    valueLabel.textContent = "Runtime value";
+
+                    const valueContent = document.createElement("pre");
+                    valueContent.className = "cm-tooltip-value-content";
+                    valueContent.textContent = result.value;
+
+                    valueSection.appendChild(valueLabel);
+                    valueSection.appendChild(valueContent);
+                    dom.appendChild(valueSection);
+                }
 
                 return { dom };
             }

@@ -37,6 +37,7 @@ class Kernel {
 
   public id: string = "";
   public executionCount: number = 0;
+  private activeExecutions: number = 0;
 
   constructor() {
     const [status, setStatus] = createSignal<KernelStatus>("loading");
@@ -53,6 +54,7 @@ class Kernel {
 
     this.id = Math.random().toString(36).substring(7);
     this.executionCount = 0;
+    this.activeExecutions = 0;
     this._setStatus("loading");
     this.worker = new Worker(new URL("./pyodide.worker.ts", import.meta.url), {
       type: "module",
@@ -237,6 +239,7 @@ class Kernel {
     }
 
     const id = Math.random().toString(36).substring(7);
+    this.activeExecutions++;
     this._setStatus("running");
 
     this.executionCount++;
@@ -269,14 +272,16 @@ class Kernel {
           currentResult.executionDuration = Date.now() - startTime;
           onUpdate({ ...currentResult });
           this.listeners.delete(id);
-          this._setStatus("ready");
+          this.activeExecutions = Math.max(0, this.activeExecutions - 1);
+          if (this.activeExecutions === 0) this._setStatus("ready");
           resolve();
         } else if (msg.type === "error") {
           currentResult.error = msg.error;
           currentResult.executionDuration = Date.now() - startTime;
           onUpdate({ ...currentResult });
           this.listeners.delete(id);
-          this._setStatus("ready");
+          this.activeExecutions = Math.max(0, this.activeExecutions - 1);
+          if (this.activeExecutions === 0) this._setStatus("ready");
           resolve();
         }
       });
@@ -303,6 +308,7 @@ class Kernel {
     this.componentListeners.clear();
     this.componentToCellMap.clear();
     this.currentCellContext = null;
+    this.activeExecutions = 0;
     this._setStatus("stopped");
   }
 

@@ -9,6 +9,9 @@ beforeEach(() => {
   k.componentListeners.clear();
   k.componentToCellMap.clear();
   k.currentCellContext = null;
+  k.activeExecutions = 0;
+  k.worker = null;
+  k._setStatus('ready');
 });
 
 describe('kernel message routing', () => {
@@ -67,5 +70,23 @@ describe('kernel message routing', () => {
     //   cellId === currentCellContext → don't remove (it's the new registration)
     expect(k.componentListeners.has('comp-1')).toBe(true);
     expect(k.componentListeners.get('comp-1')).toBe(newCallback);
+  });
+
+  test('kernel remains busy until all concurrent executions finish', async () => {
+    const postMessage = vi.fn();
+    k.worker = { postMessage };
+
+    const firstRun = kernel.run('first = 1');
+    const firstId = postMessage.mock.calls[0][0].id;
+    const secondRun = kernel.run('second = 2');
+    const secondId = postMessage.mock.calls[1][0].id;
+
+    k.listeners.get(firstId)!({ type: 'success', result: '1' });
+    await firstRun;
+    expect(kernel.status).toBe('running');
+
+    k.listeners.get(secondId)!({ type: 'success', result: '2' });
+    await secondRun;
+    expect(kernel.status).toBe('ready');
   });
 });
