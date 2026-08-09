@@ -478,7 +478,7 @@ def get_hover_help(code, offset):
                                     if stripped and not doc_line[0].isspace():
                                         break
 
-                                    arg_match = re.match(r'^\\s{4}([^:]+):\\s*(.*)$', doc_line)
+                                    arg_match = re.match(r'^\\s+([^:]+):\\s*(.*)$', doc_line)
                                     if arg_match:
                                         arg_names = [name.strip().lstrip('*') for name in arg_match.group(1).split(',')]
                                         collecting = word in arg_names
@@ -489,6 +489,14 @@ def get_hover_help(code, offset):
                                         parameter_doc += " " + stripped
                                     elif collecting:
                                         break
+
+                                if parameter.default is not inspect.Parameter.empty:
+                                    parameter_doc = re.sub(
+                                        r'\\s*\\(default(?::\\s*[^)]*)?\\)\\.?\\s*$',
+                                        '',
+                                        parameter_doc,
+                                        flags=re.IGNORECASE
+                                    ).rstrip()
 
                                 return {
                                     "type": "parameter",

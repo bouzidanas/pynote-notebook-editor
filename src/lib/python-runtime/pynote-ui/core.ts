@@ -12,12 +12,12 @@ _current_cell_id = ContextVar("pynote_ui_cell_id", default=None)
 # Control character markers for stdout rendering
 # Using ASCII control char (STX) that users can't accidentally type
 # Self-closing pattern: \\x02TYPE\\x02content\\x02/TYPE\\x02
-MARKER_UI_START = "\x02PYNOTE_UI\x02"
-MARKER_UI_END = "\x02/PYNOTE_UI\x02"
-MARKER_MD_STYLED_START = "\x02PYNOTE_MD_STYLED\x02"
-MARKER_MD_STYLED_END = "\x02/PYNOTE_MD_STYLED\x02"
-MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02"
-MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02"
+MARKER_UI_START = "\\x02PYNOTE_UI\\x02"
+MARKER_UI_END = "\\x02/PYNOTE_UI\\x02"
+MARKER_MD_STYLED_START = "\\x02PYNOTE_MD_STYLED\\x02"
+MARKER_MD_STYLED_END = "\\x02/PYNOTE_MD_STYLED\\x02"
+MARKER_MD_PLAIN_START = "\\x02PYNOTE_MD_PLAIN\\x02"
+MARKER_MD_PLAIN_END = "\\x02/PYNOTE_MD_PLAIN\\x02"
 
 class StateManager:
     """Track active components and route updates between Python and the frontend.

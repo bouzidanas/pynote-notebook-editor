@@ -26,10 +26,10 @@ def documented_function(required, value=1, min=0, optional=None):
     """Return a value.
 
     Args:
-        required: Required input value
-        value: Value to return
-        min: Minimum accepted value
-        optional: Optional input value
+      required: Required input value
+      value: Value to return (default: 1)
+      min: Minimum accepted value (default: 0).
+      optional: Optional input value (default: None)
     """
     return value
 
@@ -131,6 +131,24 @@ describe('Python hover inspection', () => {
       type: 'parameter',
       name: 'required',
       doc: 'required\nRequired input value',
+    });
+  });
+
+  test('keeps defaults mentioned within parameter prose', () => {
+    pyodide.runPython(`
+def prose_default(value=1):
+    """Return a value.
+
+    Args:
+        value: Uses the default behavior when omitted, then validates the result.
+    """
+    return value
+`);
+
+    expect(inspectHover('prose_default(value=2)', 'value')).toMatchObject({
+      found: true,
+      type: 'parameter',
+      doc: '(default) value = 1\nUses the default behavior when omitted, then validates the result.',
     });
   });
 
