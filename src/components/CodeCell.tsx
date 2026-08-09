@@ -177,6 +177,10 @@ const CodeCell: Component<CodeCellProps> = (props) => {
              style={{
                ...(currentTheme.codeBlock.innerBorder ? { border: currentTheme.codeBlock.innerBorder } : {}),
                ...(currentTheme.codeBlock.innerRadius ? { "border-radius": currentTheme.codeBlock.innerRadius } : {}),
+               ...(visibility().showExecutionCount && currentTheme.codeBlock.gutterBorderRightOn ? {
+                 "border-top-left-radius": "0",
+                 "border-bottom-left-radius": "0",
+               } : {}),
                ...(currentTheme.codeBlock.innerBackground ? { background: currentTheme.codeBlock.innerBackground } : {}),
                ...(currentTheme.codeBlock.innerShadow ? { "box-shadow": currentTheme.codeBlock.innerShadow } : {}),
              }}
