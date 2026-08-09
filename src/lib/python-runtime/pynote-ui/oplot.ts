@@ -41,6 +41,7 @@ class Plot(UIElement):
         x1, x2, y1, y2: Explicit bounds for rect/area marks
         
         # Visual encoding channels
+        color: Legacy color option mapped to fill or stroke
         fill: Column or color for fill (can vary per point)
         stroke: Column or color for stroke (can vary per point)
         opacity: Column or value for opacity
@@ -49,16 +50,18 @@ class Plot(UIElement):
         stroke_opacity: Column or value for stroke opacity
         
         # Dot-specific
+        size: Legacy dot size option mapped to r
         r: Column or value for radius/size (dot marks)
         symbol: Column or symbol type - "circle", "square", "diamond", "triangle", etc.
         
         # Series grouping
+        series: Legacy series option mapped to z
         z: Column for grouping into separate series (line, area marks)
         
         # Scale customization
         x_label, y_label: Axis labels
         x_domain, y_domain: Explicit scale domains [min, max]
-        xType, yType: Scale type - "linear", "log", "sqrt", "pow", "time", "utc", 
+        x_type, y_type: Scale type - "linear", "log", "sqrt", "pow", "time", "utc",
                       "band", "point", "ordinal"
         
         # Transforms
@@ -74,15 +77,18 @@ class Plot(UIElement):
         # Mark styling
         marker: Add markers to line endpoints - "dot", "arrow", "circle", etc.
         inset: Spacing between bars/rects (number in pixels)
-        insetTop, insetRight, insetBottom, insetLeft: Individual insets
+        inset_top, inset_right, inset_bottom, inset_left: Individual insets
         
         # Chart appearance (app-specific)
         title: Chart title
         width: Chart width - number (pixels), "full", or "100%" (default: "full")
         height: Chart height in pixels (default: 380)
         grid: Show grid - True (y-axis), "both", "x", "y", False
+        margin_top, margin_right, margin_bottom, margin_left: Chart margins in pixels
         border: Show border (default: True)
+        border_width: Border width override
         border_radius: Border radius
+        border_color: Border color override
         
         # Layout (app-specific)
         grow, shrink: Flex properties for responsive sizing
@@ -275,25 +281,71 @@ class Plot(UIElement):
 
 def scatter(data, x=None, y=None, fill=None, stroke=None, r=None, symbol=None, 
             opacity=None, title=None, **kwargs):
-    """Create a scatter plot (dot mark)."""
+    """Create a scatter plot using dot marks.
+
+    Args:
+        data: List of dictionaries containing values to plot
+        x, y: Columns or values used for position
+        fill: Column or color used for fill
+        stroke: Column or color used for outlines
+        r: Column or value used for dot radius
+        symbol: Column or symbol type
+        opacity: Opacity value or column
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     return Plot(data, x=x, y=y, mark="dot", fill=fill, stroke=stroke, r=r, 
                 symbol=symbol, opacity=opacity, title=title, **kwargs)
 
 def line(data, x=None, y=None, stroke=None, z=None, curve="linear", 
          marker=None, stroke_width=None, title=None, **kwargs):
-    """Create a line plot."""
+    """Create a line plot.
+
+    Args:
+        data: List of dictionaries containing values to plot
+        x, y: Columns used for the axes
+        stroke: Column or color used for the line
+        z: Column used for series grouping
+        curve: Interpolation method such as 'linear' or 'catmull-rom'
+        marker: Optional marker style
+        stroke_width: Line width in pixels or a column name
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     return Plot(data, x=x, y=y, mark="line", stroke=stroke, z=z, curve=curve,
                 marker=marker, stroke_width=stroke_width, title=title, **kwargs)
 
 def area(data, x=None, y=None, y1=None, y2=None, fill=None, z=None, 
          curve="linear", title=None, **kwargs):
-    """Create an area chart."""
+    """Create a filled area chart.
+
+    Args:
+        data: List of dictionaries containing values to plot
+        x, y: Columns used for the axes
+        y1, y2: Explicit lower and upper area bounds
+        fill: Column or color used for fill
+        z: Column used for series grouping
+        curve: Interpolation method
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     return Plot(data, x=x, y=y, y1=y1, y2=y2, mark="areaY", fill=fill, z=z, 
                 curve=curve, title=title, **kwargs)
 
 def bar(data, x=None, y=None, fill=None, sort=None, orientation="vertical", 
         inset=0, title=None, **kwargs):
-    """Create a bar chart."""
+    """Create a vertical or horizontal bar chart.
+
+    Args:
+        data: List of dictionaries containing values to plot
+        x, y: Categorical and quantitative columns
+        fill: Column or color used for fill
+        sort: Sort specification
+        orientation: 'vertical' or 'horizontal'
+        inset: Gap between bars in pixels
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     mark = "barY" if orientation == "vertical" else "barX"
     return Plot(data, x=x, y=y, mark=mark, fill=fill, sort=sort, inset=inset, 
                 title=title, **kwargs)
@@ -304,8 +356,15 @@ def histogram(data, x=None, y=None, bins=None, fill=None,
     Create a histogram using rectY/rectX with binning.
     
     Args:
+        data: List of values or dictionaries
+        x: Column to bin for a vertical histogram
+        y: Column to bin for a horizontal histogram
         bins: Number of bins (int) or explicit bin edges (list)
+        fill: Column or color used for fill
         stat: Statistic - "count", "proportion", "percent", "density", "sum", "mean", etc.
+        orientation: 'vertical' or 'horizontal'
+        title: Chart title
+        **kwargs: Additional Plot options
     """
     mark = "rectY" if orientation == "vertical" else "rectX"
     # Map user-friendly names to Observable Plot's internal names
@@ -313,24 +372,66 @@ def histogram(data, x=None, y=None, bins=None, fill=None,
                 reduce=stat, title=title, **kwargs)
 
 def boxplot(data, x=None, y=None, fill=None, orientation="vertical", title=None, **kwargs):
-    """Create a box plot."""
+    """Create a box plot showing distribution quartiles.
+
+    Args:
+        data: List of values or dictionaries
+        x: Categorical grouping column
+        y: Quantitative column to summarize
+        fill: Column or color used for fill
+        orientation: 'vertical' or 'horizontal'
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     mark = "boxY" if orientation == "vertical" else "boxX"
     return Plot(data, x=x, y=y, mark=mark, fill=fill, title=title, **kwargs)
 
 def heatmap(data, x=None, y=None, fill=None, stroke=None, inset=0.5, title=None, **kwargs):
-    """Create a heatmap."""
+    """Create a heatmap using cell marks.
+
+    Args:
+        data: List of dictionaries containing values to plot
+        x, y: Columns used for the axes
+        fill: Column used for color encoding
+        stroke: Color used for cell borders
+        inset: Gap between cells in pixels
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     return Plot(data, x=x, y=y, mark="cell", fill=fill, stroke=stroke, 
                 inset=inset, title=title, **kwargs)
 
 def density(data, x=None, y=None, fill=None, stroke=None, 
             thresholds=None, bandwidth=None, title=None, **kwargs):
-    """Create a smooth density contour plot."""
+    """Create a smooth density contour plot.
+
+    Args:
+        data: List of values or dictionaries
+        x, y: Columns used for one- or two-dimensional density
+        fill: Column or color used for fill
+        stroke: Column or color used for outlines
+        thresholds: Number of contour levels
+        bandwidth: Kernel density bandwidth
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     return Plot(data, x=x, y=y, mark="density", fill=fill, stroke=stroke, 
                 thresholds=thresholds, bandwidth=bandwidth, title=title, **kwargs)
 
 def rule(data=None, x=None, y=None, stroke="currentColor", stroke_width=1, 
          stroke_dasharray="4 2", title=None, **kwargs):
-    """Create reference lines."""
+    """Create horizontal or vertical reference lines.
+
+    Args:
+        data: Optional data for data-driven rules
+        x: Values or column used for vertical rules
+        y: Values or column used for horizontal rules
+        stroke: Line color
+        stroke_width: Line width in pixels
+        stroke_dasharray: Dash pattern, or None for a solid line
+        title: Chart title
+        **kwargs: Additional Plot options
+    """
     return Plot(data, x=x, y=y, mark="rule", stroke=stroke, stroke_width=stroke_width,
                 stroke_dasharray=stroke_dasharray, title=title, **kwargs)
 
@@ -355,6 +456,7 @@ def waffle(data, x=None, y=None, fill=None, orientation="vertical",
         bg_x: Background total for horizontal waffle
         bg_opacity: Opacity for background cells (default: 0.4)
         title: Chart title
+        **kwargs: Additional Plot options
     """
     mark = "waffleY" if orientation == "vertical" else "waffleX"
     
@@ -391,6 +493,7 @@ def hexbin(data, x=None, y=None, fill="count", r=None, stroke=None,
         bin_width: Distance between hexagon centers in pixels
         color_scheme: Color scheme - "turbo", "viridis", "YlGnBu", "plasma", etc.
         title: Chart title
+        **kwargs: Additional Plot options
     """
     return Plot(data, x=x, y=y, mark="hexbin", fill=fill, r=r, stroke=stroke,
                 bin_width=bin_width, color_scheme=color_scheme, title=title, **kwargs)
@@ -414,6 +517,7 @@ def stacked_dots(data, x=None, y=None, fill=None, r=None,
         positive_value: Value that stacks positive (up/right)
         negative_value: Value that stacks negative (down/left)
         title: Chart title
+        **kwargs: Additional Plot options
     
     Examples:
         # Simple vertical stacking

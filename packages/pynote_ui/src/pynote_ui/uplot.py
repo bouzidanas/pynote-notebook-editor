@@ -11,8 +11,9 @@ class TimeSeries(UIElement):
         data: Either uPlot format [[timestamps], [values], ...] or 
               simplified format {"x": [...], "y": [...], "y2": [...]}
         series: List of series configs [{"label": "...", "stroke": "#color"}, ...]
-        x_label, y_label: Axis labels
+        x_label, y_label, y2_label: Axis labels
         xType: "time" (default, Unix timestamps) or "numeric"
+        x_range, y_range: Explicit axis ranges
         title: Chart title
         width: Chart width - number (pixels), "full", or "100%" (default: fills container)
         height: Chart height in pixels (default: 350)
@@ -20,7 +21,11 @@ class TimeSeries(UIElement):
         cursor: Show cursor crosshairs (default: True)
         zoom: Enable zoom on drag (default: True)
         border: Show border (default: True)
+        border_width: Border width override
         border_radius: Border radius (optional, defaults to theme)
+        border_color: Border color override
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         
         Style customization (all optional, override defaults):
         title_style: dict - Title text style

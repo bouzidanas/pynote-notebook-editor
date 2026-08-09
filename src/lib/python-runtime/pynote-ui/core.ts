@@ -20,6 +20,12 @@ MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02"
 MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02"
 
 class StateManager:
+    """Track active components and route updates between Python and the frontend.
+
+    Components register automatically when they are created. This class is
+    exported for runtime integration and normally does not need to be used
+    directly in notebook code.
+    """
     _instances = {}
     _instances_by_cell = {}
     _comm_target = None
@@ -74,6 +80,14 @@ class StateManager:
             print(f"[StateManager] WARNING: No comm target registered!")
 
 class UIElement:
+    """Base class for interactive PyNote UI components.
+
+    UIElement handles registration, serialization, visibility, callbacks, and
+    frontend updates. Concrete components provide their own constructor options.
+
+    Args:
+        **kwargs: Component-specific properties stored for frontend rendering
+    """
     def __init__(self, **kwargs):
         self.id = str(uuid.uuid4())
         self.props = kwargs
@@ -145,15 +159,36 @@ class UIElement:
         StateManager.send_update(self.id, kwargs)
 
 def handle_interaction(uid, data):
+    """Route frontend interaction data to a component.
+
+    Args:
+        uid: Component identifier
+        data: Interaction payload
+    """
     return StateManager.update(uid, data)
 
 def set_current_cell(cell_id):
+    """Set the cell context used to associate newly created components.
+
+    Args:
+        cell_id: Identifier of the currently executing cell
+    """
     StateManager.set_current_cell(cell_id)
 
 def clear_cell(cell_id):
+    """Remove components associated with a cell.
+
+    Args:
+        cell_id: Identifier of the cell being cleared
+    """
     StateManager.clear_cell(cell_id)
 
 def register_comm_target(callback):
+    """Register the frontend callback used for component updates.
+
+    Args:
+        callback: Callable receiving a component identifier and update payload
+    """
     StateManager.register_comm_target(callback)
 
 def display(*elements, inline=False, gap=1):

@@ -17,18 +17,30 @@ class Chart(UIElement):
             - bar/line: {"labels": [...], "datasets": [{"values": [...]}, ...]}}
         title: Chart title
         colors: Custom color palette (optional, auto-generated from theme accent)
+        maxSlices: Maximum visible slices before grouping remaining values
+        countLabel: Label used for heatmap counts
+        discreteDomains: Use discrete axis domains (default: True)
+        barOptions: Frappe bar chart options
+        lineOptions: Frappe line chart options
+        axisOptions: Frappe axis options
+        tooltipOptions: Frappe tooltip options
+        animate: Animate chart updates (default: True)
         width: Chart width - number (pixels), "full", or "100%" (default: fills container)
         height: Chart height in pixels (default: 300)
         border: Show border (default: True)
-        borderRadius: Border radius (optional, defaults to theme)
+        border_width: Border width override
+        border_radius: Border radius (optional, defaults to theme)
+        border_color: Border color override
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         
         Style customization (all optional, override defaults):
-        titleStyle: dict - Title text style
-        xLabelStyle: dict - X-axis label style
-        yLabelStyle: dict - Y-axis label style
-        tickStyle: dict - Tick/number label style
-        gridStyle: dict - Grid line style
-        axisStyle: dict - Axis line style
+        title_style: dict - Title text style
+        x_label_style: dict - X-axis label style
+        y_label_style: dict - Y-axis label style
+        tick_style: dict - Tick/number label style
+        grid_style: dict - Grid line style
+        axis_style: dict - Axis line style
         
     Type-specific options:
         - maxSlices: For pie/donut, max number of slices before "Other"
@@ -45,7 +57,7 @@ class Chart(UIElement):
             data={"labels": ["A", "B", "C"], "values": [40, 35, 25]},
             title="Distribution",
             width="full",
-            titleStyle={"fontSize": "20px", "fontWeight": "bold"}
+            title_style={"fontSize": "20px", "fontWeight": "bold"}
         )
         
         # Bar chart with custom grid
@@ -56,7 +68,7 @@ class Chart(UIElement):
                 "datasets": [{"name": "Sales", "values": [10, 20, 15, 25, 30]}]
             },
             title="Weekly Sales",
-            gridStyle={"stroke": "#ddd"}
+            grid_style={"stroke": "#ddd"}
         )
     """
     def __init__(

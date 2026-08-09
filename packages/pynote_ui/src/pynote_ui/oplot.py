@@ -39,6 +39,7 @@ class Plot(UIElement):
         x1, x2, y1, y2: Explicit bounds for rect/area marks
         
         # Visual encoding channels
+        color: Legacy color option mapped to fill or stroke
         fill: Column or color for fill (can vary per point)
         stroke: Column or color for stroke (can vary per point)
         opacity: Column or value for opacity
@@ -47,10 +48,12 @@ class Plot(UIElement):
         stroke_opacity: Column or value for stroke opacity
         
         # Dot-specific
+        size: Legacy dot size option mapped to r
         r: Column or value for radius/size (dot marks)
         symbol: Column or symbol type - "circle", "square", "diamond", "triangle", etc.
         
         # Series grouping
+        series: Legacy series option mapped to z
         z: Column for grouping into separate series (line, area marks)
         
         # Scale customization
@@ -79,8 +82,11 @@ class Plot(UIElement):
         width: Chart width - number (pixels), "full", or "100%" (default: "full")
         height: Chart height in pixels (default: 380)
         grid: Show grid - True (y-axis), "both", "x", "y", False
+        margin_top, margin_right, margin_bottom, margin_left: Chart margins in pixels
         border: Show border (default: True)
+        border_width: Border width override
         border_radius: Border radius
+        border_color: Border color override
         
         # Layout (app-specific)
         grow, shrink: Flex properties for responsive sizing
@@ -380,8 +386,6 @@ def bar(data, x=None, y=None, fill=None, sort=None, orientation="vertical",
         data: List of dicts
         x, y: Column names - one categorical (band scale), one quantitative
         fill: Column or color for fill
-        sort: Sort specification - column name, {x: "y"}, {x: "-y"}, etc.
-        orientation: "vertical" (barY, default) or "horizontal" (barX)
         sort: Sort specification - column name, {x: "y"}, {x: "-y"}, etc.
         orientation: "vertical" (barY, default) or "horizontal" (barX)
         inset: Gap between bars in pixels

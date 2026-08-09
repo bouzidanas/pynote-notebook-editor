@@ -18,7 +18,9 @@ class Slider(UIElement):
         color: Color theme ('primary', 'secondary', 'accent', 'success', 'warning', 'error')
         width, height: CSS dimension strings ('100px', '50%')
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
+        background: Show component background (default: True)
     
     Properties:
         value: Get/set current value (triggers update when set)
@@ -88,14 +90,15 @@ class Text(UIElement):
     Args:
         content: Text string to display (can be updated dynamically)
         size: Size preset ('xs', 'sm', 'md', 'lg')
-        dir: Destination directory under /workspace. Relative paths are resolved from /workspace.
         color: Color theme ('primary', 'secondary', 'accent', etc.)
         align_h: Horizontal alignment ('left', 'center', 'right')
         align_v: Vertical alignment ('top', 'center', 'bottom')
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
-        hidden: Start hidden (use .show() to reveal)
+        background: Show component background (default: True)
+        markdown: Render content as Markdown (default: False)
     
     Properties:
         content: Get/set displayed text
@@ -168,9 +171,12 @@ class Group(UIElement):
         align: Alignment ('start', 'center', 'end', 'stretch')
         grow, shrink: Flexbox grow/shrink factors
         border: Show border (default: False)
+        background: Show group background (default: True)
         padding: Internal padding (0-4)
         gap: Spacing between children (0-4)
         overflow: Overflow behavior ('scroll', 'hidden', 'auto')
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        wrap: Allow children to wrap onto additional lines (default: False)
     
     Properties:
         width, height, align, layout, label: All dynamically updatable
@@ -307,8 +313,7 @@ class Button(UIElement):
     """Clickable button with customizable styling and loading states.
     
     Interactive button component that triggers callbacks when clicked. Supports
-    disabled and loading states for async operations. Use button_type='submit'
-    inside Form components for form submission.
+    disabled and loading states for async operations.
     
     Args:
         label: Button text
@@ -320,7 +325,11 @@ class Button(UIElement):
         button_type: Button type ('button' or 'submit' for forms)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        align_h: Horizontal content alignment
+        align_v: Vertical content alignment
         border: Show border (default: True)
+        background: Show button background (default: True)
     
     Properties:
         label: Get/set button text
@@ -414,7 +423,9 @@ class Select(UIElement):
         disabled: Disabled state (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
+        background: Show component background (default: True)
         clearable: Allow deselecting back to the placeholder (default: False)
     
     Properties:
@@ -507,7 +518,9 @@ class Input(UIElement):
         disabled: Disabled state (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
+        background: Show component background (default: True)
     
     Properties:
         value: Get/set input value
@@ -586,7 +599,9 @@ class Textarea(UIElement):
         disabled: Disabled state (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
+        background: Show component background (default: True)
     
     Properties:
         value: Get/set textarea value
@@ -666,7 +681,9 @@ class Toggle(UIElement):
         reverse: Reverse element order (label to right of toggle) (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
+        background: Show component background (default: True)
     
     Properties:
         checked: Get/set checked state
@@ -749,7 +766,9 @@ class Checkbox(UIElement):
         reverse: Reverse element order (label to right of checkbox) (default: False)
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         border: Show border (default: True)
+        background: Show component background (default: True)
     
     Properties:
         checked: Get/set checked state
@@ -825,12 +844,14 @@ class Upload(UIElement):
         accept: Comma-separated MIME types or extensions (e.g. "image/*,.csv,.json")
         max_size: Maximum file size in bytes (None = no limit)
         label: Label text displayed in the drop zone (default: "Upload")
+        dir: Destination under /workspace for uploaded files
         color: Color theme ('primary', 'secondary', 'accent', etc.)
         size: Size preset ('xs', 'sm', 'md', 'lg', 'xl')
         disabled: Disable file dropping/selection
         width, height: CSS dimension strings
         grow, shrink: Flexbox grow/shrink factors
-        border: Border style (default: True → 2px dashed)
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show the dashed drop-zone border (default: True)
         background: Background style
         hidden: Start hidden
     
@@ -1041,6 +1062,7 @@ class Form(UIElement):
         width: Width ('full', '100px', '50%', default: 'full')
         height: Height (CSS dimension string)
         border: Show border (default: True)
+        background: Show form background (default: True)
         padding: Internal padding (0-4)
         gap: Spacing between children (0-4, default: 2)
     

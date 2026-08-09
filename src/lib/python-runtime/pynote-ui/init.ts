@@ -1,5 +1,11 @@
 // Embedded source for pynote_ui/__init__.py.
 export const PYNOTE_UI_INIT_PY = `
+"""Interactive UI components and plotting tools for PyNote notebooks.
+
+The package provides reactive controls, form elements, layout containers,
+display helpers, and the oplot, uplot, and fplot chart modules.
+"""
+
 from .core import (
     UIElement, StateManager, handle_interaction, set_current_cell, clear_cell, 
     register_comm_target, display, print_md,

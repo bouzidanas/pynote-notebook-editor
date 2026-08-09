@@ -15,10 +15,22 @@ class Chart(UIElement):
             - bar/line: {"labels": [...], "datasets": [{"values": [...]}, ...]}
         title: Chart title
         colors: Custom color palette (optional, auto-generated from theme accent)
+        maxSlices: Maximum visible slices before grouping remaining values
+        countLabel: Label used for heatmap counts
+        discreteDomains: Use discrete axis domains (default: True)
+        barOptions: Frappe bar chart options
+        lineOptions: Frappe line chart options
+        axisOptions: Frappe axis options
+        tooltipOptions: Frappe tooltip options
+        animate: Animate chart updates (default: True)
         width: Chart width - number (pixels), "full", or "100%" (default: fills container)
         height: Chart height in pixels (default: 300)
         border: Show border (default: True)
+        border_width: Border width override
         border_radius: Border radius (optional, defaults to theme)
+        border_color: Border color override
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
         
         Style customization (all optional, override defaults):
         title_style: dict - Title text style

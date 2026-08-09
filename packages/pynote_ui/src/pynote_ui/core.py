@@ -104,6 +104,9 @@ class UIElement:
     - Property getters/setters for reactive updates
     
     Subclasses should implement handle_interaction() to process frontend events.
+
+    Args:
+        **kwargs: Component-specific properties stored for frontend rendering
     """
     def __init__(self, **kwargs):
         """Initialize a UI component with properties.
@@ -177,18 +180,36 @@ class UIElement:
         self.send_update(hidden=False)
 
 def handle_interaction(uid, data):
-    """Internal function to route interactions to components (do not call directly)."""
+    """Route frontend interaction data to a component.
+
+    Args:
+        uid: Component identifier
+        data: Interaction payload
+    """
     return StateManager.update(uid, data)
 
 def set_current_cell(cell_id):
-    """Internal function to set current cell context (do not call directly)."""
+    """Set the cell context used to associate newly created components.
+
+    Args:
+        cell_id: Identifier of the currently executing cell
+    """
     StateManager.set_current_cell(cell_id)
 
 def clear_cell(cell_id):
-    """Internal function to clear cell components (do not call directly)."""
+    """Remove components associated with a cell.
+
+    Args:
+        cell_id: Identifier of the cell being cleared
+    """
     StateManager.clear_cell(cell_id)
 
 def register_comm_target(callback):
+    """Register the frontend callback used for component updates.
+
+    Args:
+        callback: Callable receiving a component identifier and update payload
+    """
     StateManager.register_comm_target(callback)
 
 def display(*elements, inline=False, gap=1):

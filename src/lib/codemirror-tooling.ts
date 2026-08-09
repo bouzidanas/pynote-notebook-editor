@@ -228,6 +228,9 @@ export const pythonIntellisense = autocompletion({
 
 // Hover tooltip for documentation/help - don't show if there's an error at this position
 export const pythonHover = hoverTooltip(async (view, pos, _side) => {
+    const nodeAtPosition = syntaxTree(view.state).resolveInner(pos, -1);
+    if (NO_COMPLETION_NODES.has(nodeAtPosition.name)) return null;
+
     // Check for "Kernel Busy" first
     if (kernel.status === "running") {
         return {
@@ -268,7 +271,7 @@ export const pythonHover = hoverTooltip(async (view, pos, _side) => {
 
                 const header = document.createElement("div");
                 header.className = "cm-tooltip-header";
-                header.textContent = result.type;
+                header.textContent = result.name ? `${result.type} ${result.name}` : result.type;
 
                 const body = document.createElement("div");
                 body.className = "cm-tooltip-body";

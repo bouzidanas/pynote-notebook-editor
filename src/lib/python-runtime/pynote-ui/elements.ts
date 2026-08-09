@@ -3,6 +3,36 @@ export const PYNOTE_UI_ELEMENTS_PY = `
 from .core import UIElement
 
 class Slider(UIElement):
+    """Interactive slider for numeric input within a range.
+
+    A draggable slider component that lets users select numeric values. Updates
+    in real-time as the user drags the handle. Great for adjusting parameters,
+    settings, and continuous values.
+
+    Args:
+        value: Initial/current value (default: 0)
+        min: Minimum value (default: 0)
+        max: Maximum value (default: 100)
+        step: Increment step size (default: 1)
+        label: Label text displayed above slider
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        color: Color theme ('primary', 'secondary', 'accent', 'success', 'warning', 'error')
+        width, height: CSS dimension strings ('100px', '50%')
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        value: Get/set current value (triggers update when set)
+        size: Get/set size preset
+
+    Example:
+        volume = Slider(value=75, min=0, max=100, label="Volume")
+        print(volume.value)  # 75
+        volume.value = 50    # Updates UI immediately
+    """
     def __init__(self, value=0, min=0, max=100, step=1, label="Slider", size=None,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, color=None, hidden=False):
         self._value = value
@@ -53,6 +83,27 @@ class Slider(UIElement):
         return self
 
 class Text(UIElement):
+    """Display text or Markdown that can be updated programmatically.
+
+    Args:
+        content: Text string to display
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        align_h: Horizontal alignment ('left', 'center', 'right')
+        align_v: Vertical alignment ('top', 'center', 'bottom')
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        hidden: Start hidden (default: False)
+        markdown: Render content as Markdown (default: False)
+
+    Properties:
+        content: Get or set displayed content
+        size: Get or set the size preset
+        markdown: Enable or disable Markdown rendering
+    """
     def __init__(self, content="", size=None, width=None, height=None, grow=None, shrink=None, force_dimensions=False, align_h="left", align_v="top", border=True, background=True, color=None, hidden=False, markdown=False):
         self._content = content
         self._size = size
@@ -99,6 +150,28 @@ class Text(UIElement):
         return self
 
 class Group(UIElement):
+    """Arrange multiple UI components in a row or column.
+
+    Args:
+        children: List of UI components to arrange
+        layout: Layout direction ('row' or 'col', default: 'col')
+        label: Optional label shown above the group
+        width, height: CSS dimension strings
+        align: Child alignment ('start', 'center', 'end', 'stretch')
+        grow, shrink: Flexbox grow/shrink factors
+        border: Show border (default: False)
+        background: Show group background (default: True)
+        padding: Internal padding
+        gap: Spacing between children
+        overflow: Overflow behavior ('scroll', 'hidden', 'auto')
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        hidden: Start hidden (default: False)
+        wrap: Allow children to wrap onto additional lines (default: False)
+
+    Properties:
+        width, height, align, layout, label: Dynamically updatable layout values
+        grow, shrink, border, padding, gap, overflow: Dynamically updatable style values
+    """
     def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=False, background=True, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False, wrap=False):
         self.children = children
 
@@ -218,6 +291,29 @@ class Group(UIElement):
 
 
 class Form(UIElement):
+    """Collect child input values when a submit button is activated.
+
+    Input, Textarea, Select, Toggle, Checkbox, and Upload values are synchronized
+    with Python on submission. Use a child Button with button_type="submit".
+
+    Args:
+        children: List of form controls and buttons
+        layout: Layout direction ('row' or 'col', default: 'col')
+        label: Optional label shown above the form
+        width, height: CSS dimension strings
+        align: Child alignment ('start', 'center', 'end', 'stretch')
+        grow, shrink: Flexbox grow/shrink factors
+        border: Show border (default: True)
+        background: Show form background (default: True)
+        padding: Internal padding
+        gap: Spacing between children
+        overflow: Overflow behavior ('scroll', 'hidden', 'auto')
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        hidden: Start hidden (default: False)
+
+    Properties:
+        value: Submitted values keyed by component identifier
+    """
     def __init__(self, children, layout="col", label=None, width="full", height=None, align="center", grow=None, shrink=None, border=True, background=True, padding=None, gap=None, overflow=None, force_dimensions=False, hidden=False):
         self.children = children
         self._value = {}  # Dictionary of child values
@@ -293,6 +389,31 @@ class Form(UIElement):
 
 
 class Button(UIElement):
+    """Clickable button with disabled, loading, and form-submit states.
+
+    Args:
+        label: Button text
+        button_type: Button behavior ('button' or 'submit')
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        style: Style variant ('outline', 'ghost', 'link')
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        disabled: Disabled state (default: False)
+        loading: Show loading spinner (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        align_h: Horizontal content alignment
+        align_v: Vertical content alignment
+        border: Show border (default: True)
+        background: Show button background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        label: Get or set button text
+        disabled: Get or set disabled state
+        loading: Get or set loading state
+        size: Get or set the size preset
+    """
     def __init__(self, label="Button", button_type=None, color=None, style=None, size=None, disabled=False, loading=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False,
                  align_h="center", align_v="center", border=True, background=True, hidden=False):
@@ -356,6 +477,29 @@ class Button(UIElement):
 
 
 class Select(UIElement):
+    """Choose one value from a dropdown list.
+
+    Args:
+        choices: Strings or dictionaries with label and value entries
+        value: Initially selected value
+        placeholder: Text shown when no value is selected
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        disabled: Disabled state (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+        clearable: Allow returning to the placeholder (default: False)
+
+    Properties:
+        value: Get or set the selected value
+        choices: Get or set available choices
+        disabled: Get or set disabled state
+        size: Get or set the size preset
+    """
     def __init__(self, choices=None, value=None, placeholder="Select an option", color=None, size=None, disabled=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False, clearable=False):
         if choices is None:
@@ -420,6 +564,27 @@ class Select(UIElement):
 
 
 class Input(UIElement):
+    """Single-line input for text, numbers, and other HTML input types.
+
+    Args:
+        value: Initial value
+        placeholder: Placeholder text
+        input_type: HTML input type such as 'text', 'email', or 'number'
+        color: Color theme
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        disabled: Disabled state (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        value: Get or set the input value
+        disabled: Get or set disabled state
+        size: Get or set the size preset
+    """
     def __init__(self, value="", placeholder="", input_type="text", color=None, size=None, disabled=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._value = value
@@ -472,6 +637,27 @@ class Input(UIElement):
 
 
 class Textarea(UIElement):
+    """Multi-line text input for longer content.
+
+    Args:
+        value: Initial value
+        placeholder: Placeholder text
+        rows: Number of visible rows (default: 4)
+        color: Color theme
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        disabled: Disabled state (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        value: Get or set the textarea value
+        disabled: Get or set disabled state
+        size: Get or set the size preset
+    """
     def __init__(self, value="", placeholder="", rows=4, color=None, size=None, disabled=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
         self._value = value
@@ -524,6 +710,29 @@ class Textarea(UIElement):
 
 
 class Toggle(UIElement):
+    """Toggle switch for a boolean on or off state.
+
+    Args:
+        checked: Initial checked state (default: False)
+        label: Label displayed beside the toggle
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        disabled: Disabled state (default: False)
+        align: Horizontal alignment when spaced is False
+        spaced: Place the toggle and label at opposite ends (default: False)
+        reverse: Reverse the toggle and label order (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        checked: Get or set checked state
+        disabled: Get or set disabled state
+        size: Get or set the size preset
+    """
     def __init__(self, checked=False, label=None, color=None, size=None, disabled=False,
                  align=None, spaced=False, reverse=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
@@ -582,6 +791,29 @@ class Toggle(UIElement):
 
 
 class Checkbox(UIElement):
+    """Checkbox for a boolean selection.
+
+    Args:
+        checked: Initial checked state (default: False)
+        label: Label displayed beside the checkbox
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        size: Size preset ('xs', 'sm', 'md', 'lg')
+        disabled: Disabled state (default: False)
+        align: Horizontal alignment when spaced is False
+        spaced: Place the checkbox and label at opposite ends (default: False)
+        reverse: Reverse the checkbox and label order (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        checked: Get or set checked state
+        disabled: Get or set disabled state
+        size: Get or set the size preset
+    """
     def __init__(self, checked=False, label=None, color="primary", size=None, disabled=False,
                  align=None, spaced=False, reverse=False,
                  width=None, height=None, grow=None, shrink=None, force_dimensions=False, border=True, background=True, hidden=False):
@@ -639,6 +871,30 @@ class Checkbox(UIElement):
         return self
 
 class Upload(UIElement):
+    """Upload files by dropping them onto a target or opening a file picker.
+
+    Uploaded files are available as bytes and are also saved under /workspace.
+    Relative destinations are resolved from /workspace and must already exist.
+
+    Args:
+        accept: Comma-separated MIME types or file extensions
+        max_size: Maximum file size in bytes, or None for no limit
+        label: Text displayed in the drop zone
+        dir: Destination directory under /workspace
+        color: Color theme ('primary', 'secondary', 'accent', etc.)
+        size: Size preset ('xs', 'sm', 'md', 'lg', 'xl')
+        disabled: Disable file selection (default: False)
+        width, height: CSS dimension strings
+        grow, shrink: Flexbox grow/shrink factors
+        force_dimensions: Keep explicit dimensions when used in a flex layout
+        border: Show the dashed drop-zone border (default: True)
+        background: Show component background (default: True)
+        hidden: Start hidden (default: False)
+
+    Properties:
+        files: Uploaded bytes keyed by filename
+        workspace_paths: Saved /workspace paths keyed by filename
+    """
     def __init__(self, accept=None, max_size=None, label="Upload", dir=None, color=None, size=None,
                  disabled=False, width=None, height=None, grow=None, shrink=None,
                  force_dimensions=False, border=True, background=True, hidden=False):

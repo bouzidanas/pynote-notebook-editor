@@ -390,9 +390,82 @@ def get_hover_help(code, offset):
         for match in re.finditer(r'[a-zA-Z_][a-zA-Z0-9_.]*', line):
             if match.start() <= col <= match.end():
                 word = match.group(0)
+
+                # A keyword argument name belongs to the callable, not the
+                # global namespace. Resolving min in Slider(min=0), for example,
+                # must not return documentation for Python's built-in min().
+                is_keyword = re.match(r'\\s*=(?!=)', line[match.end():]) is not None
+                if is_keyword and '.' not in word:
+                    parsed_code = False
+                    matched_keyword = False
+                    try:
+                        tree = ast.parse(code)
+                        parsed_code = True
+                        current_line = code.count('\\n', 0, offset) + 1
+                        for node in ast.walk(tree):
+                            if not isinstance(node, ast.Call):
+                                continue
+                            if not isinstance(node.func, (ast.Name, ast.Attribute)):
+                                continue
+                            for keyword in node.keywords:
+                                if keyword.arg != word or keyword.lineno != current_line:
+                                    continue
+                                keyword_col = len(line.encode('utf-8')[:keyword.col_offset].decode('utf-8'))
+                                if keyword_col != match.start():
+                                    continue
+
+                                matched_keyword = True
+                                callable_name = ast.get_source_segment(code, node.func)
+                                callable_obj = eval(callable_name, globals())
+                                signature = inspect.signature(callable_obj)
+                                parameter = signature.parameters.get(word)
+                                if parameter is None:
+                                    return {"found": False}
+                                if parameter.default is inspect.Parameter.empty:
+                                    parameter_label = parameter.name
+                                else:
+                                    parameter_label = f"(default) {parameter.name} = {parameter.default!r}"
+
+                                parameter_doc = ""
+                                callable_doc = inspect.getdoc(callable_obj) or ""
+                                in_args = False
+                                collecting = False
+                                for doc_line in callable_doc.split('\\n'):
+                                    stripped = doc_line.strip()
+                                    if stripped == "Args:":
+                                        in_args = True
+                                        continue
+                                    if not in_args:
+                                        continue
+                                    if stripped and not doc_line[0].isspace():
+                                        break
+
+                                    arg_match = re.match(r'^\\s{4}([^:]+):\\s*(.*)$', doc_line)
+                                    if arg_match:
+                                        arg_names = [name.strip().lstrip('*') for name in arg_match.group(1).split(',')]
+                                        collecting = word in arg_names
+                                        if collecting:
+                                            parameter_doc = arg_match.group(2).strip()
+                                        continue
+                                    if collecting and stripped:
+                                        parameter_doc += " " + stripped
+                                    elif collecting:
+                                        break
+
+                                return {
+                                    "type": "parameter",
+                                    "name": word,
+                                    "doc": f"{parameter_label}\\n{parameter_doc}".strip(),
+                                    "found": True
+                                }
+                    except Exception:
+                        pass
+                    if matched_keyword or not parsed_code:
+                        return {"found": False}
+
                 try:
                     obj = eval(word, globals())
-                    doc = obj.__doc__ or ""
+                    doc = inspect.getdoc(obj) or ""
                     
                     # Determine proper type using inspect module
                     # Check module FIRST before class (some edge cases)
@@ -403,7 +476,7 @@ def get_hover_help(code, offset):
                     elif inspect.isfunction(obj) or inspect.isbuiltin(obj) or inspect.ismethod(obj):
                         obj_type = "function"
                     elif callable(obj):
-                        obj_type = "callable"
+                        obj_type = "function"
                     else:
                         # Fall back to type name for instances
                         obj_type = type(obj).__name__
