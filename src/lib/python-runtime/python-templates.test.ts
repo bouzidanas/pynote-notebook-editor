@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { loadPyodide, type PyodideAPI } from 'pyodide';
-import type { PyProxy } from 'pyodide/ffi';
+import type { PyCallable } from 'pyodide/ffi';
 
 const evaluatedModules = import.meta.glob<Record<string, unknown>>(['./init-code.ts', './pynote-ui/*.ts'], { eager: true });
 const rawModules = import.meta.glob<string>(['./init-code.ts', './pynote-ui/*.ts'], {
@@ -53,7 +53,7 @@ describe('embedded Python templates', () => {
 
   describe('evaluated Python syntax', () => {
     let pyodide: PyodideAPI;
-    let compilePython: PyProxy;
+    let compilePython: PyCallable;
 
     beforeAll(async () => {
       pyodide = await loadPyodide();
