@@ -1,4 +1,4 @@
-name: Bug report or fix
+name: Bug report
 description: Tell us about something that is broken or behaving unexpectedly.
 title: "[Bug] "
 body:
