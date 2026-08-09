@@ -1,0 +1,23 @@
+name: Something else
+description: Share an idea or topic that does not fit the other templates.
+title: "[Other] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us what is on your mind in your own words. Explain the context and why you think it matters. A conversational description is better than trying to force the topic into technical language.
+
+  - type: textarea
+    id: topic
+    attributes:
+      label: What would you like to discuss?
+      description: Describe the topic, purpose, or concern and why you are bringing it up.
+    validations:
+      required: true
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Pictures, GIFs, recordings, examples, or links
+      description: Drag in anything that helps communicate the idea.
+      placeholder: Drag files here, paste images, or add links.

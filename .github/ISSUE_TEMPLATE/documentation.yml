@@ -1,0 +1,30 @@
+name: Documentation improvement
+description: Point out something unclear, missing, outdated, or difficult to follow.
+title: "[Docs] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You do not need to propose perfect wording. Tell us where you got confused, what you were trying to learn, and what would have helped.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What was unclear or missing?
+      description: Explain the problem conversationally and include the page, section, tutorial, or message where you found it.
+      placeholder: I was trying to understand... The part about... left me unsure about...
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make it clearer?
+      description: Share an explanation, example, reorganization, or other change that would have helped you.
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or examples
+      description: Drag in a screenshot, recording, marked-up image, or example of documentation you found helpful.
+      placeholder: Drag files here, paste images, or add links.

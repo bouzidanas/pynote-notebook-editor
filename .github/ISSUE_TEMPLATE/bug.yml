@@ -1,0 +1,56 @@
+name: Bug report or fix
+description: Tell us about something that is broken or behaving unexpectedly.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to explain the problem. Write like you are describing it to another person. Plain language is welcome, and you do not need to know which part of the code is responsible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Tell us what you were doing, what went wrong, and why it was a problem for you.
+      placeholder: I was trying to... Then... This made it difficult to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+      description: Describe what you thought would happen or what would have made the experience work better.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How can we see the problem?
+      description: Share the steps, notebook content, or smallest example that makes the problem appear. An approximate sequence is still useful.
+      placeholder: |
+        1. Open...
+        2. Add or change...
+        3. Click or run...
+        4. See...
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots, GIFs, recordings, or example files
+      description: Drag in anything that helps show the problem. Visual examples are strongly encouraged when the issue affects the interface.
+      placeholder: Drag files here, paste images, or add links.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and device
+      description: Share what you know, such as Safari on macOS or Chrome on Android. Leave this blank if it does not seem relevant.
+      placeholder: Chrome 140 on macOS 15
+
+  - type: textarea
+    id: possible-fix
+    attributes:
+      label: Do you have an idea for a fix?
+      description: Optional. Share your idea in plain language, even if you are unsure about the implementation.

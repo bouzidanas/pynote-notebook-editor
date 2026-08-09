@@ -1,0 +1,38 @@
+name: Enhancement or feature
+description: Suggest an improvement, new capability, or better way of doing something.
+title: "[Feature] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the purpose, not the implementation. Explain what you want to accomplish and why it would be useful. Plain language, examples, rough sketches, and incomplete ideas are all welcome.
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: What are you trying to accomplish?
+      description: Describe the need, frustration, or opportunity behind the idea. Tell us who it would help and why it matters.
+      placeholder: I often need to... Right now... It would help because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like PyNote to do?
+      description: Describe the experience you imagine. Focus on what the user should be able to do rather than how the code should be written.
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples, sketches, screenshots, or recordings
+      description: Drag in pictures, GIFs, mockups, example notebooks, or links to similar behavior. Visual examples are strongly encouraged.
+      placeholder: Drag files here, paste images, or add links.
+
+  - type: textarea
+    id: current-workaround
+    attributes:
+      label: How do you handle this today?
+      description: Optional. Tell us about any workaround or alternative you currently use and what it is missing.

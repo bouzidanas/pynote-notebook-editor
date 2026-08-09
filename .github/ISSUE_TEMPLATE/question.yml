@@ -1,0 +1,30 @@
+name: Question or help
+description: Ask for help understanding or using PyNote.
+title: "[Question] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain what you are trying to do as if you were asking another person for help. You do not need to know the right technical terms.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to understand or do?
+      description: Give us the goal and the point where you became unsure or got stuck.
+      placeholder: I am trying to... I expected... The part I do not understand is...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What have you tried or looked at?
+      description: Optional. Share the steps, documentation, code, or notebook content you already tried.
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots, recordings, or example files
+      description: Drag in anything that makes your question easier to understand.
+      placeholder: Drag files here, paste images, or add links.

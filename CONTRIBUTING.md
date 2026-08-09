@@ -436,10 +436,16 @@ review.
 
 ## Questions, bugs, and ideas
 
-Open a [GitHub issue](https://github.com/bouzidanas/pynote-notebook-editor/issues)
-for bugs, feature ideas, and development questions. For a bug, include your
-browser and operating system, what you expected, what happened, and a minimal
-notebook or set of steps that reproduces the problem when possible.
+Use the [issue chooser](https://github.com/bouzidanas/pynote-notebook-editor/issues/new/choose)
+for bugs and possible fixes, enhancements and features, documentation
+improvements, questions, or anything that does not fit those categories. The
+forms are intentionally conversational. Explain the problem, purpose, or
+motivation in your own words; you do not need to identify the responsible code
+or use specialized terminology.
+
+Screenshots, pictures, GIFs, recordings, sketches, and example notebooks are
+welcome. Drag them into the media field when they can communicate the issue or
+idea more clearly than text alone.
 
 ## License
 
