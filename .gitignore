@@ -37,3 +37,4 @@ node_modules
 # Local working notes, not part of the published project
 explanations/
 future-feature-specs/
+TDA.md
