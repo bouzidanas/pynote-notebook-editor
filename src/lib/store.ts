@@ -101,7 +101,9 @@ export interface CellData {
 // a=add, d=delete, m=move, u=update, h=history-position (code cells only)
 // Format: "action|data"
 // Add: "a|index|type|id"
-// Delete: "d|index|type|id|content"
+// Delete: "D|index|type|id|metadata|content", metadata being the cell's
+//   metadata as JSON, escaped like content (older notebooks may hold
+//   "d|index|type|id|content", without it)
 // Move: "m|fromIndex|toIndex|id"
 // Update (markdown): "u|id|oldContent|newContent"
 // History Position (code): "h|id|entryPosition|exitPosition|exitContent"
@@ -157,6 +159,38 @@ let batchedEntries: HistoryEntry[] = [];
 // Robust string escaping for pipe-delimited format
 export const escapeContent = (s: string) => s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 export const unescapeContent = (s: string) => s.replace(/\\\|/g, '|').replace(/\\\\/g, '\\');
+
+// The first pipe at or after `from` that no backslash escapes, or -1.
+const indexOfUnescapedPipe = (s: string, from = 0): number => {
+  for (let i = from; i < s.length; i++) {
+    if (s[i] === '\\') i++;
+    else if (s[i] === '|') return i;
+  }
+  return -1;
+};
+
+// Helper to parse a delete entry: "D|index|type|id|metadata|content", or the
+// older "d|index|type|id|content"
+const parseDeleteEntry = (entry: string): { index: number; type: CellType; id: string; metadata?: CellData["metadata"]; content: string } => {
+  const [action, indexStr, type, id] = entry.split('|');
+  // Everything after the id (no pipe can occur in the fields before it).
+  let rest = entry.substring(action.length + indexStr.length + type.length + id.length + 4);
+  let metadata: CellData["metadata"];
+  if (action === 'D') {
+    const end = indexOfUnescapedPipe(rest);
+    if (end !== -1) {
+      try {
+        const parsed = JSON.parse(unescapeContent(rest.substring(0, end)));
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) metadata = parsed;
+      } catch {
+        // Unreadable metadata: the cell comes back without it
+      }
+      rest = rest.substring(end + 1);
+    }
+  }
+  // The rest is the content (legacy entries may hold unescaped pipes in it)
+  return { index: parseInt(indexStr), type: type as CellType, id, metadata, content: unescapeContent(rest) };
+};
 
 // Helper to parse "u|id|old|new" which has two escaped distinct content blocks
 export const parseUpdateEntry = (entry: string): { id: string, oldContent: string, newContent: string } | null => {
@@ -323,19 +357,17 @@ const undoSingleEntry = (entry: HistoryEntry) => {
     setStore("cells", produce((cells) => {
       cells.splice(idx, 1);
     }));
-  } else if (action === 'd') {
-    // Undo delete: re-add the cell
-    const [, indexStr, type, id, ...contentParts] = parts;
-    const idx = parseInt(indexStr);
-    // Join remaining parts in case content contained pipe (legacy fallback)
-    const content = unescapeContent(contentParts.join('|'));
+  } else if (action === 'd' || action === 'D') {
+    // Undo delete: re-add the cell, with its metadata when the entry has it
+    const { index, type, id, metadata, content } = parseDeleteEntry(entry);
 
     setStore("cells", produce((cells) => {
-      cells.splice(idx, 0, {
+      cells.splice(index, 0, {
         id,
-        type: type as CellType,
+        type,
         content,
-        isEditing: false
+        isEditing: false,
+        ...(metadata ? { metadata } : {})
       });
     }));
   } else if (action === 'm') {
@@ -389,7 +421,7 @@ const redoSingleEntry = (entry: HistoryEntry) => {
         isEditing: false
       });
     }));
-  } else if (action === 'd') {
+  } else if (action === 'd' || action === 'D') {
     const [, indexStr] = parts;
     const idx = parseInt(indexStr);
     setStore("cells", produce((cells) => {
@@ -516,8 +548,9 @@ export const actions = {
         actions.removeCellDependencies(id);
       }
 
-      // Add to history before deleting: "d|index|type|id|content"
-      addToHistory(`d|${idx}|${cell.type}|${id}|${escapeContent(cell.content)}`);
+      // Add to history before deleting, with the cell's metadata so that undo
+      // brings back its view and run settings: "D|index|type|id|metadata|content"
+      addToHistory(`D|${idx}|${cell.type}|${id}|${escapeContent(JSON.stringify(cell.metadata ?? {}))}|${escapeContent(cell.content)}`);
 
       setStore("cells", produce((cells) => {
         cells.splice(idx, 1);
