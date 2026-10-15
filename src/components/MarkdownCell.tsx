@@ -1,4 +1,4 @@
-import { type Component, createSignal, Show, createEffect, createMemo, lazy } from "solid-js";
+import { type Component, createSignal, Show, Suspense, createEffect, createMemo, lazy } from "solid-js";
 import { type CellData, actions, notebookStore, APP_DEFAULT_SHOW_FORMATTING } from "../lib/store";
 import { currentTheme } from "../lib/theme";
 import CellWrapper, { getLastHeaderLevel } from "./CellWrapper";
@@ -12,12 +12,14 @@ import { highlightPython, isPythonLanguage, isSupportedLanguage, highlightWithHl
 // phones only need it once a cell enters edit mode. Touch-primary devices
 // defer the chunk (fetched when idle so first edit doesn't stall); desktop
 // starts the fetch immediately, matching the old eager-import behavior.
+// Prefetching goes through preload(), so that once the chunk is in, the first
+// edit renders the editor at once instead of an empty cell for a frame.
 const IS_TOUCH_PRIMARY =
   typeof window !== "undefined" &&
   !!window.matchMedia?.("(pointer: coarse)").matches;
 
-const loadMarkdownEditor = () => import("./MarkdownEditor");
-const MarkdownEditor = lazy(loadMarkdownEditor);
+const MarkdownEditor = lazy(() => import("./MarkdownEditor"));
+const loadMarkdownEditor = () => MarkdownEditor.preload();
 if (typeof window !== "undefined") {
   if (!IS_TOUCH_PRIMARY) {
     void loadMarkdownEditor();
@@ -198,6 +200,13 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
   // Track double-click coordinates so the editor can place the cursor there
   let dblClickCoords: { left: number; top: number } | undefined;
 
+  const renderedView = () => (
+    <div 
+      class="prose prose-invert max-w-none p-3.5 py-[calc(var(--spacing)*3.5_+_var(--cell-pad-adjust,0px))] max-xs:p-2.5 max-xs:py-[calc(var(--spacing)*2.5_+_var(--cell-pad-adjust,0px))] text-secondary"
+      innerHTML={parsedContent()}
+    />
+  );
+
   const toggleEdit = () => {
     actions.setEditing(props.cell.id, !props.cell.isEditing);
   };
@@ -228,24 +237,21 @@ const MarkdownCell: Component<MarkdownCellProps> = (props) => {
           actions.setEditing(props.cell.id, true);
         }}
       >
-        <Show
-          when={props.cell.isEditing} 
-          fallback={
-            <div 
-              class="prose prose-invert max-w-none p-3.5 py-[calc(var(--spacing)*3.5_+_var(--cell-pad-adjust,0px))] max-xs:p-2.5 max-xs:py-[calc(var(--spacing)*2.5_+_var(--cell-pad-adjust,0px))] text-secondary"
-              innerHTML={parsedContent()}
-            />
-          }
-        >
-          <div class="p-3.5 py-[calc(var(--spacing)*3.5_+_var(--cell-pad-adjust,0px))] max-xs:p-2.5 max-xs:py-[calc(var(--spacing)*2.5_+_var(--cell-pad-adjust,0px))]">
-            <MarkdownEditor
-              value={props.cell.content}
-              onChange={(val) => actions.updateCell(props.cell.id, val)}
-              cell={props.cell}
-              showToolbar={showFormattingToolbar}
-              initialClickCoords={dblClickCoords}
-            />
-          </div>
+        <Show when={props.cell.isEditing} fallback={renderedView()}>
+          {/* Until the editor's chunk is in (a first edit on a slow network, or on
+              a phone before its idle prefetch), the cell keeps showing its
+              rendered content instead of collapsing. */}
+          <Suspense fallback={renderedView()}>
+            <div class="p-3.5 py-[calc(var(--spacing)*3.5_+_var(--cell-pad-adjust,0px))] max-xs:p-2.5 max-xs:py-[calc(var(--spacing)*2.5_+_var(--cell-pad-adjust,0px))]">
+              <MarkdownEditor
+                value={props.cell.content}
+                onChange={(val) => actions.updateCell(props.cell.id, val)}
+                cell={props.cell}
+                showToolbar={showFormattingToolbar}
+                initialClickCoords={dblClickCoords}
+              />
+            </div>
+          </Suspense>
         </Show>
       </div>
     </CellWrapper>
