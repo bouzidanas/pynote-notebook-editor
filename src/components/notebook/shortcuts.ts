@@ -35,6 +35,7 @@ export const SHORTCUTS = {
   edit: [
     { label: "Run & Stay (Code)", keys: "Ctrl + Enter" },
     { label: "Render (Markdown)", keys: "Ctrl + Enter" },
+    { label: "Math Block (Markdown)", keys: "$$ + Enter" },
     { label: "Run & Edit Next", keys: "Shift + Enter" },
     { label: "Run & Insert", keys: "Alt + Enter" },
     { label: "Exit Edit Mode", keys: "Esc" },

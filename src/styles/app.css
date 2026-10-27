@@ -263,8 +263,15 @@ select:-webkit-autofill:active {
     margin-top: var(--block-margin) !important;
     margin-bottom: var(--block-margin) !important;
 }
+/* A block of math in the editor: its source, tinted like inline math, spaced
+   like a paragraph */
+.milkdown .editor div[data-math] {
+    margin-top: var(--block-margin);
+    margin-bottom: var(--block-margin);
+}
 /* No paragraph margins inside list items (Milkdown wraps li content in p) */
 .milkdown .editor li > p,
+.milkdown .editor li > div[data-math],
 .prose li > p {
     margin-top: 0 !important;
     margin-bottom: 0 !important;

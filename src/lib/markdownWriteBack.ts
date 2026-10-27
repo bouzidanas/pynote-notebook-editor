@@ -1,21 +1,16 @@
 import { editorViewCtx, parserCtx, remarkCtx, serializerCtx } from "@milkdown/kit/core";
 import type { Ctx } from "@milkdown/kit/ctx";
 import { Fragment, type Node } from "@milkdown/kit/prose/model";
+import type { MdNode } from "./mathSyntax";
 
 // The Markdown a markdown cell gets back from its editor. Milkdown never
 // writes a source back byte for byte (it escapes underscores and stars,
 // spaces out tight lists, rewrites bullets, setext headings and table
 // padding, adds a final newline), so the cell gets back its own text for
 // every top-level block an edit did not touch, and Milkdown's Markdown only
-// for the blocks that changed. A document changed back to how it opened
-// gives back the original text.
-
-// An mdast node, as far as a cell's top-level blocks go.
-interface MdNode {
-  type: string;
-  children?: MdNode[];
-  position?: { start: { offset?: number }; end: { offset?: number } };
-}
+// for the blocks that changed, where math is still written as it was
+// (mathSyntax.ts). A document changed back to how it opened gives back the
+// original text.
 
 export interface OpenedText {
   /** The cell's text when editing began. */

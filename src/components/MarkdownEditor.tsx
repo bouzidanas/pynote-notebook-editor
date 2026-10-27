@@ -162,8 +162,8 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   onMount(() => {
     if (!editorRef) return;
 
-    // Markdown as the cell reads and writes it (CommonMark, GFM, captions,
-    // video embeds).
+    // Markdown as the cell reads and writes it (CommonMark, GFM, math,
+    // captions, video embeds).
     markdownSyntax(Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, editorRef);
