@@ -66,7 +66,7 @@ const Toggle: Component<ToggleProps> = (p) => {
     
     kernel.registerComponentListener(componentId, (data: any) => {
       setAllProps(prev => ({ ...prev, ...(data as Partial<typeof p.props>) }));
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {

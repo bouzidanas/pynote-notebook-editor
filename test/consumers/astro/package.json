@@ -1,0 +1,13 @@
+{
+  "name": "pynote-consumer-astro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^8.0.3",
+    "astro": "^7.3.8"
+  }
+}

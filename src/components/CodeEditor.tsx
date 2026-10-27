@@ -4,7 +4,7 @@ import { python } from "@codemirror/lang-python";
 import { duotoneDarkInit } from "@uiw/codemirror-theme-duotone";
 import { EditorView, keymap, placeholder, lineNumbers, drawSelection, Decoration } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, historyField, indentWithTab, undoDepth, redoDepth, undo, redo, toggleComment, deleteLine, moveLineUp, moveLineDown, copyLineUp, copyLineDown } from "@codemirror/commands";
-import { EditorState, StateField, Range, RangeSet, EditorSelection } from "@codemirror/state";
+import { EditorState, StateField, EditorSelection, type Range, type RangeSet } from "@codemirror/state";
 import { tags } from "@lezer/highlight";
 import { bracketMatching, matchBrackets, indentOnInput, indentUnit } from "@codemirror/language";
 import { closeBrackets, acceptCompletion, startCompletion, closeCompletion, moveCompletionSelection } from "@codemirror/autocomplete";
@@ -13,10 +13,15 @@ import { type CellData, actions, notebookStore, APP_QUICK_EDIT_MODE, APP_TAB_ACC
 import { createPythonLinter, pythonIntellisense, pythonHover, tooltipTheme } from "../lib/codemirror-tooling";
 import { codeVisibility } from "../lib/codeVisibility";
 import { scheduleBracketHighlightRefresh } from "../lib/theme";
+import { host } from "../lib/host";
 
 // One-shot guard: the first mounted editor re-samples the bracket highlight
 // filter (see onMount below); later mounts see the same layers.
 let bracketFilterSampled = false;
+
+// Cells embedded in another site (the pynote package) also run on Cmd+Enter
+// (macOS). In the app, Cmd+Enter keeps CodeMirror's insert-blank-line.
+const RUNS_ON_META_ENTER = host().kind === "component";
 
 // duotoneDark variant with token colors driven by the --syntax-* CSS vars, so
 // the same generated CSS reacts live to scheme changes without rebuilding the
@@ -275,6 +280,8 @@ interface EditorProps {
   language?: string;
   class?: string;
   readOnly?: boolean;
+  // false: never editable or focusable (cells embedded with editable=false).
+  editable?: boolean;
   cell: CellData; // Add cell prop to access stored state
   placeholderText?: string;
   checkRedefinitions?: (definitions: any[]) => any[];
@@ -325,8 +332,9 @@ const CodeEditor: Component<EditorProps> = (props) => {
     // Only attach listener when in edit mode (not readonly)
     if (view && props.onBlur && !props.readOnly) {
       const mousedownHandler = (e: MouseEvent) => {
-        const target = e.target as Node;
-        const isInsideEditor = view.dom.contains(target);
+        // composedPath, not target: a click inside a shadow root (cells
+        // embedded in other sites) reaches the document retargeted to the host.
+        const isInsideEditor = e.composedPath().includes(view.dom);
         
         // If clicked outside the editor, close search panel and exit edit mode
         if (!isInsideEditor) {
@@ -576,10 +584,11 @@ const CodeEditor: Component<EditorProps> = (props) => {
   }, { dark: true }));
 
   // Prevent default CodeMirror newline behavior for run shortcuts
-  // execution handling is done at the window level in Notebook.tsx
+  // execution handling is done at the window level in Notebook.tsx (and by
+  // the cell itself when embedded, see src/embed/EmbeddedCell.tsx)
   createExtension(() => EditorView.domEventHandlers({
     keydown: (event) => {
-      if (event.key === "Enter" && (event.ctrlKey || event.shiftKey || event.altKey)) {
+      if (event.key === "Enter" && (event.ctrlKey || event.shiftKey || event.altKey || (RUNS_ON_META_ENTER && event.metaKey))) {
         return true; // Stop CodeMirror from handling this (no newline), but let it bubble
       }
       return false;
@@ -775,8 +784,10 @@ const CodeEditor: Component<EditorProps> = (props) => {
   // Read-only state
   createExtension(() => EditorState.readOnly.of(!!props.readOnly));
 
-  // Disable editor interaction entirely in presentation mode (hides cursor)
-  createExtension(() => EditorView.editable.of(!notebookStore.presentationMode));
+  // Disable editor interaction entirely in presentation mode (hides cursor),
+  // and for code that is never editable. The content then cannot take focus,
+  // so the focus rule below cannot turn the cell into edit mode.
+  createExtension(() => EditorView.editable.of(!notebookStore.presentationMode && props.editable !== false));
 
   // Focus ⟺ edit-mode invariant. The editor stays `editable` (focusable) while
   // only selected, so a click that lands in the editor's own padding (where the

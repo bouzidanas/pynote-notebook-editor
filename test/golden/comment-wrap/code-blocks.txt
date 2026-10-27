@@ -1,0 +1,18 @@
+# ```python
+# def total(values: list[float]) -> float:
+#     """A code line longer than the width is never wrapped, whatever its length is, because it is code."""
+#
+#     return sum(values)
+# ```
+#
+# ~~~text
+# Tilde fences work too.
+# ~~~
+#
+#     indented code
+#     keeps its indentation
+#
+# ```python
+# # an unclosed fence is closed at the end of the cell
+# x = 1
+# ```

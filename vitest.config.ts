@@ -16,7 +16,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Colocated tests live next to their code; test/ holds cross-format
+    // property suites and shared fixtures.
+    include: ["src/**/*.{test,spec}.{ts,tsx}", "test/**/*.test.ts"],
     css: false,
     // Stable, machine-readable output suitable for CI ingestion.
     reporters: process.env.CI ? ["default", "junit"] : ["default"],

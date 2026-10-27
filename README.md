@@ -99,7 +99,8 @@ But where PyNote aims to excel is ***presentation***. The UI is built with [dais
 * Colors (background, foreground, primary, secondary, accent, H1-4, and more), fonts, and spacing (line, block, header, cell, and more)
 * **Section-scoped styling** where everything under the same heading shares theme elements
 
-The goal: notebooks that look good enough to publish, share, present, and use in blogs, documentation, and articles. When file export features are completed, you'll be able to save stripped-down versions of your notebooks as standalone mini-apps to embed in websites, blogs, or documentation. There will also be other export options like python and markdown.
+The goal: notebooks that look good enough to publish, share, present, and use in blogs, documentation, and articles.
+The Export dialog (Options > Export) saves a notebook as a standalone web app (interactive, read-only, or static, and even fully offline), as Python or Markdown, or as a `.pynote` file that diffs cleanly in Git, and the [`pynote` package](packages/pynote) puts live cells on your own site.
 
 3. **Has a lot of cool features:**
 

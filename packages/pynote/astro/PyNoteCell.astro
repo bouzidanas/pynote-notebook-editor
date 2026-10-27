@@ -1,0 +1,21 @@
+---
+// <PyNoteCell> for Astro pages and MDX: a <pynote-cell> element, with the
+// code as plain text until the browser runtime takes over. All cells on a
+// page are one notebook, in page order. Every other option becomes the
+// attribute the element reads it from, so the element's list of them is the
+// only one.
+import type { CellOptions } from "../types/types";
+import { BOOLEAN_ATTRIBUTES } from "../dist/element.js";
+
+type Props = CellOptions;
+
+const { code, id } = Astro.props;
+const flag = (value: unknown) => (value === undefined ? undefined : String(value));
+const attributes = Object.fromEntries(Object.entries(BOOLEAN_ATTRIBUTES).map(([attribute, option]) => [attribute, flag(Astro.props[option])]));
+---
+
+<pynote-cell cell-id={id} {...attributes}><pre data-pynote-source>{code}</pre></pynote-cell>
+
+<script>
+  import "../dist/element.js";
+</script>

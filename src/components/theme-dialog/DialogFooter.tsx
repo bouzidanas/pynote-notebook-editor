@@ -1,6 +1,7 @@
 import { type Component, Show } from "solid-js";
 import clsx from "clsx";
 import { useThemeDialog } from "./context";
+import { host } from "../../lib/host";
 
 // Footer: apply-scope toggle, save-to-export checkbox, save button.
 const DialogFooter: Component = () => {
@@ -10,7 +11,9 @@ const DialogFooter: Component = () => {
     <>
         {/* Footer */}
         <div class="relative p-4 [border-top-width:var(--ui-divider-width,1px)] ui-divider shrink-0 flex flex-col gap-4 lg:block">
-          {/* Centered Scope Toggle (Order 1 on mobile) */}
+          {/* Centered Scope Toggle (Order 1 on mobile). A standalone export has
+              no app-wide theme, so it only ever saves to the session. */}
+          <Show when={host().appWideSettings}>
           <div class="order-1 flex w-full lg:w-auto lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:z-10">
             <div class="relative flex flex-col items-center gap-2 w-full lg:flex-row lg:items-center lg:justify-between lg:w-auto">
               <div
@@ -57,6 +60,7 @@ const DialogFooter: Component = () => {
               </Show>
             </div>
           </div>
+          </Show>
 
           {/* Save Controls Wrapper (Order 2 on mobile) */}
           <div class="order-2 flex items-center justify-between w-full">

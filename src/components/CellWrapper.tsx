@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { notebookStore, actions, APP_ENABLE_CELL_DND, APP_QUIET_MODE } from "../lib/store";
 import { currentTheme, parseUiBorder } from "../lib/theme";
 import { TESTID } from "../lib/testids";
+import { host } from "../lib/host";
 
 // Touch-primary devices use touch to scroll. Drag activators live on the cell
 // wrapper, but the inner content stops pointer/mouse/touch-down propagation, so
@@ -18,6 +19,23 @@ import { TESTID } from "../lib/testids";
 const IS_TOUCH_PRIMARY =
   typeof window !== "undefined" &&
   !!window.matchMedia?.("(pointer: coarse)").matches;
+
+// Cells embedded in another site (the pynote package) stay inside their own
+// box: no sidebar outside it (the embedded cell has its own toolbar) and no
+// dragging between cells, so no drag-and-drop context is needed either.
+const EMBEDDED = host().kind === "component";
+// In the notebook, clicks and presses inside a cell stop at it: they must not
+// reach the notebook's background (which deselects) or start a drag from the
+// cell's border. An embedded cell has neither, so its events go on to the page
+// like any element's (the page's own click-outside handlers, the other cells'
+// open menus).
+const stopInNotebook = EMBEDDED ? undefined : (e: Event) => e.stopPropagation();
+const NO_SORTABLE = {
+  ref: () => {},
+  dragActivators: {},
+  transform: { x: 0, y: 0 },
+  isActiveDraggable: false,
+} as unknown as ReturnType<typeof createSortable>;
 
 // Reactive store for cell exit levels - tracks each cell's exit level
 // Each cell writes its exit level here, next cell reads via prevCellId prop
@@ -64,7 +82,7 @@ interface CellWrapperProps {
   onMoveUp: () => void;
   onMoveDown: () => void;
   children: JSX.Element;
-  type: "code" | "markdown";
+  type: "code" | "markdown" | "raw";
   // Optional props for sidebar action button
   onActionClick?: () => void;
   actionRunning?: boolean;
@@ -87,7 +105,7 @@ interface CellWrapperProps {
 }
 
 const CellWrapper: Component<CellWrapperProps> = (props) => {
-  const sortable = createSortable(props.id);
+  const sortable = EMBEDDED ? NO_SORTABLE : createSortable(props.id);
   const [hovered, setHovered] = createSignal(false);
   const presentationMode = () => notebookStore.presentationMode;
   let elementRef: HTMLDivElement | undefined;
@@ -195,13 +213,14 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       id={`cell-${props.id}`}
       data-testid={TESTID.cell}
       data-cell-id={props.id}
+      data-cell-type={props.type}
       ref={(el) => { sortable.ref(el); elementRef = el; }}
-      {...(APP_ENABLE_CELL_DND && !IS_TOUCH_PRIMARY ? sortable.dragActivators : {})}
+      {...(APP_ENABLE_CELL_DND && !IS_TOUCH_PRIMARY && !EMBEDDED ? sortable.dragActivators : {})}
       onKeyDown={undefined}
       data-quiet={APP_QUIET_MODE || undefined}
       class={clsx(
         "group relative flex flex-col rounded-sm border-2 transition-all duration-200 p-1 max-xs:p-0",
-        APP_ENABLE_CELL_DND && !IS_TOUCH_PRIMARY && !presentationMode() && "cursor-grab active:cursor-grabbing",
+        APP_ENABLE_CELL_DND && !IS_TOUCH_PRIMARY && !EMBEDDED && !presentationMode() && "cursor-grab active:cursor-grabbing",
         !props.isActive && "border-transparent",
         !presentationMode() && !props.isActive && "hover:border-secondary/10",
         props.isActive && !props.isEditing && "border-accent/60",
@@ -213,17 +232,21 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
         transform: `translate3d(${sortable.transform.x}px, ${sortable.transform.y}px, 0)`,
         "margin-top": "var(--cell-margin)",
         "margin-bottom": "var(--cell-margin)",
-        "z-index": props.cellIndex !== undefined ? 100000 - props.cellIndex : "auto",
+        // Earlier cells stack above later ones (their menus overlap the next
+        // cell). An embedded cell is in a shadow root of its own, which does
+        // not separate stacking: EmbeddedCell raises it while its menu or an
+        // editor tooltip is open.
+        "z-index": props.cellIndex !== undefined && !EMBEDDED ? 100000 - props.cellIndex : "auto",
         ...(entryLevel() ? { "--primary": `var(--header-color-${entryLevel()})` } : {}),
         "--cell-action-color": actionIconColor(),
         ...(currentTheme.cellBorder.radius ? { "border-radius": currentTheme.cellBorder.radius } : {}),
         ...(customBorder() ? { border: customBorder() } : {}),
         ...(customShadow() ? { "box-shadow": customShadow() } : {})
       }}
-      onMouseDown={(e) => e.stopPropagation()}
+      onMouseDown={stopInNotebook}
       onClick={(e) => {
         if (presentationMode()) return;
-        e.stopPropagation();
+        stopInNotebook?.(e);
         // Click-to-move: if another cell is picked up (via the mobile drawer
         // grip), a tap on this cell drops it here instead of just selecting.
         if (notebookStore.movingCellId && notebookStore.movingCellId !== props.id) {
@@ -242,7 +265,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       }}
     >
       {/* Sidebar / Drag Handle - Hidden in presentation mode */}
-      <Show when={!presentationMode()}>
+      <Show when={!presentationMode() && !EMBEDDED}>
         <div 
           class={clsx(
             "absolute -left-10 w-8 top-0 bottom-0 flex-col items-center hidden lg:flex transition-opacity duration-200 pointer-events-none",
@@ -270,7 +293,7 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
                 }} 
                 disabled={props.type === "code" && (props.actionRunning || props.isQueued)}
                 class="p-2 -m-1 rounded-sm disabled:opacity-50 text-[var(--cell-action-color)] hover:text-accent"
-                title={props.type === "code" ? "Run Cell" : (props.isEditing ? "Finish Editing" : "Edit Markdown")}
+                title={props.type === "code" ? "Run Cell" : props.isEditing ? "Finish Editing" : props.type === "raw" ? "Edit Raw Cell" : "Edit Markdown"}
               >
                 <Show when={props.type === "code"}
                   fallback={
@@ -348,9 +371,9 @@ const CellWrapper: Component<CellWrapperProps> = (props) => {
       {/* Cell Content */}
       <div 
         class={clsx("w-full bg-background rounded-sm min-h-12.5 pl-1.5 max-xs:pl-1.1 cursor-auto", props.isActive ? "" : "")}
-        onPointerDown={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
+        onPointerDown={stopInNotebook}
+        onMouseDown={stopInNotebook}
+        onTouchStart={stopInNotebook}
       >
         {props.children}
       </div>

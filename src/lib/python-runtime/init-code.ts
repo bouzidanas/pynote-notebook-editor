@@ -644,6 +644,29 @@ async def run_cell_code(code, cell_id):
         from pynote_ui import set_current_cell
         set_current_cell(None)
 
+def run_script(source, run_id):
+    """Run source the way "python script.py" would, for checking an exported
+    script in a throwaway kernel: compiled as one module (so top-level await is
+    a SyntaxError, as in CPython), executed in a fresh __main__ namespace, with
+    output routed to run_id. Returns None on success, else the traceback."""
+    token = current_cell_id.set(run_id)
+    try:
+        exec(compile(source, "notebook.py", "exec"), {"__name__": "__main__", "__builtins__": __builtins__})
+        return None
+    except SystemExit as exc:
+        if exc.code is None or exc.code == 0:
+            return None
+        return "SystemExit: " + str(exc.code)
+    except BaseException:
+        import traceback
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        frames = [f for f in traceback.extract_tb(exc_tb) if f.name != "run_script"]
+        return "Traceback (most recent call last):\\n" + \\
+            "".join(traceback.format_list(frames)) + \\
+            "".join(traceback.format_exception_only(exc_type, exc_value))
+    finally:
+        current_cell_id.reset(token)
+
 import ast
 
 def analyze_cell_dependencies(code):

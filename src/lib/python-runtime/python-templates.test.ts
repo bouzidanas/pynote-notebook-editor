@@ -58,7 +58,8 @@ describe('embedded Python templates', () => {
     beforeAll(async () => {
       pyodide = await loadPyodide();
       compilePython = pyodide.globals.get('compile');
-    }, 15_000);
+      // Booting Pyodide takes seconds, many more when the machine is busy.
+    }, 60_000);
 
     afterAll(() => {
       compilePython.destroy();

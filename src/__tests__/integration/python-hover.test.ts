@@ -52,7 +52,8 @@ class BrokenRepr:
 
 broken_repr = BrokenRepr()
 `);
-}, 15_000);
+  // Booting Pyodide takes seconds, many more when the machine is busy.
+}, 60_000);
 
 function inspectHover(code: string, word: string): HoverResult {
   const getHoverHelp = pyodide.globals.get('get_hover_help');

@@ -281,7 +281,7 @@ const Upload: Component<UploadProps> = (p) => {
       if (!isProcessingAck) {
         setAllProps(prev => ({ ...prev, ...data }));
       }
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {

@@ -8,6 +8,7 @@ import CellWrapper from "./CellWrapper";
 import clsx from "clsx";
 import { 
   getEffectiveVisibility, 
+  hidesAnyPart,
   isCellShowingAll, 
   toggleCellShowAll 
 } from "../lib/codeVisibility";
@@ -19,6 +20,8 @@ interface CodeCellProps {
   prevCellId: string | null;
   runCell: (id: string) => void;  // Run cell with proper reactive mode support
   checkRedefinitions?: (definitions: any[]) => any[];
+  // false: the code is shown read-only (cells embedded with editable=false).
+  editable?: boolean;
 }
 
 const CodeCell: Component<CodeCellProps> = (props) => {
@@ -34,12 +37,7 @@ const CodeCell: Component<CodeCellProps> = (props) => {
   const isShowingAll = () => isCellShowingAll(props.cell.id);
 
   // Check if THIS cell has any hidden elements (considering cell-level metadata overrides)
-  const cellHasHiddenElements = () => {
-    const v = visibility();
-    return !v.showCode || !v.showStdout || !v.showStderr ||
-           !v.showResult || !v.showError || !v.showStatusDot ||
-           !v.showExecutionCount;
-  };
+  const cellHasHiddenElements = () => hidesAnyPart(visibility());
 
   // Check if cell has any actual output content (regardless of visibility settings)
   const hasAnyOutput = createMemo(() => {
@@ -194,8 +192,9 @@ const CodeCell: Component<CodeCellProps> = (props) => {
                placeholderText="Enter Python code..."
                checkRedefinitions={props.checkRedefinitions}
                isActive={props.isActive}
+               editable={props.editable}
                onClick={() => {
-                 if (notebookStore.presentationMode) return;
+                 if (notebookStore.presentationMode || props.editable === false) return;
                  if (APP_QUICK_EDIT_MODE && !props.cell.isEditing) {
                    actions.setEditing(props.cell.id, true);
                  } else if (props.isActive && !props.cell.isEditing) {

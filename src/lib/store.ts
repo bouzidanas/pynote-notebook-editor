@@ -1,7 +1,13 @@
 import { createStore, produce } from "solid-js/store";
 import { kernel } from "./pyodide";
+import type { JsonObject } from "./formats/document";
+import { newCellId } from "./formats/ids";
+import { host } from "./host";
 
-export type CellType = "code" | "markdown";
+// Raw cells hold text that is neither run nor rendered (for example LaTeX or
+// Quarto front matter meant for nbconvert). PyNote shows them verbatim and
+// keeps them raw when saving, so notebooks from other tools round-trip.
+export type CellType = "code" | "markdown" | "raw";
 
 // Execution mode type and app-level default
 export type ExecutionMode = "queue_all" | "hybrid" | "direct" | "reactive";
@@ -48,8 +54,11 @@ export interface CellData {
   id: string;
   type: CellType;
   content: string;
-  // Cell metadata (for code visibility overrides, etc.)
+  // Cell metadata. PyNote's settings live under `pynote`; every other key was
+  // written by another tool (Jupyter, Colab, ...) and is kept as is so it
+  // survives an open/save round trip.
   metadata?: {
+    [key: string]: unknown;
     pynote?: {
       codeview?: CellCodeVisibility;
       // Cell-level autorun toggle. When undefined, inherits from notebook/app.
@@ -64,6 +73,9 @@ export interface CellData {
       placeholder?: string;
     };
   };
+  // Markdown/raw cell attachments from the .ipynb (images pasted in Jupyter),
+  // kept for round trips.
+  attachments?: JsonObject;
   outputs?: {
     stdout: string[];
     stderr: string[];
@@ -143,6 +155,10 @@ export interface NotebookState {
   // Reactive execution mode state (Marimo-style DAG)
   cellDependencies: Map<string, CellDependencyInfo>;
   dependenciesStale: boolean; // True when switching to reactive mode, need to analyze all cells
+  // Notebook-level metadata the document was loaded with (kernelspec, other
+  // tools' keys, and the original `PyNote` object). Saving writes it back,
+  // with PyNote's managed settings refreshed from the state above.
+  documentMetadata: JsonObject;
 }
 
 const MAX_HISTORY = 100;
@@ -191,6 +207,11 @@ const parseDeleteEntry = (entry: string): { index: number; type: CellType; id: s
   // The rest is the content (legacy entries may hold unescaped pipes in it)
   return { index: parseInt(indexStr), type: type as CellType, id, metadata, content: unescapeContent(rest) };
 };
+
+// A deleted cell's attachments (images pasted in Jupyter), for undo. They stay
+// out of the history entry, which is saved in the notebook and could grow by
+// megabytes; after a reload they come back from the session's IndexedDB store.
+const deletedAttachments = new Map<string, JsonObject>();
 
 // Helper to parse "u|id|old|new" which has two escaped distinct content blocks
 export const parseUpdateEntry = (entry: string): { id: string, oldContent: string, newContent: string } | null => {
@@ -248,8 +269,8 @@ const commitEditSession = (id: string, currentContent: string, currentPosition?:
         // Include exit content for redo (needed when cell is deleted+recreated and CodeMirror history is lost)
         addToHistory(`h|${id}|${startState.position}|${currentPosition}|${escapeContent(currentContent)}`);
       }
-    } else if (cell.type === "markdown" && startState.content !== undefined) {
-      // For markdown cells: use content comparison
+    } else if (cell.type !== "code" && startState.content !== undefined) {
+      // For markdown and raw cells: use content comparison
       if (startState.content !== currentContent) {
         // Same truncation logic for markdown cells
         const currentHistoryIndex = defaultStore.historyIndex;
@@ -268,12 +289,12 @@ const commitEditSession = (id: string, currentContent: string, currentPosition?:
 
 export const defaultCells: CellData[] = [
   {
-    id: crypto.randomUUID(),
+    id: newCellId(),
     type: "markdown",
     content: "# Welcome to PyNote\n\nThis is a **modern** notebook running Python in your browser.\n\nClick a cell to select it or double click to edit. Drag handle or cell border to reorder. Press Ctrl+\\ to open keyboard shortcuts.\n\nSee the [tutorial](?open=tutorial) for more details."
   },
   {
-    id: crypto.randomUUID(),
+    id: newCellId(),
     type: "code",
     content: "print('Hello from Pyodide!')\nimport sys\nprint(sys.version)"
   }
@@ -296,11 +317,42 @@ const [store, setStore] = createStore<NotebookState>({
   codeHiddenPlaceholder: undefined,
   // Reactive execution mode (Marimo-style DAG)
   cellDependencies: new Map(),
-  dependenciesStale: false
+  dependenciesStale: false,
+  documentMetadata: {}
 });
 
 export const notebookStore = store;
 const defaultStore = store; // Reference for commitEditSession
+
+const cellIds = () => new Set(store.cells.map((c) => c.id));
+
+// A read-only host (a read-only web app export) shows the notebook exactly as
+// exported. The actions a reader could reach without editing a cell (adding,
+// deleting, moving or retyping cells, clearing outputs, undo and redo,
+// running cells, restarting or stopping the kernel) do nothing there,
+// whichever shortcut, menu or control calls them. Entering edit mode is
+// refused as well, which keeps the editors' own actions out of reach.
+const readOnlyHost = () => host().readOnly;
+
+// --- Editor flush registry ---
+// Editors that batch their updates (Milkdown reports markdown changes on a
+// 200ms debounce) register a flush here. Anything that reads a cell's content
+// as final (ending an edit session, switching cells, saving) flushes first, so
+// text typed just before leaving edit mode is never lost.
+const editorFlushers = new Map<string, () => void>();
+
+export const registerEditorFlush = (cellId: string, flush: () => void): (() => void) => {
+  editorFlushers.set(cellId, flush);
+  return () => {
+    if (editorFlushers.get(cellId) === flush) editorFlushers.delete(cellId);
+  };
+};
+
+export const flushEditor = (cellId: string) => editorFlushers.get(cellId)?.();
+
+export const flushAllEditors = () => {
+  for (const flush of [...editorFlushers.values()]) flush();
+};
 
 // Helper to add to history (respects batching mode)
 const addToHistory = (entry: HistoryEntry) => {
@@ -359,7 +411,9 @@ const undoSingleEntry = (entry: HistoryEntry) => {
     }));
   } else if (action === 'd' || action === 'D') {
     // Undo delete: re-add the cell, with its metadata when the entry has it
+    // and its attachments when it was deleted in this session
     const { index, type, id, metadata, content } = parseDeleteEntry(entry);
+    const attachments = deletedAttachments.get(id);
 
     setStore("cells", produce((cells) => {
       cells.splice(index, 0, {
@@ -367,7 +421,8 @@ const undoSingleEntry = (entry: HistoryEntry) => {
         type,
         content,
         isEditing: false,
-        ...(metadata ? { metadata } : {})
+        ...(metadata ? { metadata } : {}),
+        ...(attachments ? { attachments } : {})
       });
     }));
   } else if (action === 'm') {
@@ -466,7 +521,8 @@ const redoSingleEntry = (entry: HistoryEntry) => {
 
 export const actions = {
   addCell: (type: CellType, index?: number) => {
-    const id = crypto.randomUUID();
+    if (readOnlyHost()) return;
+    const id = newCellId(cellIds());
     const insertIndex = index !== undefined ? index : store.cells.length;
 
     setStore("cells", produce((cells) => {
@@ -519,6 +575,7 @@ export const actions = {
   },
 
   changeCellType: (id: string, type: CellType) => {
+    if (readOnlyHost()) return;
     setStore("cells", (c) => c.id === id, "type", type);
     // Clear incompatible editor state when changing cell type
     actions.clearCellEditorState(id);
@@ -529,10 +586,12 @@ export const actions = {
   },
 
   clearCellOutput: (id: string) => {
+    if (readOnlyHost()) return;
     setStore("cells", (c) => c.id === id, "outputs", undefined);
   },
 
   deleteCell: (id: string) => {
+    if (readOnlyHost()) return;
     const cell = store.cells.find(c => c.id === id);
     const idx = store.cells.findIndex((c) => c.id === id);
 
@@ -549,8 +608,10 @@ export const actions = {
       }
 
       // Add to history before deleting, with the cell's metadata so that undo
-      // brings back its view and run settings: "D|index|type|id|metadata|content"
+      // brings back its view and run settings and other tools' keys:
+      // "D|index|type|id|metadata|content"
       addToHistory(`D|${idx}|${cell.type}|${id}|${escapeContent(JSON.stringify(cell.metadata ?? {}))}|${escapeContent(cell.content)}`);
+      if (cell.attachments) deletedAttachments.set(id, cell.attachments);
 
       setStore("cells", produce((cells) => {
         cells.splice(idx, 1);
@@ -569,7 +630,42 @@ export const actions = {
     }
   },
 
+  // Cells embedded in another site (the pynote package) come and go with the
+  // page they are on. That is not editing, so it stays out of the undo history.
+  attachCell: (cell: Pick<CellData, "id" | "content" | "metadata">, index: number): boolean => {
+    if (store.cells.some((c) => c.id === cell.id)) return false;
+    setStore("cells", produce((cells) => {
+      cells.splice(Math.max(0, Math.min(index, cells.length)), 0, { id: cell.id, type: "code", content: cell.content, metadata: cell.metadata });
+    }));
+    if (store.executionMode === "reactive") setStore("dependenciesStale", true);
+    return true;
+  },
+
+  detachCell: (id: string) => {
+    if (!store.cells.some((c) => c.id === id)) return;
+    kernel.clearCellState(id);
+    actions.clearCellEditorState(id);
+    if (store.executionMode === "reactive") actions.removeCellDependencies(id);
+    setStore("cells", (cells) => cells.filter((c) => c.id !== id));
+    setStore("executionQueue", (queue) => queue.filter((queued) => queued !== id));
+    if (store.activeCellId === id) setStore("activeCellId", null);
+  },
+
+  // An embedded cell whose element moved on the page takes its new place,
+  // with its code, outputs and Python state (not editing either).
+  relocateCell: (id: string, index: number) => {
+    const from = store.cells.findIndex((c) => c.id === id);
+    const to = Math.max(0, Math.min(index, store.cells.length - 1));
+    if (from === -1 || from === to) return;
+    setStore("cells", produce((cells) => {
+      const [cell] = cells.splice(from, 1);
+      cells.splice(to, 0, cell);
+    }));
+    if (store.executionMode === "reactive") setStore("dependenciesStale", true);
+  },
+
   moveCell: (fromIndex: number, toIndex: number) => {
+    if (readOnlyHost()) return;
     const cell = store.cells[fromIndex];
     if (!cell) return;
 
@@ -615,7 +711,7 @@ export const actions = {
   // of other cells (used by cell splitting, where the original editor must
   // keep focus and its cursor).
   insertMarkdownCell: (index: number, content: string): string => {
-    const id = crypto.randomUUID();
+    const id = newCellId(cellIds());
     const previousActive = store.activeCellId;
 
     setStore("cells", produce((cells) => {
@@ -647,7 +743,7 @@ export const actions = {
   },
 
   undo: () => {
-    if (store.historyIndex < 0) return;
+    if (readOnlyHost() || store.historyIndex < 0) return;
 
     const entry = store.history[store.historyIndex];
     const action = entry[0];
@@ -672,7 +768,7 @@ export const actions = {
   },
 
   redo: () => {
-    if (store.historyIndex >= store.history.length - 1) return;
+    if (readOnlyHost() || store.historyIndex >= store.history.length - 1) return;
 
     setStore("historyIndex", store.historyIndex + 1);
     const entry = store.history[store.historyIndex];
@@ -731,9 +827,10 @@ export const actions = {
     // Commit any active edit sessions before switching
     store.cells.forEach(cell => {
       if (cell.isEditing && cell.id !== id) {
-        // Only commit markdown cells directly here
+        // Only commit markdown/raw cells directly here
         // Code cells will be committed via CodeEditor's readOnly effect
-        if (cell.type === "markdown") {
+        if (cell.type !== "code") {
+          flushEditor(cell.id);
           commitEditSession(cell.id, cell.content);
         }
       }
@@ -752,8 +849,8 @@ export const actions = {
   },
 
   setEditing: (id: string, isEditing: boolean) => {
-    // Block editing in presentation mode
-    if (store.presentationMode && isEditing) return;
+    // Block editing in presentation mode and on a read-only host
+    if (isEditing && (store.presentationMode || readOnlyHost())) return;
     // Session State Tracking for Undo/Redo
     const cell = store.cells.find(c => c.id === id);
     if (cell) {
@@ -776,10 +873,12 @@ export const actions = {
       } else {
         // End of edit session: Check for changes
         // For code cells, position will be passed from CodeEditor via commitCodeCellEditSession
-        // For markdown cells, commit now with content
-        if (cell.type === "markdown") {
+        // For markdown/raw cells, commit now with content (flushed from the
+        // editor first, so the last keystrokes are part of the session)
+        if (cell.type !== "code") {
+          flushEditor(id);
           commitEditSession(id, cell.content);
-          // Cleanup for markdown (commitEditSession already deletes, but being explicit)
+          // Cleanup (commitEditSession already deletes, but being explicit)
           editSessionStart.delete(id);
         }
         // Note: For code cells, cleanup happens in commitCodeCellEditSession after it reads the Map
@@ -803,19 +902,29 @@ export const actions = {
     setStore("cells", (c) => c.id === id, "lastEditTimestamp", undefined);
   },
 
-  // Set cell-level code visibility metadata
+  // Set cell-level code visibility metadata. Merges into the cell's metadata
+  // so its other PyNote settings (autorun, placeholder) and other tools' keys
+  // are kept.
   setCellCodeVisibility: (id: string, codeview: CellCodeVisibility) => {
-    setStore("cells", (c) => c.id === id, "metadata", {
-      pynote: { codeview }
-    });
+    setStore("cells", (c) => c.id === id, "metadata", (metadata) => ({
+      ...metadata,
+      pynote: { ...metadata?.pynote, codeview: { ...codeview } },
+    }));
     if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
   },
 
-  // Clear cell-level code visibility metadata
+  // Clear cell-level code visibility metadata (only `pynote.codeview`; the
+  // rest of the cell's metadata stays).
   clearCellCodeVisibility: (id: string) => {
-    setStore("cells", (c) => c.id === id, "metadata", undefined);
+    setStore("cells", (c) => c.id === id, "metadata", (metadata) => {
+      if (!metadata?.pynote?.codeview) return metadata;
+      const { codeview: _removed, ...pynote } = metadata.pynote;
+      const { pynote: _old, ...rest } = metadata;
+      const next = Object.keys(pynote).length > 0 ? { ...rest, pynote } : rest;
+      return Object.keys(next).length > 0 ? next : undefined;
+    });
     if ((actions as any).__autosaveCallback) {
       (actions as any).__autosaveCallback();
     }
@@ -1001,12 +1110,11 @@ export const actions = {
 
 
   runCell: (id: string, runKernel: (content: string, id: string) => Promise<void>, analyzeCell?: (cellId: string, content: string) => Promise<void>) => {
-    console.log(`[runCell] id=${id}, analyzeCell provided:`, !!analyzeCell);
+    if (readOnlyHost()) return;
     const cell = store.cells.find(c => c.id === id);
     if (!cell || cell.type !== "code" || cell.isRunning || cell.isQueued) return;
 
     const mode = store.executionMode;
-    console.log(`[runCell] mode=${mode}`);
     const isKernelRunning = store.cells.some(c => c.isRunning);
     const isKernelLoading = kernel.status === "loading";
     const prevIndex = store.cells.findIndex(c => c.id === id) - 1;
@@ -1018,9 +1126,8 @@ export const actions = {
       // Store the analyzeCell callback for use by executeCell
       if (analyzeCell) {
         (actions as any).__pendingAnalyzeCell = analyzeCell;
-        console.log(`[runCell] Stored analyzeCell callback`);
       } else {
-        console.log(`[runCell] WARNING: No analyzeCell callback provided in reactive mode!`);
+        console.warn("runCell: reactive mode needs an analyzeCell callback.");
       }
 
       // If kernel is busy, queue this cell (analysis will happen when it executes)
@@ -1049,7 +1156,6 @@ export const actions = {
   },
 
   executeCell: async (id: string, runKernel: (content: string, id: string) => Promise<void>, isReactiveCascade: boolean = true) => {
-    console.log(`[executeCell] id=${id}, isReactiveCascade=${isReactiveCascade}, mode=${store.executionMode}`);
     actions.setCellRunning(id, true);
     const cell = store.cells.find(c => c.id === id);
     if (!cell) return;
@@ -1060,16 +1166,13 @@ export const actions = {
       // Reactive mode: JIT analysis before execution
       // Only analyze and queue downstream for user-initiated runs, not cascade runs
       if (store.executionMode === "reactive" && !isReactiveCascade) {
-        console.log(`[executeCell] Reactive mode, analyzing cell ${id}`);
         const analyzeCell = (actions as any).__pendingAnalyzeCell;
-        console.log(`[executeCell] analyzeCell callback exists:`, !!analyzeCell);
         if (analyzeCell) {
           // Analyze this cell and update its dependencies
           await analyzeCell(id, cell.content);
 
           // Now queue downstream cells based on fresh dependencies
           const downstream = actions.getDownstreamCells(id);
-          console.log(`[executeCell] Downstream cells:`, downstream);
           for (const depId of downstream) {
             // Only queue if not already queued/running
             const depCell = store.cells.find(c => c.id === depId);
@@ -1123,6 +1226,7 @@ export const actions = {
   },
 
   clearAllOutputs: () => {
+    if (readOnlyHost()) return;
     setStore("cells", {}, "outputs", undefined);
   },
 
@@ -1131,8 +1235,22 @@ export const actions = {
     setStore("cells", {}, (cell) => ({ ...cell, isRunning: false, isQueued: false }));
   },
 
+  // The Kernel menu's Restart and Shut Down (and their shortcuts): queued and
+  // running cells are forgotten either way.
+  restartKernel: () => {
+    if (readOnlyHost()) return;
+    kernel.restart();
+    actions.resetExecutionState();
+  },
+
+  shutDownKernel: () => {
+    if (readOnlyHost()) return;
+    kernel.terminate();
+    actions.resetExecutionState();
+  },
+
   deleteAllCells: () => {
-    if (store.cells.length === 0) return;
+    if (readOnlyHost() || store.cells.length === 0) return;
 
     // Use batching to make this a single undoable action
     actions.beginBatch();
@@ -1163,6 +1281,7 @@ export const actions = {
     notebookAutorun?: boolean,
     codeHiddenPlaceholder?: string,
     notebookAutorunOnRefresh?: boolean,
+    documentMetadata?: JsonObject,
   ) => {
     setStore({
       cells,
@@ -1178,7 +1297,8 @@ export const actions = {
       codeHiddenPlaceholder,
       // Reset reactive mode state when loading a new notebook
       cellDependencies: new Map(),
-      dependenciesStale: executionMode === "reactive" // Need to analyze if loading in reactive mode
+      dependenciesStale: executionMode === "reactive", // Need to analyze if loading in reactive mode
+      documentMetadata: documentMetadata ?? {}
     });
 
     // Recovery Phase: Check for interrupted edits (orphaned preEditState)
@@ -1186,7 +1306,7 @@ export const actions = {
     // The content is saved, but the history entry for the change wasn't committed.
 
     store.cells.forEach(cell => {
-      if (cell.type === "markdown" && cell.preEditState && !cell.isEditing) {
+      if (cell.type !== "code" && cell.preEditState && !cell.isEditing) {
         const oldContent = cell.preEditState.content;
         const newContent = cell.content;
 
@@ -1209,9 +1329,10 @@ export const actions = {
       // Commit pending edits
       store.cells.forEach(cell => {
         if (cell.isEditing) {
-          // Only commit markdown cells directly here
+          // Only commit markdown/raw cells directly here
           // Code cells will be committed via CodeEditor's readOnly effect
-          if (cell.type === "markdown") {
+          if (cell.type !== "code") {
+            flushEditor(cell.id);
             commitEditSession(cell.id, cell.content);
           }
         }
@@ -1219,6 +1340,21 @@ export const actions = {
       setStore("activeCellId", null);
       setStore("cells", () => true, "isEditing", false);
     }
+  },
+
+  // The notebook's file name (shown in the session list, suggested by Save As
+  // and Export). Updated when the notebook is saved under a new name.
+  setFilename: (filename: string) => {
+    setStore("filename", filename);
+    if ((actions as any).__autosaveCallback) {
+      (actions as any).__autosaveCallback();
+    }
+  },
+
+  // Replace the notebook-level metadata kept for saving (see
+  // NotebookState.documentMetadata).
+  setDocumentMetadata: (metadata: JsonObject) => {
+    setStore("documentMetadata", metadata);
   },
 
   dispatchEditorAction: (id: string, action: "undo" | "redo") => {

@@ -2,6 +2,7 @@ import { createStore } from "solid-js/store";
 import { createEffect } from "solid-js";
 import { resolveBorder } from "../components/ui-renderer/colorUtils";
 import { scheduleThemeFontLoad } from "./font-loader";
+import { host } from "./host";
 
 export interface Theme {
   font: string;
@@ -482,37 +483,43 @@ export const defaultTheme: Theme = {
 
 const STORAGE_KEY = "pynote-theme";
 
-// Load app-wide theme from localStorage
+// A partial theme filled in from the defaults: shallow spread, but every
+// nested object is merged too, so sub-fields added after a theme was saved
+// (e.g. uiBorder.menu) keep their defaults.
+export const completeTheme = (partial: any): Theme => ({
+  ...defaultTheme,
+  ...partial,
+  colors: { ...defaultTheme.colors, ...partial?.colors },
+  syntax: { ...defaultTheme.syntax, ...partial?.syntax },
+  radii: { ...defaultTheme.radii, ...partial?.radii },
+  spacing: { ...defaultTheme.spacing, ...partial?.spacing },
+  typography: { ...defaultTheme.typography, ...partial?.typography },
+  codeTypography: { ...defaultTheme.codeTypography, ...partial?.codeTypography },
+  editor: { ...defaultTheme.editor, ...partial?.editor },
+  uiTypography: { ...defaultTheme.uiTypography, ...partial?.uiTypography },
+  uiBorder: { ...defaultTheme.uiBorder, ...partial?.uiBorder },
+  mdBorder: { ...defaultTheme.mdBorder, ...partial?.mdBorder },
+  componentPadding: { ...defaultTheme.componentPadding, ...partial?.componentPadding },
+  cellBorder: { ...defaultTheme.cellBorder, ...partial?.cellBorder },
+  cellShadow: { ...defaultTheme.cellShadow, ...partial?.cellShadow },
+  codeBlock: { ...defaultTheme.codeBlock, ...partial?.codeBlock },
+});
+
+// Load app-wide theme from localStorage. A standalone export has no app-wide
+// theme: it starts from the theme it was exported with. The defaults come
+// back as a copy: the store writes into the object it starts from, and
+// defaultTheme must stay the defaults (Reset, the Export dialog's differences).
 export const loadAppTheme = (): Theme => {
+  const embedded = host().embedded;
+  if (embedded) return completeTheme(embedded.theme);
+  if (!host().appWideSettings) return structuredClone(defaultTheme);
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Shallow spread, but deep-merge every nested object so sub-fields added
-      // after the theme was last saved (e.g. uiBorder.menu) keep their defaults.
-      return {
-        ...defaultTheme,
-        ...parsed,
-        colors: { ...defaultTheme.colors, ...parsed.colors },
-        syntax: { ...defaultTheme.syntax, ...parsed.syntax },
-        radii: { ...defaultTheme.radii, ...parsed.radii },
-        spacing: { ...defaultTheme.spacing, ...parsed.spacing },
-        typography: { ...defaultTheme.typography, ...parsed.typography },
-        codeTypography: { ...defaultTheme.codeTypography, ...parsed.codeTypography },
-        editor: { ...defaultTheme.editor, ...parsed.editor },
-        uiTypography: { ...defaultTheme.uiTypography, ...parsed.uiTypography },
-        uiBorder: { ...defaultTheme.uiBorder, ...parsed.uiBorder },
-        mdBorder: { ...defaultTheme.mdBorder, ...parsed.mdBorder },
-        componentPadding: { ...defaultTheme.componentPadding, ...parsed.componentPadding },
-        cellBorder: { ...defaultTheme.cellBorder, ...parsed.cellBorder },
-        cellShadow: { ...defaultTheme.cellShadow, ...parsed.cellShadow },
-        codeBlock: { ...defaultTheme.codeBlock, ...parsed.codeBlock },
-      };
-    }
+    if (stored) return completeTheme(JSON.parse(stored));
   } catch (e) {
     console.warn("Failed to load theme:", e);
   }
-  return defaultTheme;
+  return structuredClone(defaultTheme);
 };
 
 // Initialize store - always start with app theme (session theme overrides later if exists)
@@ -551,6 +558,7 @@ export const updateTheme = (newTheme: any) => {
 
 // Save theme to localStorage (app-wide)
 export const saveThemeAppWide = () => {
+  if (!host().appWideSettings) return;
   try {
     const { saveToExport, ...themeToSave } = theme;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(themeToSave));
@@ -632,9 +640,25 @@ const compositeOver = (top: RGBA, bottom: RGBA): RGBA => {
   return { r: mix(top.r, bottom.r), g: mix(top.g, bottom.g), b: mix(top.b, bottom.b), a };
 };
 
+// The bracket highlight filter depends on the rendered editor background. The
+// app samples the document and sets the variable on the root; cells embedded
+// in another site (the pynote package) sample their shadow roots and keep the
+// variable in their own theme stylesheet, leaving the page untouched.
+interface BracketHighlightTarget {
+  scope: () => ParentNode | null;
+  write: (filter: string) => void;
+}
+let bracketHighlightTarget: BracketHighlightTarget = {
+  scope: () => document,
+  write: (filter) => document.documentElement.style.setProperty("--bracket-highlight-filter", filter),
+};
+export const setBracketHighlightTarget = (target: BracketHighlightTarget): void => {
+  bracketHighlightTarget = target;
+};
+
 export const refreshBracketHighlightFilter = () => {
   let acc: RGBA = { r: 0, g: 0, b: 0, a: 0 };
-  let el: Element | null = document.querySelector(".cm-editor .cm-scroller");
+  let el: Element | null = bracketHighlightTarget.scope()?.querySelector(".cm-editor .cm-scroller") ?? null;
   while (el && acc.a < 0.999) {
     const layer = parseCssColor(getComputedStyle(el).backgroundColor);
     if (layer && layer.a > 0) acc = compositeOver(acc, layer);
@@ -645,10 +669,7 @@ export const refreshBracketHighlightFilter = () => {
     if (fallback) acc = compositeOver(acc, { ...fallback, a: 1 });
   }
   const luminance = (0.2126 * acc.r + 0.7152 * acc.g + 0.0722 * acc.b) / 255;
-  document.documentElement.style.setProperty(
-    "--bracket-highlight-filter",
-    luminance > 0.5 ? "brightness(0.55)" : "brightness(1.8)",
-  );
+  bracketHighlightTarget.write(luminance > 0.5 ? "brightness(0.55)" : "brightness(1.8)");
 };
 
 // The filter is interaction feedback, not part of the theme paint, so sample
@@ -667,162 +688,172 @@ export const scheduleBracketHighlightRefresh = () => {
   else setTimeout(run, 0);
 };
 
+// Every CSS custom property the theme sets, by name. initTheme writes them
+// onto the document root; an embedded cell (the pynote package) writes them
+// onto its shadow root's host instead, so a page keeps its own variables.
+export const themeVariables = (theme: Theme): Record<string, string> => {
+  const vars: Record<string, string> = {};
+  vars["--font-mono"] = theme.font;
+  vars["--font-weight-base"] = theme.fontWeight || "normal";
+
+  // Set base theme variables (--primary, --secondary, etc.)
+  // The @theme inline block in index.css will map these to --color-* for Tailwind utilities
+  vars["--primary"] = theme.colors.primary;
+  vars["--secondary"] = theme.colors.secondary;
+  vars["--accent"] = theme.colors.accent;
+  vars["--background"] = theme.colors.background;
+  vars["--foreground"] = theme.colors.foreground;
+  vars["--success"] = theme.colors.success;
+  vars["--error"] = theme.colors.error;
+  vars["--warning"] = theme.colors.warning;
+  vars["--info"] = theme.colors.info;
+
+  // DaisyUI variables (not using @theme inline, set directly)
+  vars["--color-base-100"] = theme.colors.background;
+  vars["--color-base-content"] = theme.colors.secondary;
+
+  // Syntax highlighting palette (scheme + per-token overrides). The same vars
+  // drive the CodeMirror editor, the markdown Python highlighter and
+  // highlight.js, so code cells and rendered markdown stay consistent.
+  for (const token of SYNTAX_TOKENS) {
+    vars[`--syntax-${token}`] = resolveSyntaxColor(theme, token);
+  }
+  vars["--radius-lg"] = theme.radii.lg;
+  vars["--radius-sm"] = theme.radii.sm;
+
+  vars["--line-spacing"] = theme.spacing.line;
+  vars["--cell-margin"] = theme.spacing.cell;
+  vars["--block-margin"] = theme.spacing.block;
+  vars["--cell-pad-adjust"] = theme.spacing.cellPadAdjust || "0px";
+
+  vars["--font-size-base"] = theme.typography.fontSize;
+  vars["--font-size-delta"] = theme.typography.headerDelta;
+  vars["--header-margin-bottom"] = theme.typography.headerMarginBottom;
+  vars["--header-margin-delta"] = theme.typography.headerMarginDelta || "0rem";
+  vars["--letter-spacing-base"] = theme.typography.letterSpacing || "normal";
+
+  vars["--code-font-family"] = theme.codeTypography.fontFamily;
+  vars["--code-font-weight"] = theme.codeTypography.fontWeight;
+  vars["--code-base-font-size"] = theme.codeTypography.baseFontSize;
+  vars["--code-inline-font-size"] = theme.codeTypography.inlineFontSize;
+  vars["--code-editor-font-size"] = theme.codeTypography.editorFontSize;
+  // Cell output text. Empty means follow the markdown base font size.
+  vars["--code-output-font-size"] = theme.codeTypography.outputFontSize || "var(--font-size-base)";
+  vars["--code-letter-spacing"] = theme.codeTypography.letterSpacing || "normal";
+
+  vars["--editor-max-code-height"] = theme.editor.maxCodeHeight;
+
+  // UI chrome typography. Default to the shared app font and normal weight;
+  // only applied through the `ui-font` utility on dialogs/dropdowns/menus.
+  vars["--ui-font-family"] = theme.uiTypography.fontFamily || "var(--font-mono)";
+  vars["--ui-font-weight"] = theme.uiTypography.fontWeight || "var(--font-weight-base)";
+  vars["--menu-font-weight"] = theme.uiTypography.menuFontWeight || "600";
+  // Base for UI chrome text sizes. Replaces text-xs (the smallest Tailwind
+  // preset the UI uses); the larger presets derive from it in index.css
+  // with the same ratios Tailwind uses, so 0.75rem reproduces the defaults.
+  vars["--ui-font-size-base"] = theme.uiTypography.baseFontSize || "0.75rem";
+  vars["--ui-letter-spacing"] = theme.uiTypography.letterSpacing || "var(--letter-spacing-base)";
+
+  // Shared UI element border (frames + dividers). Each of `border`/`divider`
+  // may carry its own width, style and color; anything omitted falls back to
+  // 1px solid and the shared color (or the foreground color when unset).
+  const uiSharedColor = theme.uiBorder.color || "var(--foreground)";
+  const uiBorderParts = parseUiBorder(theme.uiBorder.border, uiSharedColor);
+  const uiDividerParts = parseUiBorder(theme.uiBorder.divider, uiSharedColor);
+  vars["--ui-border-width"] = uiBorderParts.width;
+  vars["--ui-border-style"] = uiBorderParts.style;
+  vars["--ui-border-color"] = uiBorderParts.color;
+  vars["--ui-divider-width"] = uiDividerParts.width;
+  vars["--ui-divider-style"] = uiDividerParts.style;
+  vars["--ui-divider-color"] = uiDividerParts.color;
+  // Menu/toolbar buttons are branded: default to 2px solid primary.
+  const uiMenuParts = parseUiBorder(theme.uiBorder.menu, "var(--primary)", "2px");
+  vars["--menu-border-width"] = uiMenuParts.width;
+  vars["--menu-border-style"] = uiMenuParts.style;
+  vars["--menu-border-color"] = uiMenuParts.color;
+
+  // Markdown element borders. Frames (tables, images, videos, code blocks) and
+  // table-cell dividers each keep their own current color when unset: frames
+  // default to secondary @ 40%, dividers to accent @ 10%. A shared `color`
+  // overrides both. Widths default to 2px (the current look).
+  const mdSharedColor = theme.mdBorder.color;
+  const mdFrameFallback = mdSharedColor || "color-mix(in srgb, var(--secondary) 40%, transparent)";
+  const mdDividerFallback = mdSharedColor || "color-mix(in srgb, var(--accent) 10%, transparent)";
+  const mdBorderParts = parseUiBorder(theme.mdBorder.border, mdFrameFallback, "2px");
+  const mdDividerParts = parseUiBorder(theme.mdBorder.divider, mdDividerFallback, "2px");
+  vars["--md-border-width"] = mdBorderParts.width;
+  vars["--md-border-style"] = mdBorderParts.style;
+  vars["--md-border-color"] = mdBorderParts.color;
+  vars["--md-divider-width"] = mdDividerParts.width;
+  vars["--md-divider-style"] = mdDividerParts.style;
+  vars["--md-divider-color"] = mdDividerParts.color;
+  vars["--md-shadow"] = theme.mdShadow || "none";
+
+  // Default border for embedded pynote_ui components. The stored value is the
+  // same string a component's `border=` argument accepts, so resolve it with
+  // the very same helper. Blank falls back to the per-component default.
+  const cbInput = theme.componentBorder.trim();
+  const cbResolved = cbInput ? resolveBorder(cbInput).border : undefined;
+  vars["--component-border"] = cbResolved || "2px solid var(--foreground)";
+
+  // pynote_ui component sizing. Radius falls back to the app's small radius;
+  // the padding shifts land in calc() next to each component's hardcoded
+  // padding, so blank means 0px (no shift).
+  vars["--component-radius"] = theme.componentRadius.trim() || "var(--radius-sm)";
+  const cp = theme.componentPadding;
+  vars["--component-pad-xs"] = cp.xs.trim() || "0px";
+  vars["--component-pad-sm"] = cp.sm.trim() || "0px";
+  vars["--component-pad-md"] = cp.md.trim() || "0px";
+  vars["--component-pad-lg"] = cp.lg.trim() || "0px";
+  vars["--component-pad-xl"] = cp.xl.trim() || "0px";
+
+  // Header Colors Logic
+  const colors = theme.typography.headerColors || [];
+  const h1Color = colors[0] || theme.colors.primary;
+  const h2Color = colors[1] || h1Color;
+  const h3Color = colors[2] || h2Color;
+  const h4Color = colors[3] || h3Color;
+
+  vars["--header-color-1"] = h1Color;
+  vars["--header-color-2"] = h2Color;
+  vars["--header-color-3"] = h3Color;
+  vars["--header-color-4"] = h4Color;
+
+  vars["--table-overflow"] = theme.tableOverflow;
+
+  // Page width variables (header and content have slightly different widths)
+  if (theme.pageWidth === "wide") {
+    vars["--page-max-width-header"] = "62.5rem"; // max-w-250
+    vars["--page-margin-x-header"] = "auto";
+    vars["--page-max-width-content"] = "64rem"; // max-w-256
+    vars["--page-margin-x-content"] = "auto";
+  } else if (theme.pageWidth === "full") {
+    vars["--page-max-width-header"] = "100%";
+    vars["--page-margin-x-header"] = "2.5rem"; // mx-10
+    vars["--page-max-width-content"] = "100%";
+    vars["--page-margin-x-content"] = "2rem"; // mx-8
+  } else { // normal
+    vars["--page-max-width-header"] = "50.5rem"; // max-w-202
+    vars["--page-margin-x-header"] = "auto";
+    vars["--page-max-width-content"] = "52rem"; // max-w-208
+    vars["--page-margin-x-content"] = "auto";
+  }
+  return vars;
+};
+
 export const initTheme = () => {
   createEffect(() => {
     const root = document.documentElement;
-    const body = document.body;    root.style.setProperty("--font-mono", theme.font);
-    root.style.setProperty("--font-weight-base", theme.fontWeight || "normal");
+    const body = document.body;
+    for (const [name, value] of Object.entries(themeVariables(theme))) root.style.setProperty(name, value);
+    root.style.backgroundColor = theme.colors.background;
+    body.style.backgroundColor = theme.colors.background;
 
     // Catch-all for live edits (theme dialog font inputs): fetch any Google
     // font the theme now references. Debounced since inputs fire per
     // keystroke; the font swaps in when ready. Whole-theme loads (file open,
     // session restore, boot) await loadThemeFonts before applying instead.
     scheduleThemeFontLoad(theme);
-
-    // Set base theme variables (--primary, --secondary, etc.)
-    // The @theme inline block in index.css will map these to --color-* for Tailwind utilities
-    root.style.setProperty("--primary", theme.colors.primary);
-    root.style.setProperty("--secondary", theme.colors.secondary);
-    root.style.setProperty("--accent", theme.colors.accent);
-    root.style.setProperty("--background", theme.colors.background);
-    root.style.setProperty("--foreground", theme.colors.foreground);
-    root.style.setProperty("--success", theme.colors.success);
-    root.style.setProperty("--error", theme.colors.error);
-    root.style.setProperty("--warning", theme.colors.warning);
-    root.style.setProperty("--info", theme.colors.info);
-    root.style.backgroundColor = theme.colors.background;
-    body.style.backgroundColor = theme.colors.background;
-
-    // DaisyUI variables (not using @theme inline, set directly)
-    root.style.setProperty("--color-base-100", theme.colors.background);
-    root.style.setProperty("--color-base-content", theme.colors.secondary);
-
-    // Syntax highlighting palette (scheme + per-token overrides). The same vars
-    // drive the CodeMirror editor, the markdown Python highlighter and
-    // highlight.js, so code cells and rendered markdown stay consistent.
-    for (const token of SYNTAX_TOKENS) {
-      root.style.setProperty(`--syntax-${token}`, resolveSyntaxColor(theme, token));
-    }
-    root.style.setProperty("--radius-lg", theme.radii.lg);
-    root.style.setProperty("--radius-sm", theme.radii.sm);
-
-    root.style.setProperty("--line-spacing", theme.spacing.line);
-    root.style.setProperty("--cell-margin", theme.spacing.cell);
-    root.style.setProperty("--block-margin", theme.spacing.block);
-    root.style.setProperty("--cell-pad-adjust", theme.spacing.cellPadAdjust || "0px");
-
-    root.style.setProperty("--font-size-base", theme.typography.fontSize);
-    root.style.setProperty("--font-size-delta", theme.typography.headerDelta);
-    root.style.setProperty("--header-margin-bottom", theme.typography.headerMarginBottom);
-    root.style.setProperty("--header-margin-delta", theme.typography.headerMarginDelta || "0rem");
-    root.style.setProperty("--letter-spacing-base", theme.typography.letterSpacing || "normal");
-
-    root.style.setProperty("--code-font-family", theme.codeTypography.fontFamily);
-    root.style.setProperty("--code-font-weight", theme.codeTypography.fontWeight);
-    root.style.setProperty("--code-base-font-size", theme.codeTypography.baseFontSize);
-    root.style.setProperty("--code-inline-font-size", theme.codeTypography.inlineFontSize);
-    root.style.setProperty("--code-editor-font-size", theme.codeTypography.editorFontSize);
-    // Cell output text. Empty means follow the markdown base font size.
-    root.style.setProperty("--code-output-font-size", theme.codeTypography.outputFontSize || "var(--font-size-base)");
-    root.style.setProperty("--code-letter-spacing", theme.codeTypography.letterSpacing || "normal");
-
-    root.style.setProperty("--editor-max-code-height", theme.editor.maxCodeHeight);
-
-    // UI chrome typography. Default to the shared app font and normal weight;
-    // only applied through the `ui-font` utility on dialogs/dropdowns/menus.
-    root.style.setProperty("--ui-font-family", theme.uiTypography.fontFamily || "var(--font-mono)");
-    root.style.setProperty("--ui-font-weight", theme.uiTypography.fontWeight || "var(--font-weight-base)");
-    root.style.setProperty("--menu-font-weight", theme.uiTypography.menuFontWeight || "600");
-    // Base for UI chrome text sizes. Replaces text-xs (the smallest Tailwind
-    // preset the UI uses); the larger presets derive from it in index.css
-    // with the same ratios Tailwind uses, so 0.75rem reproduces the defaults.
-    root.style.setProperty("--ui-font-size-base", theme.uiTypography.baseFontSize || "0.75rem");
-    root.style.setProperty("--ui-letter-spacing", theme.uiTypography.letterSpacing || "var(--letter-spacing-base)");
-
-    // Shared UI element border (frames + dividers). Each of `border`/`divider`
-    // may carry its own width, style and color; anything omitted falls back to
-    // 1px solid and the shared color (or the foreground color when unset).
-    const uiSharedColor = theme.uiBorder.color || "var(--foreground)";
-    const uiBorderParts = parseUiBorder(theme.uiBorder.border, uiSharedColor);
-    const uiDividerParts = parseUiBorder(theme.uiBorder.divider, uiSharedColor);
-    root.style.setProperty("--ui-border-width", uiBorderParts.width);
-    root.style.setProperty("--ui-border-style", uiBorderParts.style);
-    root.style.setProperty("--ui-border-color", uiBorderParts.color);
-    root.style.setProperty("--ui-divider-width", uiDividerParts.width);
-    root.style.setProperty("--ui-divider-style", uiDividerParts.style);
-    root.style.setProperty("--ui-divider-color", uiDividerParts.color);
-    // Menu/toolbar buttons are branded: default to 2px solid primary.
-    const uiMenuParts = parseUiBorder(theme.uiBorder.menu, "var(--primary)", "2px");
-    root.style.setProperty("--menu-border-width", uiMenuParts.width);
-    root.style.setProperty("--menu-border-style", uiMenuParts.style);
-    root.style.setProperty("--menu-border-color", uiMenuParts.color);
-
-    // Markdown element borders. Frames (tables, images, videos, code blocks) and
-    // table-cell dividers each keep their own current color when unset: frames
-    // default to secondary @ 40%, dividers to accent @ 10%. A shared `color`
-    // overrides both. Widths default to 2px (the current look).
-    const mdSharedColor = theme.mdBorder.color;
-    const mdFrameFallback = mdSharedColor || "color-mix(in srgb, var(--secondary) 40%, transparent)";
-    const mdDividerFallback = mdSharedColor || "color-mix(in srgb, var(--accent) 10%, transparent)";
-    const mdBorderParts = parseUiBorder(theme.mdBorder.border, mdFrameFallback, "2px");
-    const mdDividerParts = parseUiBorder(theme.mdBorder.divider, mdDividerFallback, "2px");
-    root.style.setProperty("--md-border-width", mdBorderParts.width);
-    root.style.setProperty("--md-border-style", mdBorderParts.style);
-    root.style.setProperty("--md-border-color", mdBorderParts.color);
-    root.style.setProperty("--md-divider-width", mdDividerParts.width);
-    root.style.setProperty("--md-divider-style", mdDividerParts.style);
-    root.style.setProperty("--md-divider-color", mdDividerParts.color);
-    root.style.setProperty("--md-shadow", theme.mdShadow || "none");
-
-    // Default border for embedded pynote_ui components. The stored value is the
-    // same string a component's `border=` argument accepts, so resolve it with
-    // the very same helper. Blank falls back to the per-component default.
-    const cbInput = theme.componentBorder.trim();
-    const cbResolved = cbInput ? resolveBorder(cbInput).border : undefined;
-    root.style.setProperty("--component-border", cbResolved || "2px solid var(--foreground)");
-
-    // pynote_ui component sizing. Radius falls back to the app's small radius;
-    // the padding shifts land in calc() next to each component's hardcoded
-    // padding, so blank means 0px (no shift).
-    root.style.setProperty("--component-radius", theme.componentRadius.trim() || "var(--radius-sm)");
-    const cp = theme.componentPadding;
-    root.style.setProperty("--component-pad-xs", cp.xs.trim() || "0px");
-    root.style.setProperty("--component-pad-sm", cp.sm.trim() || "0px");
-    root.style.setProperty("--component-pad-md", cp.md.trim() || "0px");
-    root.style.setProperty("--component-pad-lg", cp.lg.trim() || "0px");
-    root.style.setProperty("--component-pad-xl", cp.xl.trim() || "0px");
-
-    // Header Colors Logic
-    const colors = theme.typography.headerColors || [];
-    const h1Color = colors[0] || theme.colors.primary;
-    const h2Color = colors[1] || h1Color;
-    const h3Color = colors[2] || h2Color;
-    const h4Color = colors[3] || h3Color;
-
-    root.style.setProperty("--header-color-1", h1Color);
-    root.style.setProperty("--header-color-2", h2Color);
-    root.style.setProperty("--header-color-3", h3Color);
-    root.style.setProperty("--header-color-4", h4Color);
-
-    root.style.setProperty("--table-overflow", theme.tableOverflow);
-
-    // Page width variables (header and content have slightly different widths)
-    if (theme.pageWidth === "wide") {
-      root.style.setProperty("--page-max-width-header", "62.5rem"); // max-w-250
-      root.style.setProperty("--page-margin-x-header", "auto");
-      root.style.setProperty("--page-max-width-content", "64rem"); // max-w-256
-      root.style.setProperty("--page-margin-x-content", "auto");
-    } else if (theme.pageWidth === "full") {
-      root.style.setProperty("--page-max-width-header", "100%");
-      root.style.setProperty("--page-margin-x-header", "2.5rem"); // mx-10
-      root.style.setProperty("--page-max-width-content", "100%");
-      root.style.setProperty("--page-margin-x-content", "2rem"); // mx-8
-    } else { // normal
-      root.style.setProperty("--page-max-width-header", "50.5rem"); // max-w-202
-      root.style.setProperty("--page-margin-x-header", "auto");
-      root.style.setProperty("--page-max-width-content", "52rem"); // max-w-208
-      root.style.setProperty("--page-margin-x-content", "auto");
-    }
 
     // Update meta theme color for browser UI (avoids white flash in new tabs)
     const metaTheme = document.getElementById('meta-theme-color');
@@ -832,4 +863,4 @@ export const initTheme = () => {
     // the theme-apply path).
     scheduleBracketHighlightRefresh();
   });
-}
+};

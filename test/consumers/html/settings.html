@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>pynote with settings: its own Pyodide, a locked execution mode</title>
+    <!-- Pyodide from a folder of this site, named by a path (resolved against the page's URL). -->
+    <script type="application/json" data-pynote-config>{"executionMode": "reactive", "lockExecutionMode": true, "pyodideUrl": "/pyodide/"}</script>
+  </head>
+  <body>
+    <h1>A notebook whose readers cannot change the execution mode</h1>
+    <pynote-cell cell-id="define" code="x = 21"></pynote-cell>
+    <pynote-cell cell-id="use" code="print(f'x*2={x * 2}')"></pynote-cell>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

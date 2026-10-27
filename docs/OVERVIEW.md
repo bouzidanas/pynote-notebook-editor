@@ -108,7 +108,8 @@ But where PyNote aims to excel is **presentation**. The UI is built with [daisyU
 - Light and dark modes
 - **Section-scoped styling** where everything under the same heading shares a unified look
 
-The goal: notebooks that look good enough to publish. When file export features are complete, you'll be able to save stripped-down versions of your notebooks as standalone mini-apps to embed in websites, blogs, or documentation.
+The goal: notebooks that look good enough to publish.
+The Export dialog (Options > Export) saves a notebook as a standalone web app (interactive, read-only, or static, and even fully offline), as Python or Markdown, or as a `.pynote` file that diffs cleanly in Git, and the [`pynote` package](../packages/pynote) puts live cells on your own site.
 
 ### Native Interactivity
 
@@ -184,9 +185,11 @@ Heavy machine learning training would still be better on native Python with acce
 
 ### "Where is my data stored?"
 
-On your device. Your session saves automatically as you work, so you can close the tab and pick up where you left off.
+On your device.
+Your session saves automatically in your browser's storage as you work, so you can close the tab and pick up where you left off.
 
-You can also save to `.ipynb` files (the standard Jupyter format) when you want to keep a copy or share your work. HTML, Markdown, Python scripts, and other formats are on the roadmap.
+You can also save to `.ipynb` files (the standard Jupyter format) or `.pynote` files when you want to keep a copy or share your work.
+The Export dialog (Options > Export) also writes a notebook as a standalone web app, a Python script, a Markdown document, or a config for the `pynote` package.
 
 ### "What about collaboration?"
 

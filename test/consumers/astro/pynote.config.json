@@ -1,0 +1,65 @@
+{
+  "executionMode": "hybrid",
+  "lockExecutionMode": false,
+  "editable": true,
+  "menu": true,
+  "autorun": false,
+  "theme": {
+    "font": "\"DM Sans Variable\", sans-serif",
+    "fontWeight": "500",
+    "colors": {
+      "primary": "#ec225c",
+      "secondary": "#0a0a0a",
+      "accent": "#4d4d4d",
+      "background": "#f6f0e5",
+      "foreground": "#e4ddcf"
+    },
+    "syntaxScheme": "one-light",
+    "spacing": {
+      "line": "1.65"
+    },
+    "typography": {
+      "fontSize": "1.2rem",
+      "headerDelta": "0.26rem",
+      "headerColors": [
+        "#ee2f65",
+        "#de124c",
+        "#af0e3c",
+        "#780827"
+      ],
+      "headerMarginBottom": "1.25rem",
+      "letterSpacing": "-0.03em"
+    },
+    "codeTypography": {
+      "baseFontSize": "1.0625rem",
+      "inlineFontSize": "0.9375rem",
+      "editorFontSize": "1.0625rem",
+      "outputFontSize": "1.0625rem"
+    },
+    "uiTypography": {
+      "fontWeight": "600",
+      "menuFontWeight": "900",
+      "baseFontSize": "0.85rem"
+    },
+    "uiBorder": {
+      "color": "#171717",
+      "border": "2px",
+      "divider": "2px"
+    },
+    "mdBorder": {
+      "color": "#171717",
+      "divider": "2px solid var(--foreground)"
+    },
+    "componentBorder": "2px solid var(--secondary)",
+    "cellBorder": {
+      "select": "2px solid #171717",
+      "edit": "2px solid #171717"
+    },
+    "cellShadow": {
+      "edit": "6px 6px 0px #171717"
+    },
+    "sectionScoping": false,
+    "preset": "neobrutal_light"
+  },
+  "codeVisibility": {}
+}

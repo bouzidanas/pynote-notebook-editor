@@ -3,8 +3,7 @@ import { type CellData, actions, notebookStore, APP_DEFAULT_SHOW_FORMATTING } fr
 import { currentTheme } from "../lib/theme";
 import CellWrapper, { getLastHeaderLevel } from "./CellWrapper";
 import { marked } from "marked";
-import markedKatex from "marked-katex-extension";
-import katex from "katex";
+import { katexMathExtensions } from "../lib/markdown-katex";
 import DOMPurify from "dompurify";
 import { highlightPython, isPythonLanguage, isSupportedLanguage, highlightWithHljs } from "../lib/syntax-highlighter";
 
@@ -30,27 +29,8 @@ if (typeof window !== "undefined") {
   }
 }
 
-const displayMath = {
-  name: 'displayMath',
-  level: 'inline',
-  start(src: string) { return src.match(/\$\$/)?.index; },
-  tokenizer(src: string) {
-    const match = /^\$\$([\s\S]+?)\$\$/.exec(src);
-    if (match) {
-      return {
-        type: 'displayMath',
-        raw: match[0],
-        text: match[1].trim()
-      };
-    }
-  },
-  renderer(token: any) {
-    return katex.renderToString(token.text, { displayMode: true, throwOnError: false, output: 'html' });
-  }
-};
-
-marked.use(markedKatex({ throwOnError: false, output: "html", trust: true }));
-marked.use({ extensions: [displayMath as any] });
+// Math ($...$, $$...$$) with KaTeX; the rules are shared in markdown-math.ts.
+marked.use({ extensions: katexMathExtensions() });
 
 // Custom renderer for syntax-highlighted code blocks
 // Python uses Lezer (sync), other languages use placeholder for async hljs

@@ -6,6 +6,12 @@ import App from './App.tsx'
 import { loadThemeFonts } from './lib/font-loader'
 import { loadAppTheme } from './lib/theme'
 import { sessionManager } from './lib/session'
+import { kernel } from './lib/pyodide'
+
+// The app runs the kernel in its bundled module worker (see KernelOptions).
+kernel.configure({
+  createWorker: () => new Worker(new URL('./lib/pyodide.worker.ts', import.meta.url), { type: 'module' }),
+})
 
 const root = document.getElementById('root')
 

@@ -1,18 +1,17 @@
 import { type Component, onMount, onCleanup, createEffect, createSignal } from "solid-js";
 import { TextSelection, Plugin, PluginKey, type EditorState } from "@milkdown/kit/prose/state"; // Standard state handling
 import type { MarkType, Node as ProseNode } from "@milkdown/kit/prose/model";
-import { actions, notebookStore, type CellData } from "../lib/store";
+import { actions, notebookStore, registerEditorFlush, type CellData } from "../lib/store";
 
 // Core Framework
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, schemaCtx } from "@milkdown/kit/core";
-import { remarkStringifyOptionsCtx } from "@milkdown/kit/core";
+import type { Ctx } from "@milkdown/kit/ctx";
 
 // Theme (remains separate)
 import { nord } from "@milkdown/theme-nord";
 
-// Presets - Split between Commonmark (Foundation) and GFM (Extensions)
+// Preset commands - Commonmark (Foundation) and GFM (Extensions)
 import {
-  commonmark,
   toggleStrongCommand,
   toggleEmphasisCommand,
   wrapInHeadingCommand,
@@ -25,7 +24,6 @@ import {
 } from "@milkdown/kit/preset/commonmark";
 
 import {
-  gfm,
   insertTableCommand,
   addRowBeforeCommand,
   addRowAfterCommand,
@@ -50,8 +48,9 @@ import { Bold, Italic, Quote, Heading, ChevronDown, Link2, List, ListOrdered, Co
 import Dropdown, { DropdownItem, DropdownDivider, DropdownNested } from "./ui/Dropdown";
 import { sectionScopePlugin } from "../lib/sectionScopePlugin";
 import { codeBlockNavigationPlugin } from "../lib/codeBlockNavigationPlugin";
-import { captionMark, toggleCaptionCommand } from "../lib/captionPlugin";
-import { videoEmbed } from "../lib/videoEmbedPlugin";
+import { toggleCaptionCommand } from "../lib/captionPlugin";
+import { markdownSyntax } from "../lib/markdownSyntax";
+import { cellWriteBack } from "../lib/markdownWriteBack";
 import { computeSplit, isSplitShortcut } from "../lib/markdownSplit";
 // import { textAlign } from "../lib/textAlignPlugin"; // disabled until alignment bug is fixed
 import clsx from "clsx";
@@ -69,7 +68,26 @@ interface MarkdownEditorProps {
 const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let editorInstance: Editor | null = null;
+  let unregisterFlush: (() => void) | undefined;
+  let disposed = false;
   const isUpdatingFromProps = false;
+
+  // The cell's text when editing began, the Markdown for each state of the
+  // document (markdownWriteBack.ts: the cell's own text for every top-level
+  // block an edit did not touch, the opened text for an untouched document),
+  // and the text last handed back to the cell. The cell hears about a change
+  // only when its Markdown changed, so entering and leaving edit mode never
+  // rewrites a cell.
+  const openedText = props.value;
+  let toMarkdown: ((doc: ProseNode) => string) | null = null;
+  let reported = openedText;
+  const report = (ctx: Ctx) => {
+    if (disposed || !toMarkdown) return;
+    const markdown = toMarkdown(ctx.get(editorViewCtx).state.doc);
+    if (markdown === reported) return;
+    reported = markdown;
+    props.onChange(markdown);
+  };
 
   // Active state of the togglable formatting buttons, derived from the
   // current selection / stored marks so the toolbar reflects what typing
@@ -144,30 +162,18 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   onMount(() => {
     if (!editorRef) return;
 
-    Editor.make()
+    // Markdown as the cell reads and writes it (CommonMark, GFM, captions,
+    // video embeds).
+    markdownSyntax(Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, editorRef);
-        ctx.set(defaultValueCtx, props.value);
+        ctx.set(defaultValueCtx, openedText);
 
-        // Register remark-stringify handler for caption nodes
-        ctx.update(remarkStringifyOptionsCtx, (options: any) => ({
-          ...options,
-          handlers: {
-            ...options.handlers,
-            caption: (node: any, _: any, state: any, info: any) => {
-              const value = state.containerPhrasing(node, { before: info.before, after: info.after });
-              return `<span class="caption">${value}</span>`;
-            },
-          },
-        }));
-
-        // Use the listener to sync changes back to props
+        // Use the listener to sync changes back to props (it fires, debounced,
+        // only when the document changed)
         ctx.get(listenerCtx)
-            .markdownUpdated((_ctx, markdown) => {
-              // In Solid, avoid destructuring props to maintain reactivity
-              if (!isUpdatingFromProps) {
-                props.onChange(markdown);
-              }
+            .markdownUpdated((ctx) => {
+              if (!isUpdatingFromProps) report(ctx);
             })
             // Listen for any state updates (transactions) to track history depth
             .updated((ctx, _doc, _prevDoc) => {
@@ -191,22 +197,30 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
             //    }
             // })
             ;
-      })
+      }))
       .config(nord) // Theme config
-      .use(commonmark) // Foundation (Paragraphs, Bold, etc.)
-      .use(gfm)        // Extensions (Tables, Task Lists)
       .use(history)
       .use(clipboard)
       .use(listener)
       .use(sectionScopePlugin)
       .use(codeBlockNavigationPlugin)
-      .use(captionMark)
-      .use(videoEmbed)
       .use(formatStatePlugin)
       // .use(textAlign) // disabled until alignment bug (Enter→code_block) is fixed
       .create()
       .then((editor) => {
+        // Edit mode ended before the editor was ready: nothing was typed.
+        if (disposed) {
+          void editor.destroy();
+          return;
+        }
         editorInstance = editor;
+        toMarkdown = editor.action(cellWriteBack(openedText));
+
+        // Milkdown reports markdown changes on a 200ms debounce. Let the store
+        // pull the current markdown synchronously whenever it needs the final
+        // text (ending the edit session, switching cells, saving), so leaving
+        // edit mode right after typing never drops the last keystrokes.
+        unregisterFlush = registerEditorFlush(props.cell.id, () => editor.action(report));
         
         // Focus the editor and initialize capabilities
         editor.action((ctx) => {
@@ -274,6 +288,8 @@ const MarkdownEditor: Component<MarkdownEditorProps> = (props) => {
   });
 
   onCleanup(() => {
+    disposed = true;
+    unregisterFlush?.();
     // Save Selection State before destroying
     if (editorInstance) {
         editorInstance.action((ctx) => {

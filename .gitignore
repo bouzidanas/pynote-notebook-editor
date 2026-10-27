@@ -12,10 +12,17 @@ build
 node_modules
 *.local
 
-# Playwright e2e artifacts
+# Test reports (Vitest coverage and JUnit, Playwright e2e artifacts)
+/reports/coverage/
+/reports/junit.xml
 /reports/e2e-html/
 /reports/e2e-artifacts/
 /reports/e2e-junit.xml
+/reports/exports/
+/reports/export-html/
+/reports/export-artifacts/
+/reports/consumers-html/
+/reports/consumers-artifacts/
 /test-results/
 /playwright-report/
 /playwright/.cache/
@@ -38,3 +45,13 @@ node_modules
 explanations/
 future-feature-specs/
 TDA.md
+
+# Local caches for tests (Pyodide mirror)
+/.cache/
+
+# Built by npm run build:package
+/packages/pynote/dist/
+/packages/pynote/types/
+/packages/pynote/solid/
+/packages/pynote/LICENSE
+/packages/pynote/*.tgz

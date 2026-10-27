@@ -1,0 +1,18 @@
+---
+// <PyNoteConfig> sets up the notebook every cell on the page shares (theme,
+// execution mode, view settings), for example from the pynote.config.json
+// PyNote's Export dialog writes. Put it once on a page or in a layout.
+import type { PyNoteConfig } from "../types/types";
+
+interface Props {
+  config: PyNoteConfig;
+}
+
+const json = JSON.stringify(Astro.props.config ?? {}).replace(/</g, "\\u003c");
+---
+
+<script type="application/json" data-pynote-config set:html={json} />
+
+<script>
+  import "../dist/element.js";
+</script>

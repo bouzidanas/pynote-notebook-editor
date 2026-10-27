@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- The Content Security Policy packages/pynote/README.md documents (Requirements). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; worker-src blob:; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src 'self' data:" />
+    <title>pynote under a Content Security Policy</title>
+  </head>
+  <body>
+    <h1>Cells under a Content Security Policy</h1>
+    <pynote-cell cell-id="math">
+      <script type="text/x-python">
+        from pynote_ui import print_md
+        print_md('The area is $\\pi r^2$')
+      </script>
+    </pynote-cell>
+    <pynote-cell cell-id="figure">
+      <script type="text/x-python">
+        import matplotlib.pyplot as plt
+        plt.plot([1, 2, 3], [1, 4, 9])
+        plt.show()
+      </script>
+    </pynote-cell>
+    <pynote-cell cell-id="widgets">
+      <script type="text/x-python">
+        from pynote_ui import Select, Slider, display
+        from pynote_ui.oplot import Plot
+
+        display(Slider(value=3, min=0, max=10, label="Level"), Select(choices=["a", "b"], value="a"))
+        Plot([{"x": x, "y": x * x} for x in range(5)], x="x", y="y", mark="line")
+      </script>
+    </pynote-cell>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

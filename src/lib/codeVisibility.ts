@@ -1,5 +1,6 @@
-import { createStore } from "solid-js/store";
+import { createStore, produce } from "solid-js/store";
 import type { CellCodeVisibility } from "./store";
+import { host } from "./host";
 
 export interface CodeVisibilitySettings {
     showCode: boolean;
@@ -73,9 +74,16 @@ const defaultSettings: CodeVisibilitySettings = {
     showLineNumbers: false,
     lineWrap: true,
 };
+export const DEFAULT_CODE_VISIBILITY: Readonly<CodeVisibilitySettings> = defaultSettings;
 
-// Load from localStorage
+// Load from localStorage. A standalone export starts from the settings it
+// was exported with and never reads or writes the app-wide defaults. The
+// defaults come back as a copy: the store writes into the object it starts
+// from, and they must stay the defaults (Reset, the Export dialog's differences).
 const loadSettings = (): CodeVisibilitySettings => {
+    const embedded = host().embedded;
+    if (embedded) return { ...defaultSettings, ...embedded.codeVisibility };
+    if (!host().appWideSettings) return { ...defaultSettings };
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -84,7 +92,7 @@ const loadSettings = (): CodeVisibilitySettings => {
     } catch (e) {
         console.warn("Failed to load code visibility settings:", e);
     }
-    return defaultSettings;
+    return { ...defaultSettings };
 };
 
 // Create reactive store
@@ -94,12 +102,15 @@ const [settings, setSettings] = createStore<CodeVisibilitySettings>(loadSettings
 // When true, cell metadata overrides are ignored (user's choice takes precedence)
 let userHasOverriddenSettings = false;
 
+// Whether view settings hide any part of a code cell (the cell toolbar's
+// visibility toggle shows then).
+export const hidesAnyPart = (v: CodeVisibilitySettings): boolean =>
+    !v.showCode || !v.showStdout || !v.showStderr ||
+    !v.showResult || !v.showError || !v.showStatusDot ||
+    !v.showExecutionCount;
+
 // Track if any setting is hidden (for showing toggle button)
-export const hasHiddenElements = () => {
-    return !settings.showCode || !settings.showStdout || !settings.showStderr ||
-        !settings.showResult || !settings.showError || !settings.showStatusDot ||
-        !settings.showExecutionCount;
-};
+export const hasHiddenElements = () => hidesAnyPart(settings);
 
 // Per-cell override: when true, show all regardless of settings
 // Using createStore for proper fine-grained reactivity
@@ -127,6 +138,14 @@ export const toggleCellShowAll = (cellId: string) => {
 // Set a cell's "show all" mode to a specific value
 export const setCellShowAll = (cellId: string, value: boolean) => {
     setCellOverrides(cellId, value);
+};
+
+// Forget a cell's "show all" mode: the cell is gone, and a cell that comes
+// later with the same id starts from its own view settings
+export const removeCellOverride = (cellId: string) => {
+    setCellOverrides(produce((overrides) => {
+        delete overrides[cellId];
+    }));
 };
 
 // Clear all overrides (when settings change)
@@ -264,7 +283,7 @@ export const restoreSessionState = (state: CodeVisibilitySessionState) => {
 export const saveVisibilitySettings = () => {
     try {
         userHasOverriddenSettings = true;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        if (host().appWideSettings) localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         // Clear overrides when saving new settings
         clearAllOverrides();
     } catch (e) {

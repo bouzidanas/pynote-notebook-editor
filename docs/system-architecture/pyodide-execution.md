@@ -8,10 +8,12 @@ For the message protocol between threads, see [wasm-bridge.md](wasm-bridge.md).
 
 When the app loads, the `Kernel` class creates a Web Worker and sends an `init` message. The worker then:
 
-1. **Loads Pyodide** from CDN (~10MB download)
+1. **Loads Pyodide** from the source the `init` message names (~10MB download).
+   The app loads the version pinned by `PYODIDE_VERSION` in `src/lib/pyodide-config.ts` from the jsDelivr CDN; offline web app exports carry their own copy, inside the page or in a folder next to it (see [export-system.md](export-system.md#kernel-configuration)).
    ```typescript
    pyodide = await loadPyodide({
-     indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.0/full/"
+     indexURL: source.indexURL,
+     convertNullToNone: true,
    });
    ```
 
@@ -54,36 +56,31 @@ When you run a cell, here's what happens:
 
 ### The run_cell_code() Helper
 
-This is a Python function defined as a string in `pyodide.worker.ts` and executed during init:
+This is a Python function in `INIT_CODE` (`src/lib/python-runtime/init-code.ts`), Python source the worker runs during init; abridged, it reads:
 
 ```python
 async def run_cell_code(code, cell_id):
-    from pynote_ui.core import StateManager, _current_cell_id
-    
     # Set context for output routing AND component registration
-    _current_cell_id.set(cell_id)
-    StateManager.set_current_cell(cell_id)
-    
-    result = None
+    token = current_cell_id.set(cell_id)
+    from pynote_ui import set_current_cell
+    set_current_cell(cell_id)
     try:
-        result = await eval_code_async(
-            code,
-            globals=globals()
-        )
-        
-        # Auto-wrap list of UIElements in a Group
-        if isinstance(result, list):
-            from pynote_ui import UIElement, Group
-            if all(isinstance(x, UIElement) for x in result):
-                result = Group(children=result)
-                
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
+        res = await eval_code_async(code, globals=globals())
+
+        # Auto-wrap a list of UI elements in a Group
+        if isinstance(res, list) and res:
+            if all(hasattr(x, '_repr_mimebundle_') for x in res):
+                from pynote_ui.elements import Group
+                return Group(res)
+        return res
+    except Exception:
+        # The traceback without Pyodide's internal frames or this function
+        ...
+        return { "__pynote_error__": generated_tb }
     finally:
-        _current_cell_id.set(None)
-    
-    return result
+        _flush_matplotlib_figures()  # Show the figures the cell left open
+        current_cell_id.reset(token)
+        set_current_cell(None)
 ```
 
 <details>
@@ -144,30 +141,21 @@ Even if `cell_2` runs during the `await`, cell_1's context is preserved.
 
 </details>
 
-The worker defines a `ContextAwareOutput` class that wraps stdout/stderr:
+`INIT_CODE` defines a `ContextAwareOutput` class that replaces stdout and stderr, and the worker registers the callback that posts each write to the main thread (`register_stream_callback`):
 
 ```python
-class ContextAwareOutput:
-    def __init__(self, stream_type, original):
-        self._stream_type = stream_type
-        self._original = original
+class ContextAwareOutput(io.TextIOBase):
+    def __init__(self, name):
+        self.name = name
 
-    def write(self, text):
-        cell_id = _current_cell_id.get()
-        if cell_id:
-            postMessage({
-                "type": self._stream_type,
-                "id": cell_id,
-                "content": text
-            })
-        else:
-            self._original.write(text)
-    
-    def flush(self):
-        pass
+    def write(self, s):
+        cell_id = current_cell_id.get()
+        if _publish_stream_callback and cell_id:
+            _publish_stream_callback(cell_id, self.name, s)
+        return len(s)
 
-sys.stdout = ContextAwareOutput('stdout', sys.stdout)
-sys.stderr = ContextAwareOutput('stderr', sys.stderr)
+sys.stdout = ContextAwareOutput("stdout")
+sys.stderr = ContextAwareOutput("stderr")
 ```
 
 When `print()` is called, it goes to `ContextAwareOutput.write()`, which looks up the current cell ID from the ContextVar and sends the text to the right place.
@@ -210,19 +198,11 @@ Check https://pyodide.org/en/stable/usage/packages-in-pyodide.html for the list 
 
 ## Error Handling
 
-Python exceptions are caught and printed to stderr:
+`run_cell_code()` catches a Python exception and returns its traceback, without Pyodide's internal frames or its own, as `{"__pynote_error__": traceback}`.
+The worker then sends an `error` message instead of `success`, and the traceback appears as the cell's error output (see [wasm-bridge.md](wasm-bridge.md)).
 
-```python
-try:
-    result = await eval_code_async(code, ...)
-except Exception as e:
-    import traceback
-    traceback.print_exc()  # Goes to stderr → routed to cell
-```
-
-The traceback appears in the cell's output as error text.
-
-If the worker itself crashes (which is rare), the Kernel's `worker.onerror` handler catches it. Currently it logs to console; a production app might auto-restart the kernel.
+When Pyodide fails to start (the worker posts an `error` with no cell id, or the worker factory throws), the Kernel logs `Pyodide Init Error` and sets its status to `error`.
+The Kernel sets no `onerror` handler on the worker, so an error that escapes the worker's own handlers only reaches the browser console.
 
 ## Kernel Restart
 
@@ -230,10 +210,9 @@ To reset Python state completely:
 
 ```typescript
 class Kernel {
-  async restart() {
-    this.worker.terminate();  // Kill the old worker
-    this.worker = new Worker(...);  // Create fresh one
-    await this.ready;  // Wait for init
+  restart() {
+    this.terminate();  // Kill the old worker, failing its pending requests
+    this.init();       // Start a fresh one from the configured worker factory
   }
 }
 ```
@@ -242,7 +221,7 @@ This clears everything:
 - All Python variables
 - All imported modules (except stdlib)
 - All UI component registrations
-- The virtual filesystem (pynote_ui is re-written on init)
+- The in-memory filesystem (pynote_ui is re-written on init); files in the Files and Data panel's `/workspace` come back from IndexedDB when it is persistent (see [files-data-panel-architecture.md](files-data-panel-architecture.md))
 
 ## Performance Notes
 

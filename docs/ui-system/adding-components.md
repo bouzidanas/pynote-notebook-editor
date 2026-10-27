@@ -5,13 +5,14 @@ This guide walks through creating a new UI component. We'll use a Button as the 
 ## The three touch points
 
 You need to touch three places:
-1. A **Python class** in `pynote_ui` (embedded in the worker)
+1. A **Python class** in `pynote_ui` (the copy the worker writes into Pyodide, in `src/lib/python-runtime/pynote-ui/`)
 2. A **SolidJS component** in `src/components/ui-renderer/`
 3. A **component registry** entry mapping the name to the component
 
 ## Step 1: Python Class
 
-The `pynote_ui` source is embedded in `src/lib/pyodide.worker.ts` as string templates. For development, you can also edit `packages/pynote_ui/src/pynote_ui/elements.py`, but the embedded version is what actually runs.
+The `pynote_ui` source the app runs is in `src/lib/python-runtime/pynote-ui/`: one TypeScript module per Python file, exporting its source as a template literal, which the worker writes into Pyodide's filesystem at startup.
+`packages/pynote_ui/` is a separate, installable copy that the app does not load; update it as well when the change belongs in the public Python API.
 
 ```python
 from .core import UIElement
@@ -191,13 +192,12 @@ export const ComponentRegistry: Record<string, Component<any>> = {
 
 </details>
 
-## Step 4: Update Worker (if modifying embedded code)
+## Step 4: Register the Class in the Embedded Package
 
-If you edited the embedded Python strings in `pyodide.worker.ts`:
+In `src/lib/python-runtime/pynote-ui/`:
 
-1. Add the class to the `elementsCode` template
-2. Add to `__all__` in `__init__.py` template
-3. Add the import
+1. Put the class from Step 1 in `PYNOTE_UI_ELEMENTS_PY` in `elements.ts` (the source of `pynote_ui/elements.py`)
+2. In `PYNOTE_UI_INIT_PY` in `init.ts` (the source of `pynote_ui/__init__.py`), add it to the import from `.elements` and to `__all__`
 
 ## Testing
 

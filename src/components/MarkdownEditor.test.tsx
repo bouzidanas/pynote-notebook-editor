@@ -8,18 +8,21 @@
 //   2) The mobile "More" dropdown lists the Split action.
 // Both checks are pure DOM presence assertions.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@solidjs/testing-library";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@solidjs/testing-library";
 
 // --- Mocks ----------------------------------------------------------------
 // A chainable no-op Editor that satisfies the fluent API used in
 // `MarkdownEditor`'s onMount. Each method returns the same object so any
 // `.config().use()...create()` chain resolves to a benign editor stub.
+const defaultCreate = () => Promise.resolve({ action: () => {}, destroy: () => {} });
 const editorStub: any = {
   config: () => editorStub,
   use: () => editorStub,
-  create: () => Promise.resolve({ action: () => {}, destroy: () => {} }),
+  create: defaultCreate,
 };
+// What the mocked getMarkdown serializes the editor's document to.
+const serialized = vi.hoisted(() => ({ markdown: "" }));
 
 vi.mock("@milkdown/kit/core", () => ({
   Editor: { make: () => editorStub },
@@ -59,7 +62,7 @@ vi.mock("@milkdown/kit/plugin/history", () => ({ history: {} }));
 vi.mock("@milkdown/kit/plugin/clipboard", () => ({ clipboard: {} }));
 vi.mock("@milkdown/kit/utils", () => ({
   callCommand: () => () => {},
-  getMarkdown: () => () => "",
+  getMarkdown: () => () => serialized.markdown,
   replaceAll: () => () => {},
   $prose: () => ({}),
 }));
@@ -83,11 +86,22 @@ vi.mock("../lib/captionPlugin", () => ({
   toggleCaptionCommand: { key: "toggleCaption" },
 }));
 vi.mock("../lib/videoEmbedPlugin", () => ({ videoEmbed: {} }));
+vi.mock("../lib/markdownSyntax", () => ({ markdownSyntax: (editor: unknown) => editor }));
+// The cell gets back its own text for an untouched document, and otherwise
+// what the mocked getMarkdown serializes (the real write-back, which keeps
+// untouched blocks, is tested with Milkdown in MarkdownEditor.roundtrip.test.ts).
+vi.mock("../lib/markdownWriteBack", () => ({
+  cellWriteBack: (text: string) => (ctx: { get: (key: unknown) => any }) => {
+    const opened = ctx.get(editorViewCtx).state.doc;
+    return (doc: { eq: (other: unknown) => boolean }) => (doc.eq(opened) ? text : serialized.markdown);
+  },
+}));
 
 // Imports MUST come after vi.mock calls (vitest hoists the mocks anyway,
 // but keeping the order explicit matches the dependency order).
 import MarkdownEditor from "./MarkdownEditor";
-import { actions, defaultCells, type CellData } from "../lib/store";
+import { editorViewCtx } from "@milkdown/kit/core";
+import { actions, defaultCells, flushAllEditors, type CellData } from "../lib/store";
 
 const fakeCell = (overrides: Partial<CellData> = {}): CellData => ({
   id: "test-cell-1",
@@ -203,5 +217,77 @@ describe("MarkdownEditor toolbar dropdowns are not clipped by the cell", () => {
       // Close before opening the next one.
       fireEvent.click(trigger);
     }
+  });
+});
+
+describe("MarkdownEditor reports changes to the cell", () => {
+  // Stand-ins for ProseMirror documents: equal when they have the same name.
+  const doc = (name: string) => ({ name, eq: (other: { name: string }) => other.name === name });
+
+  // A created editor whose document the test sets; `action` runs with a ctx
+  // that hands out its view.
+  const createdEditor = () => {
+    const view = {
+      state: { doc: doc("opened"), selection: { toJSON: () => ({}) } },
+      focus: () => {},
+      dispatch: () => {},
+      hasFocus: () => false,
+    };
+    const ctx = { get: (key: unknown) => (key === editorViewCtx ? view : undefined) };
+    return { view, editor: { action: vi.fn((fn: (c: unknown) => unknown) => fn(ctx)), destroy: vi.fn(async () => {}) } };
+  };
+
+  const renderEditor = (onChange: (value: string) => void) =>
+    render(() => (
+      <MarkdownEditor value={"$x_i$ and\n* a\n* b"} onChange={onChange} cell={fakeCell({ content: "$x_i$ and\n* a\n* b" })} />
+    ));
+
+  afterEach(() => {
+    editorStub.create = defaultCreate;
+  });
+
+  it("leaves an untouched cell alone, whatever Milkdown would write for it", async () => {
+    const { view, editor } = createdEditor();
+    editorStub.create = () => Promise.resolve(editor);
+    const onChange = vi.fn();
+    renderEditor(onChange);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Milkdown's own serialization of the same document differs from the
+    // source (escaped underscore, loose list, final newline).
+    serialized.markdown = "$x\\_i$ and\n\n* a\n\n* b\n";
+    flushAllEditors();
+    expect(onChange).not.toHaveBeenCalled();
+
+    // A real change is reported once...
+    view.state.doc = doc("edited");
+    serialized.markdown = "$x\\_i$ and more\n";
+    flushAllEditors();
+    flushAllEditors();
+    expect(onChange.mock.calls).toEqual([["$x\\_i$ and more\n"]]);
+
+    // ...and changing the document back restores the original text.
+    view.state.doc = doc("opened");
+    flushAllEditors();
+    expect(onChange.mock.calls).toEqual([["$x\\_i$ and more\n"], ["$x_i$ and\n* a\n* b"]]);
+  });
+
+  it("destroys an editor that finishes loading after edit mode ended, without registering it", async () => {
+    const { editor } = createdEditor();
+    let finishCreate!: (value: typeof editor) => void;
+    editorStub.create = () => new Promise((resolve) => (finishCreate = resolve));
+    const onChange = vi.fn();
+    renderEditor(onChange);
+    cleanup(); // edit mode ends before Milkdown is ready
+
+    finishCreate(editor);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(editor.destroy).toHaveBeenCalledTimes(1);
+    expect(editor.action).not.toHaveBeenCalled();
+    serialized.markdown = "stale text\n";
+    flushAllEditors();
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

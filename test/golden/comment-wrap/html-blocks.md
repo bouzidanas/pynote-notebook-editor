@@ -1,0 +1,12 @@
+<div class="note">
+A note in an HTML block is kept exactly as written, even when this line is far longer than the comment width.
+</div>
+
+<!-- A comment block is kept too. -->
+
+<details>
+<summary>More</summary>
+
+Markdown inside the details element is a normal paragraph and is reflowed like any other paragraph.
+
+</details>

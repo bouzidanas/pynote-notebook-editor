@@ -1,0 +1,6 @@
+%% A paragraph that starts with two percent signs would read as a cell marker in a script, so it is escaped.
+
+```mermaid
+%% a mermaid comment inside a code block stays verbatim
+graph TD; A-->B
+```

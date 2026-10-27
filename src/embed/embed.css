@@ -1,0 +1,62 @@
+/* Styles inside each embedded cell's shadow root. Tailwind's preflight resets
+   only the cell, never the page around it; PyNote's styles and KaTeX's class
+   rules follow. Fonts are not here: @font-face only works at page level, so
+   the runtime loads font stylesheets once for the page (and strips KaTeX's
+   faces from this sheet at build time). Tailwind reads classes from src/
+   only, as the app's stylesheet does. */
+@import "tailwindcss" source("..");
+@import "../styles/app.css";
+@import "katex/dist/katex.min.css";
+@import "uplot/dist/uPlot.min.css";
+
+/* The element that holds a cell is the page's: the page places, sizes and
+   hides it. */
+:host {
+  display: block;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+/* The top of the cell, inside its shadow root (mountCell creates it).
+   Inherited properties (fonts, colors, spacing, text direction) flow into a
+   shadow root from its host, which takes them from the page (dir="rtl" on
+   its root) or from a page rule that matches it (a universal rule, a CSS
+   reset); such a rule beats :host rules. all: initial cuts the cell off from
+   them (direction aside, which `all` leaves alone).
+   Then the cell gets what html and body give the app, so it looks the same
+   on any page. What hides or disables the page's own content (visibility,
+   pointer-events, interactivity) still reaches the cell, and so does the
+   page's language (its lang, which Chrome and Safari carry in -webkit-locale
+   and `all` would reset), for the fonts and line breaks of its text. */
+.pynote-root {
+  all: initial;
+  display: block;
+  direction: ltr;
+  visibility: inherit;
+  pointer-events: inherit;
+  interactivity: inherit;
+  -webkit-locale: inherit;
+  color: var(--secondary);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: var(--font-weight-base, normal);
+  letter-spacing: var(--letter-spacing-base, normal);
+  line-height: var(--line-spacing);
+  tab-size: 4;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* The cell's own frame: PyNote's background and radius, so it reads as the
+   same cell on any page. */
+.pynote-cell {
+  position: relative;
+  background-color: var(--background);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem;
+}

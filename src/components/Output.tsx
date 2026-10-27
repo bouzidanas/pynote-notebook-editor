@@ -2,8 +2,7 @@ import { type Component, For, Show, createMemo } from "solid-js";
 import { type CellData } from "../lib/store";
 import UIOutputRenderer from "./ui-renderer/UIOutputRenderer";
 import { marked } from "marked";
-import markedKatex from "marked-katex-extension";
-import katex from "katex";
+import { katexMathExtensions } from "../lib/markdown-katex";
 import DOMPurify from "dompurify";
 import { TESTID } from "../lib/testids";
 
@@ -19,41 +18,20 @@ interface StdoutOutputProps extends OutputProps {
   position?: "above" | "below";
 }
 
-// Control character markers matching Python's pynote_ui
-// Self-closing pattern: \x02TYPE\x02content\x02/TYPE\x02
-export const MARKER_UI_START = "\x02PYNOTE_UI\x02";
-export const MARKER_UI_END = "\x02/PYNOTE_UI\x02";
-export const MARKER_MD_STYLED_START = "\x02PYNOTE_MD_STYLED\x02";
-export const MARKER_MD_STYLED_END = "\x02/PYNOTE_MD_STYLED\x02";
-export const MARKER_MD_PLAIN_START = "\x02PYNOTE_MD_PLAIN\x02";
-export const MARKER_MD_PLAIN_END = "\x02/PYNOTE_MD_PLAIN\x02";
-export const MARKER_IMG_START = "\x02PYNOTE_IMG\x02";
-export const MARKER_IMG_END = "\x02/PYNOTE_IMG\x02";
+import {
+  MARKER_UI_START, MARKER_UI_END, MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
+  MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END, MARKER_IMG_START, MARKER_IMG_END, UI_MIME,
+} from "../lib/output-markers";
 
-// Configure marked for markdown rendering (same as MarkdownCell)
-const displayMath = {
-  name: 'displayMath',
-  level: 'inline' as const,
-  start(src: string) { return src.match(/\$\$/)?.index; },
-  tokenizer(src: string) {
-    const match = /^\$\$([\s\S]+?)\$\$/.exec(src);
-    if (match) {
-      return {
-        type: 'displayMath',
-        raw: match[0],
-        text: match[1].trim()
-      };
-    }
-  },
-  renderer(token: any) {
-    return katex.renderToString(token.text, { displayMode: true, throwOnError: false, output: 'html' });
-  }
+// Re-exported for existing importers; the definitions live in output-markers.ts.
+export {
+  MARKER_UI_START, MARKER_UI_END, MARKER_MD_STYLED_START, MARKER_MD_STYLED_END,
+  MARKER_MD_PLAIN_START, MARKER_MD_PLAIN_END, MARKER_IMG_START, MARKER_IMG_END,
 };
 
-// Configure marked (uses global instance - same config as MarkdownCell)
-// Note: marked.use is idempotent for same config
-marked.use(markedKatex({ throwOnError: false, output: "html", trust: true }));
-marked.use({ extensions: [displayMath as any] });
+// Configure marked for markdown rendering (same as MarkdownCell)
+// Math ($...$, $$...$$) with KaTeX; the rules are shared in markdown-math.ts.
+marked.use({ extensions: katexMathExtensions() });
 
 const purifyOptions = {
   ADD_TAGS: ["math", "maction", "maligngroup", "malignmark", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mlongdiv", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mscarries", "mscarry", "msgroup", "mstack", "msline", "mspace", "msqrt", "msrow", "mstack", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "semantics", "annotation", "annotation-xml"],
@@ -525,7 +503,7 @@ export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
     const o = props.outputs;
     return o && (
       (o.stdout && o.stdout.length > 0) ||
-      (o.mimebundle && o.mimebundle['application/vnd.pynote.ui+json'])
+      (o.mimebundle && o.mimebundle[UI_MIME])
     );
   };
 
@@ -582,8 +560,8 @@ export const OutputStdoutUI: Component<StdoutOutputProps> = (props) => {
             </For>
           </div>
         </Show>
-        <Show when={props.outputs?.mimebundle && props.outputs.mimebundle['application/vnd.pynote.ui+json']}>
-          <UIOutputRenderer data={props.outputs?.mimebundle['application/vnd.pynote.ui+json']} />
+        <Show when={props.outputs?.mimebundle && props.outputs.mimebundle[UI_MIME]}>
+          <UIOutputRenderer data={props.outputs?.mimebundle[UI_MIME]} />
         </Show>
       </div>
     </Show>
@@ -621,7 +599,7 @@ export const OutputResult: Component<OutputProps & { showGutter?: boolean }> = (
   const showGutter = () => props.showGutter !== false;
   return (
     <Show when={props.outputs?.result}>
-      <div class={`flex flex-col gap-1 font-mono p-2 border-foreground ${showGutter() ? "pl-1" : "pl-1.75"}`} style={{ "font-size": "var(--code-output-font-size, var(--font-size-base, 1rem))" }}>
+      <div class={`flex flex-col gap-1 font-mono p-2 border-foreground ${showGutter() ? "pl-1" : "pl-1.75"}`} style={{ "font-size": "var(--code-output-font-size, var(--font-size-base, 1rem))" }} data-testid={TESTID.cellResult}>
         <div class="flex w-full">
           <Show when={showGutter()}>
             <div class="w-10 bg-background border-r ui-border-color flex flex-col items-center pt-5.25 text-foreground font-extrabold select-none font-mono">Out:</div>

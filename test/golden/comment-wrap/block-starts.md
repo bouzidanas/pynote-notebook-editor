@@ -1,0 +1,5 @@
+Wrapping must never start a line with a word that Markdown reads as a block: the value is 3 - 2 = 1 and + or * are operators.
+Counting down 3. 2. 1. or 10) 9) does not start a list, nor does the # sign or a > quote marker or a ```fence in the middle of a sentence.
+An equals run === or a dash run --- or a pipe | or a colon run :-: must not become a setext underline or a table row.
+Tags like <div> and math markers $$ stay attached, and so do %% signs that would read as cell markers.
+A word ending in a backslash\ must not end a line, since a backslash at the end of a line is a hard break.

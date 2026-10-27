@@ -83,8 +83,10 @@ These are messages the `Kernel` class sends to the worker's `onmessage` handler:
 
 | Type | Payload | What it does |
 |:-----|:--------|:-------------|
-| `init` | None | Tells worker to load Pyodide and set up the Python environment |
+| `init` | `{ pyodide: PyodideSource }` | Tells worker to load Pyodide from the given source (a URL prefix, or an offline export's embedded files; see `src/lib/pyodide-config.ts`) and set up the Python environment |
 | `run` | `{ id: string, code: string }` | Executes `code` in the cell identified by `id`. This is what happens when you run a code cell. |
+| `run_script` | `{ id: string, source: string }` | Runs a whole script as `python script.py` would, in a fresh `__main__` namespace; its output streams to `id`. The Export dialog's script check sends it to a throwaway kernel. |
+| `asset_response` | `{ requestId: number, bytes: ArrayBuffer or null }` | Answers an `asset_request` with one of the Pyodide files an offline export embeds |
 | `interaction` | `{ uid: string, data: any }` | Forwards a UI event (like moving a slider) to the Python object that created that component |
 | `set_cell_context` | `{ id: string }` | Sets which cell "owns" any UI components created next |
 | `clear_cell_context` | `{ id: string }` | Cleans up UI components that belonged to a cell (when output is cleared) |
@@ -101,10 +103,14 @@ These are messages the worker's `postMessage()` sends back to `Kernel.worker.onm
 | `success` | `{ id, result, mimebundle }` | Cell finished executing. `result` is the return value, `mimebundle` contains display representations |
 | `error` | `{ id, error }` | Cell execution raised an exception. `error` is the formatted traceback |
 | `component_update` | `{ uid: string, data: any }` | A Python object (like a Slider) pushed a state change to the frontend |
+| `script_result` | `{ id, error }` | A `run_script` script finished: `error` is null when it ran to the end, or the traceback |
+| `asset_request` | `{ requestId: number, name: string }` | An offline export's worker asks the page for one of Pyodide's files, because a page opened from `file://` cannot fetch its own files |
 
 ## The `run_cell_code()` Function
 
-`run_cell_code(code, cell_id)` is a Python function defined in `pyodide.worker.ts` (as a string that gets executed when Pyodide initializes). It's the actual entry point for executing user code. When the worker receives a `run` message, it calls this function.
+`run_cell_code(code, cell_id)` is a Python function defined in `INIT_CODE` (`src/lib/python-runtime/init-code.ts`), Python source that the worker runs when Pyodide initializes.
+It's the actual entry point for executing user code.
+When the worker receives a `run` message, it calls this function.
 
 What it does:
 1. Sets cell context by storing `cell_id` in two contextvars: one for `print()` routing, one for `StateManager` to track which cell owns new UI elements. Both use contextvars, so they work correctly even if user code does `await` and another cell starts running.

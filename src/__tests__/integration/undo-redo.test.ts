@@ -44,18 +44,36 @@ describe('global undo/redo roundtrip', () => {
       content: 'a = "x | y" \\ 2',
       metadata: { pynote: { codeview: { showCode: false }, autorun: false, placeholder: 'Setup | hidden \\ here' } },
     };
+    // The store takes over the objects it is given: compare with copies.
+    const expected = structuredClone(seed);
     actions.loadNotebook([seed], 'test.ipynb');
 
     actions.deleteCell('code-1');
     actions.undo();
-    expect(notebookStore.cells[0]).toMatchObject({ id: 'code-1', type: 'code', content: seed.content, metadata: seed.metadata });
+    expect(notebookStore.cells[0]).toMatchObject(expected);
 
     // Redo deletes it again, and a second undo brings back the same cell.
     actions.redo();
     expect(notebookStore.cells).toHaveLength(0);
     actions.undo();
-    expect(notebookStore.cells[0].content).toBe(seed.content);
-    expect(notebookStore.cells[0].metadata).toEqual(seed.metadata);
+    expect(notebookStore.cells[0]).toMatchObject(expected);
+  });
+
+  test("delete cell → undo restores other tools' metadata and the cell's attachments", () => {
+    const seed: CellData = {
+      id: 'md-img',
+      type: 'markdown',
+      content: 'A figure: ![s](attachment:s.png)',
+      metadata: { tags: ['figure'], colab: { id: 'abc' } },
+      attachments: { 's.png': { 'image/png': 'iVBORw0KGgo=' } },
+    };
+    const expected = structuredClone(seed);
+    actions.loadNotebook([seed], 'test.ipynb');
+    actions.deleteCell('md-img');
+    actions.undo();
+    expect(notebookStore.cells[0]).toMatchObject(expected);
+    // The attachments are not written into the saved history.
+    expect(notebookStore.history.join('')).not.toContain('iVBORw0KGgo=');
   });
 
   test('delete all → one undo restores every cell with its metadata', () => {
@@ -64,11 +82,12 @@ describe('global undo/redo roundtrip', () => {
       { id: 'b', type: 'code', content: 'b = 1', metadata: { pynote: { autorun: true } } },
       { id: 'c', type: 'code', content: 'c = 2', metadata: { pynote: { codeview: { showStdout: false } } } },
     ];
+    const expected = seeds.map((c) => structuredClone({ id: c.id, content: c.content, metadata: c.metadata }));
     actions.loadNotebook(seeds, 'test.ipynb');
     actions.deleteAllCells();
     expect(notebookStore.cells).toHaveLength(0);
     actions.undo();
-    expect(notebookStore.cells.map((c) => [c.id, c.content, c.metadata])).toEqual(seeds.map((c) => [c.id, c.content, c.metadata]));
+    expect(notebookStore.cells.map((c) => ({ id: c.id, content: c.content, metadata: c.metadata ?? undefined }))).toEqual(expected);
   });
 
   test('delete entries saved by an older PyNote, without metadata, still undo', () => {

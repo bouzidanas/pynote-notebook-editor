@@ -1,0 +1,9 @@
+# ---
+# title: Quarterly report
+# tags:
+#   - sales
+#   - regions
+# ---
+# # Report
+#
+# The front matter above is kept verbatim.

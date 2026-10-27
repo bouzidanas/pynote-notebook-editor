@@ -20,10 +20,12 @@ const Dropdown: Component<DropdownProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let menuRef: HTMLDivElement | undefined;
 
+  // composedPath, not target: a click inside a shadow root (cells embedded in
+  // other sites) reaches the document retargeted to the shadow host.
   const handleClickOutside = (e: MouseEvent) => {
-    const target = e.target as Node;
-    const inContainer = containerRef && containerRef.contains(target);
-    const inMenu = menuRef && menuRef.contains(target);
+    const path = e.composedPath();
+    const inContainer = containerRef && path.includes(containerRef);
+    const inMenu = menuRef && path.includes(menuRef);
     
     if (!inContainer && !inMenu) {
       setIsOpen(false);
@@ -54,12 +56,14 @@ const Dropdown: Component<DropdownProps> = (props) => {
       }
   };
 
-  document.addEventListener("click", handleClickOutside);
+  // In the capture phase: a click that something stops on its way up (a page
+  // around embedded cells, a modal) still closes the menu.
+  document.addEventListener("click", handleClickOutside, true);
   window.addEventListener("scroll", updatePosition, true);
   window.addEventListener("resize", updatePosition);
   
   onCleanup(() => {
-      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside, true);
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
   });

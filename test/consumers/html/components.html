@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>pynote cells inside the site's own components</title>
+  </head>
+  <body>
+    <h1>Cells inside the site's web components</h1>
+    <pynote-cell cell-id="first" autorun code="steps = ['first']"></pynote-cell>
+    <site-callout>
+      <p>The site's callout, whose shadow root holds a cell:</p>
+    </site-callout>
+    <site-panel>
+      <pynote-cell cell-id="slotted" autorun code="steps.append('slotted')"></pynote-cell>
+    </site-panel>
+    <pynote-cell cell-id="last" autorun code="steps.append('last')&#10;print(steps)"></pynote-cell>
+    <script>
+      // The site's own components: a callout with its markup in an open
+      // shadow root, and a panel with a closed one, which shows the cell
+      // passed to it at its slot, before its own cell.
+      customElements.define(
+        "site-callout",
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: "open" }).innerHTML =
+              '<aside><slot></slot><pynote-cell cell-id="middle" autorun code="steps.append(\'middle\')"></pynote-cell></aside>';
+          }
+        },
+      );
+      customElements.define(
+        "site-panel",
+        class extends HTMLElement {
+          constructor() {
+            super();
+            this.attachShadow({ mode: "closed" }).innerHTML =
+              '<section><slot></slot><pynote-cell cell-id="inside" autorun code="steps.append(\'inside\')"></pynote-cell></section>';
+          }
+        },
+      );
+    </script>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

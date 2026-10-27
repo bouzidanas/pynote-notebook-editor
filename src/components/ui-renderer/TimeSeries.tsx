@@ -104,7 +104,7 @@ const TimeSeries: Component<TimeSeriesProps> = (p) => {
       if (update.data !== undefined) {
         setData(update.data);
       }
-    });
+    }, () => ({ ...p.props, data: data() }));
   });
 
   onCleanup(() => {

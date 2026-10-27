@@ -77,7 +77,7 @@ const Text: Component<TextProps> = (p) => {
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
       setAllProps((prev) => ({ ...prev, ...(data as Partial<TextProps["props"]>) }));
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {

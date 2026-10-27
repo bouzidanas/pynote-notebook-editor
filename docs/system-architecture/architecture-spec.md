@@ -111,13 +111,13 @@ All notebook state lives in `src/lib/store.ts`. The main pieces:
 **CellData**, one cell's state:
 ```typescript
 {
-  id: string,              // UUIDv4
-  type: "code" | "markdown",
+  id: string,              // nbformat cell id; new ones are 8 hex characters
+  type: "code" | "markdown" | "raw",
   content: string,         // source code or markdown text
   outputs: { ... },        // stdout, stderr, result, timing info
   isRunning: boolean,
   isQueued: boolean,
-  // ... editor state, undo tracking
+  // ... metadata, attachments, editor state, undo tracking
 }
 ```
 
@@ -128,7 +128,7 @@ All notebook state lives in `src/lib/store.ts`. The main pieces:
   filename: string,
   activeCellId: string | null,
   history: HistoryEntry[],  // undo/redo log
-  executionMode: "queue_all" | "hybrid" | "direct",
+  executionMode: "queue_all" | "hybrid" | "direct" | "reactive",
   executionQueue: string[], // cells waiting to run
   // ...
 }
@@ -141,6 +141,7 @@ All notebook state lives in `src/lib/store.ts`. The main pieces:
 | **Queue All** | Cell joins a queue. Cells run one at a time, in queue order. |
 | **Hybrid** (default) | Cell queues only if the **immediately previous** cell (above it) is running or queued. Otherwise runs immediately. This preserves top-to-bottom order while allowing parallel execution of non-adjacent cells. |
 | **Direct** | Cell runs immediately, even if other cells are running. Can cause race conditions. |
+| **Reactive** | Cell runs, and every cell downstream of it (the cells that use the names it defines, directly or through other cells) is queued after it, in dependency order. |
 
 ### Undo/Redo
 
@@ -149,20 +150,21 @@ The notebook maintains a compact action log. Each entry is a pipe-delimited stri
 | Code | Meaning |
 |:-----|:--------|
 | `a\|index\|type\|id` | Cell added |
-| `d\|index\|type\|id\|content` | Cell deleted (stores content for restore) |
+| `D\|index\|type\|id\|metadata\|content` | Cell deleted (stores its metadata and content for restore) |
 | `m\|from\|to\|id` | Cell moved |
 | `u\|id\|old\|new` | Markdown content changed |
-| `h\|id\|entry\|exit` | Code cell editor history position changed |
+| `h\|id\|entry\|exit\|exitContent` | Code cell editor history position changed |
+| `b\|[entry, ...]` | Several entries undone as one |
 
-This is compact because undo/redo gets saved to localStorage with each session.
+This is compact because undo/redo gets saved to localStorage with each session, and into the notebook file.
 
 ## Session Persistence
 
-`src/lib/session.ts` saves notebooks to localStorage:
-- Up to 10 sessions stored
-- URL routing via `?session=uuid` query parameter  
+`src/lib/session.ts` saves notebooks as sessions, in localStorage, with an opened file's attachments, metadata and file handle in IndexedDB (see [State Management](state-management.md#session-persistence)):
+- The 10 most recently used sessions stored, plus every session open in a tab
+- URL routing via `?session=uuid` query parameter
 - Autosave on cell add/edit/delete/move
-- LRU eviction when limit exceeded
+- LRU eviction of sessions no tab has open (each tab holds a Web Lock on its session), and only as many as make a save fit when storage is full
 
 ## File Layout
 
@@ -173,7 +175,7 @@ Key files and what they do:
 | `src/lib/store.ts` | SolidJS store, all state and actions |
 | `src/lib/pyodide.ts` | `Kernel` class, main-thread side of the bridge |
 | `src/lib/pyodide.worker.ts` | Worker script, Pyodide setup, `pynote_ui` module |
-| `src/lib/session.ts` | localStorage session management |
+| `src/lib/session.ts` | Session management (localStorage and IndexedDB) |
 | `src/components/Notebook.tsx` | Main notebook component |
 | `src/components/CodeCell.tsx` | Code cell rendering and execution |
 | `src/components/Output.tsx` | Parses and renders cell output (text, UI, markdown) |

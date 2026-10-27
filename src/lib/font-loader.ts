@@ -28,6 +28,14 @@ const BUNDLED_FAMILIES = new Set(
   FONT_OPTIONS.map((o) => primaryFamily(o.value)).filter(Boolean) as string[]
 );
 
+// Where the bundled families come from when they are not bundled: cells
+// embedded in another site (the pynote package) load each as a stylesheet
+// from a CDN, the same font files the app ships. Unset in the app.
+let bundledFamilyStylesheet: ((family: string) => string | null) | null = null;
+export const setBundledFamilyStylesheet = (resolve: (family: string) => string | null): void => {
+  bundledFamilyStylesheet = resolve;
+};
+
 // One attempt per family per page load. Failures are cached too, since the
 // request 400s for families Google doesn't have (system fonts, typos) and
 // retrying won't change that.
@@ -44,7 +52,8 @@ const collectFamilies = (theme: ThemeFontFields): Set<string> => {
   const families = new Set<string>();
   for (const stack of [theme.font, theme.codeTypography?.fontFamily, theme.uiTypography?.fontFamily]) {
     const family = primaryFamily(stack || "");
-    if (!family || GENERIC_FAMILIES.has(family.toLowerCase()) || BUNDLED_FAMILIES.has(family)) continue;
+    if (!family || GENERIC_FAMILIES.has(family.toLowerCase())) continue;
+    if (BUNDLED_FAMILIES.has(family) && !bundledFamilyStylesheet) continue;
     families.add(family);
   }
   return families;
@@ -107,10 +116,27 @@ const fetchAndRegister = async (family: string): Promise<void> => {
   if (sawResponse) writeCssCache(family, NOT_AVAILABLE);
 };
 
+const linkStylesheet = (family: string, href: string): Promise<void> =>
+  new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.setAttribute("data-font", family);
+    link.onload = () => {
+      void Promise.allSettled([
+        document.fonts.load(`400 1em "${family}"`),
+        document.fonts.load(`700 1em "${family}"`),
+      ]).then(() => resolve());
+    };
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+
 const loadFamily = (family: string): Promise<void> => {
   let pending = attempted.get(family);
   if (!pending) {
-    pending = fetchAndRegister(family);
+    const href = BUNDLED_FAMILIES.has(family) ? bundledFamilyStylesheet?.(family) : null;
+    pending = href ? linkStylesheet(family, href) : fetchAndRegister(family);
     attempted.set(family, pending);
   }
   return pending;

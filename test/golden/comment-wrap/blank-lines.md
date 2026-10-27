@@ -1,0 +1,18 @@
+
+
+
+Leading blank lines are dropped.
+
+
+
+Runs of blank lines collapse to one.
+
+***
+- - -
+___
+
+
+Trailing blank lines are dropped too.
+
+
+

@@ -1,0 +1,273 @@
+{
+ "info": {
+  "abi_version": "2025_0",
+  "arch": "wasm32",
+  "platform": "emscripten_4_0_9",
+  "python": "3.13.2"
+ },
+ "packages": {
+  "contourpy": {
+   "depends": [
+    "numpy"
+   ],
+   "file_name": "contourpy-1.3.1-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "contourpy"
+   ],
+   "install_dir": "site",
+   "name": "contourpy",
+   "package_type": "package",
+   "sha256": "65f63bc91d211c5d44e2e81dab7397b2da5f195688cf2785586be3cba6d732a7",
+   "unvendored_tests": false,
+   "version": "1.3.1"
+  },
+  "cycler": {
+   "depends": [
+    "six"
+   ],
+   "file_name": "cycler-0.12.1-py3-none-any.whl",
+   "imports": [
+    "cycler"
+   ],
+   "install_dir": "site",
+   "name": "cycler",
+   "package_type": "package",
+   "sha256": "6eedeaff76b9be1d5e5b759fa9b84c3b384b3684cabea98defd97e974112865f",
+   "unvendored_tests": false,
+   "version": "0.12.1"
+  },
+  "fonttools": {
+   "depends": [],
+   "file_name": "fonttools-4.56.0-py3-none-any.whl",
+   "imports": [
+    "fontTools"
+   ],
+   "install_dir": "site",
+   "name": "fonttools",
+   "package_type": "package",
+   "sha256": "30d4590e0bac3ef0445a4e0fa25600e8b4fff54bb028b02666013c26fde42965",
+   "unvendored_tests": false,
+   "version": "4.56.0"
+  },
+  "joblib": {
+   "depends": [],
+   "file_name": "joblib-1.4.2-py3-none-any.whl",
+   "imports": [
+    "joblib"
+   ],
+   "install_dir": "site",
+   "name": "joblib",
+   "package_type": "package",
+   "sha256": "f07902625672ca0d92e979870ff501e4138589ff3b2b734680d07863676f9996",
+   "unvendored_tests": true,
+   "version": "1.4.2"
+  },
+  "kiwisolver": {
+   "depends": [],
+   "file_name": "kiwisolver-1.4.8-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "kiwisolver"
+   ],
+   "install_dir": "site",
+   "name": "kiwisolver",
+   "package_type": "package",
+   "sha256": "23e3ec0666ab7e747f902c18f9009103b094c8424458aaeeb2504338dac9100f",
+   "unvendored_tests": false,
+   "version": "1.4.8"
+  },
+  "matplotlib": {
+   "depends": [
+    "contourpy",
+    "cycler",
+    "fonttools",
+    "kiwisolver",
+    "numpy",
+    "packaging",
+    "pillow",
+    "pyparsing",
+    "python-dateutil",
+    "pytz"
+   ],
+   "file_name": "matplotlib-3.8.4-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "pylab",
+    "mpl_toolkits",
+    "matplotlib"
+   ],
+   "install_dir": "site",
+   "name": "matplotlib",
+   "package_type": "package",
+   "sha256": "b919d426f1703c055b3c12a06871af40b8eb07d82339f4f9d7e45279fd93e81f",
+   "unvendored_tests": true,
+   "version": "3.8.4"
+  },
+  "micropip": {
+   "depends": [],
+   "file_name": "micropip-0.11.1-py3-none-any.whl",
+   "imports": [
+    "micropip"
+   ],
+   "install_dir": "site",
+   "name": "micropip",
+   "package_type": "package",
+   "sha256": "a5569ea4002b9cdd6cf50eda0c14fb3fcb0da9d8c702feadcfd04459b4c3040a",
+   "unvendored_tests": false,
+   "version": "0.11.1"
+  },
+  "numpy": {
+   "depends": [],
+   "file_name": "numpy-2.2.5-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "numpy"
+   ],
+   "install_dir": "site",
+   "name": "numpy",
+   "package_type": "package",
+   "sha256": "800c98edc0c864dfa49f07005680c699b4b42b84eae1f8cb19d35b3634e7f05c",
+   "unvendored_tests": false,
+   "version": "2.2.5"
+  },
+  "packaging": {
+   "depends": [],
+   "file_name": "packaging-26.2-py3-none-any.whl",
+   "imports": [
+    "packaging"
+   ],
+   "install_dir": "site",
+   "name": "packaging",
+   "package_type": "package",
+   "sha256": "7a0e80a4de677fefa2782ea4d34063708a3ac3d54469298f22cedcc4c7bebb4b",
+   "unvendored_tests": false,
+   "version": "26.2"
+  },
+  "pandas": {
+   "depends": [
+    "numpy",
+    "python-dateutil",
+    "pytz"
+   ],
+   "file_name": "pandas-2.3.3-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "pandas"
+   ],
+   "install_dir": "site",
+   "name": "pandas",
+   "package_type": "package",
+   "sha256": "2579a3d8e9f040421836365ccf7886fc4054c87381d4d481840a97785cd78923",
+   "unvendored_tests": true,
+   "version": "2.3.3"
+  },
+  "pillow": {
+   "depends": [],
+   "file_name": "pillow-11.3.0-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "PIL"
+   ],
+   "install_dir": "site",
+   "name": "Pillow",
+   "package_type": "package",
+   "sha256": "57d88e2ac283c21830b4ee920cb73fbbf5c46df62d967089fce5fec46548bd7b",
+   "unvendored_tests": false,
+   "version": "11.3.0"
+  },
+  "pyparsing": {
+   "depends": [],
+   "file_name": "pyparsing-3.2.1-py3-none-any.whl",
+   "imports": [
+    "pyparsing"
+   ],
+   "install_dir": "site",
+   "name": "pyparsing",
+   "package_type": "package",
+   "sha256": "67a97ce758343bf6e651a1cc63731f19fd6720a2d6617eab71528021552ee3dc",
+   "unvendored_tests": false,
+   "version": "3.2.1"
+  },
+  "python-dateutil": {
+   "depends": [
+    "six"
+   ],
+   "file_name": "python_dateutil-2.9.0.post0-py2.py3-none-any.whl",
+   "imports": [
+    "dateutil"
+   ],
+   "install_dir": "site",
+   "name": "python-dateutil",
+   "package_type": "package",
+   "sha256": "1fe3a0346ef21bc85b295227256d6aed72aa8116178b019fc5ae5d57fbd213cf",
+   "unvendored_tests": false,
+   "version": "2.9.0.post0"
+  },
+  "pytz": {
+   "depends": [],
+   "file_name": "pytz-2025.2-py2.py3-none-any.whl",
+   "imports": [
+    "pytz"
+   ],
+   "install_dir": "site",
+   "name": "pytz",
+   "package_type": "package",
+   "sha256": "d7fb2f11cf7f8dd17e652d5494189f520ee086e9fc71aef4cbb978f5dcfc2878",
+   "unvendored_tests": false,
+   "version": "2025.2"
+  },
+  "scikit-learn": {
+   "depends": [
+    "scipy",
+    "joblib",
+    "threadpoolctl"
+   ],
+   "file_name": "scikit_learn-1.7.0-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "sklearn"
+   ],
+   "install_dir": "site",
+   "name": "scikit-learn",
+   "package_type": "package",
+   "sha256": "5dd1611a1ee57147a4387e56499bb1def407919ef452efb50beb5229dbe4a3db",
+   "unvendored_tests": true,
+   "version": "1.7.0"
+  },
+  "scipy": {
+   "depends": [
+    "numpy"
+   ],
+   "file_name": "scipy-1.14.1-cp313-cp313-pyemscripten_2025_0_wasm32.whl",
+   "imports": [
+    "scipy"
+   ],
+   "install_dir": "site",
+   "name": "scipy",
+   "package_type": "package",
+   "sha256": "7a60ad5e52acd8d8059f4acc0932d701c3e07723d82e567523dd1a6e0e85ec3e",
+   "unvendored_tests": true,
+   "version": "1.14.1"
+  },
+  "six": {
+   "depends": [],
+   "file_name": "six-1.17.0-py2.py3-none-any.whl",
+   "imports": [
+    "six"
+   ],
+   "install_dir": "site",
+   "name": "six",
+   "package_type": "package",
+   "sha256": "bc830cfdc71a224b6d0e4337183a87ea53f21b6623deca5771ee3bc866fd8da2",
+   "unvendored_tests": false,
+   "version": "1.17.0"
+  },
+  "threadpoolctl": {
+   "depends": [],
+   "file_name": "threadpoolctl-3.5.0-py3-none-any.whl",
+   "imports": [
+    "threadpoolctl"
+   ],
+   "install_dir": "site",
+   "name": "threadpoolctl",
+   "package_type": "package",
+   "sha256": "0d768335eaa50416503e8e5c2c8a51eb96fc9b1c051f02be30bf694707d9a981",
+   "unvendored_tests": false,
+   "version": "3.5.0"
+  }
+ }
+}

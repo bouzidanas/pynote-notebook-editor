@@ -1,0 +1,25 @@
+---
+// A site with its own look: none of it may leak into the cells, and the cells
+// must not change it. The notebook's look and settings (pynote.config.json,
+// from PyNote's Export dialog) apply to the cells of every page.
+import { PyNoteConfig } from "pynote/astro";
+import config from "../../pynote.config.json";
+
+const { frontmatter } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{frontmatter?.title ?? "pynote in Astro"}</title>
+    <style is:global>
+      body { background: rgb(250, 248, 240); color: rgb(20, 20, 20); font-family: Georgia, serif; margin: 2rem; }
+      pre, code { color: rgb(200, 0, 0); }
+      button, input, select { background: rgb(0, 128, 0); }
+    </style>
+  </head>
+  <body>
+    <PyNoteConfig config={config} />
+    <slot />
+  </body>
+</html>

@@ -1,0 +1,18 @@
+---
+import Site from "../layouts/Site.astro";
+---
+
+<Site frontmatter={{ title: "pynote custom element" }}>
+  <h1>Plain custom elements</h1>
+  <pynote-cell cell-id="first" autorun>
+    <script type="text/x-python">
+      items = [3, 4, 5]
+      total = sum(items)
+    </script>
+  </pynote-cell>
+  <p>Both run when the page loads, in page order:</p>
+  <pynote-cell cell-id="second" autorun code="print('total =', total)"></pynote-cell>
+  <script>
+    import "pynote/element";
+  </script>
+</Site>

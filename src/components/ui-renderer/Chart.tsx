@@ -175,7 +175,7 @@ const Chart: Component<ChartProps> = (p) => {
       if (update.data !== undefined) {
         setData(update.data);
       }
-    });
+    }, () => ({ ...p.props, data: data() }));
   });
 
   onCleanup(() => {

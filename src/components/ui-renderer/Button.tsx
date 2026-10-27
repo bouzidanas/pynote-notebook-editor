@@ -53,7 +53,7 @@ const Button: Component<ButtonProps> = (p) => {
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
       setAllProps(prev => ({ ...prev, ...data }));
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {

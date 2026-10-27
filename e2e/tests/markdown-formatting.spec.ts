@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import type { Page, Locator } from "@playwright/test";
+import { test, expect } from "../support/fixtures";
 import { NotebookPage } from "../pages/NotebookPage";
 
 /**

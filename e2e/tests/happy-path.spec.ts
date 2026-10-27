@@ -11,7 +11,7 @@ test.describe("happy path", () => {
     await notebook.typeInCell(lastIndex, "1 + 1");
     await notebook.runFocusedCell();
 
-    await expect(notebook.outputs.last()).toContainText("2", {
+    await expect(notebook.cellResult(lastIndex)).toContainText("2", {
       timeout: 60_000,
     });
   });

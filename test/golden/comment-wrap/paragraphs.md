@@ -1,0 +1,12 @@
+Notebook paragraphs are usually written as one long line, so the comment version has to reflow them to the width of the script while keeping every word in the same order.
+
+Spans that must stay whole: `df.groupby("region").agg(total=("sales", "sum"))`, a [link whose text has several words](https://example.com/docs/guide "Guide title"), an image ![a small chart of sales](figures/sales.png), an autolink <https://example.org/a/b>, a bare URL https://www.python.org/downloads/release/python-3132/, inline math $\sum_{i=1}^{n} x_i$ and <abbr title="HyperText Markup Language">HTML</abbr> tags.
+
+A link that is longer than the whole line on its own: [the complete reference documentation for every option](https://example.com/a/very/long/path/that/does/not/fit/anywhere).
+
+Emphasis can wrap freely: *this emphasized sentence is long enough to be split over two comment lines* and **so is this strong one, which keeps its markers attached to its words**.
+
+Unicode counts by code point: café, naïve, 数据分析 and emoji 📈📉 do not throw the width off, and Ünïcödé words wrap like any other words in a sentence.
+Soft line breaks
+in the source are
+reflowed too.

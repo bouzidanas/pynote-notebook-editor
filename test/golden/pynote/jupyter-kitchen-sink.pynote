@@ -1,0 +1,55 @@
+---
+pynote: 1
+executionMode: reactive
+laterVersionSetting: true
+metadata:
+  colab:
+    provenance: []
+    toc_visible: true
+  kernelspec:
+    display_name: Python 3 (ipykernel)
+    language: python
+    name: python3
+  language_info:
+    codemirror_mode:
+      name: ipython
+      version: 3
+    name: python
+    version: 3.12.4
+---
+
+<!-- cell intro meta={"tags":["header"],"jupyter":{"source_hidden":false}} source="# Kitchen sink ✨\n\nCRLF line\r\nline separator\u2028after separator\n![plot](attachment:plot.png)" -->
+
+```python {#setup-1 autorun=false placeholder="Setup code" futureKey={"x":1} meta={"2":"sorts after 10 as a string","10":"integer-like key","collapsed":false}}
+x = 21 * 2
+print(x)
+
+```
+
+```raw {#raw_cell meta={"format":"text/latex"}}
+\begin{equation} e^{i\pi} + 1 = 0 \end{equation}
+```
+
+```python {#empty}
+
+```
+
+<!-- cell tabs-and-quotes -->
+Tab	here, "quotes", back\slash, control  char, été, 😀
+
+
+
+<!-- pynote
+{
+ "attachments": {
+  "intro": {
+   "plot.png": {
+    "image/png": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+   }
+  }
+ },
+ "history": [
+  "a|1|code|setup-1"
+ ]
+}
+-->

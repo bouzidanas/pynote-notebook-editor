@@ -1,7 +1,6 @@
-// @ts-ignore
-import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.mjs";
-
 import { INIT_CODE } from "./python-runtime/init-code";
+import { DEFAULT_PYODIDE_SOURCE, type PyodideSource } from "./pyodide-config";
+import { UI_MIME } from "./output-markers";
 import { PYNOTE_UI_INIT_PY } from "./python-runtime/pynote-ui/init";
 import { PYNOTE_UI_CORE_PY } from "./python-runtime/pynote-ui/core";
 import { PYNOTE_UI_ELEMENTS_PY } from "./python-runtime/pynote-ui/elements";
@@ -11,6 +10,72 @@ import { PYNOTE_UI_FPLOT_PY } from "./python-runtime/pynote-ui/fplot";
 
 let pyodide: any = null;
 const WORKSPACE_ROOT = "/workspace";
+
+// --- Loading Pyodide ---------------------------------------------------------
+// The worker never imports Pyodide statically: the source comes from the init
+// message (CDN by default, a self-hosted copy, or files embedded in an offline
+// export). A dynamic import works in both module and classic workers, and the
+// ignore comments keep bundlers (Vite, webpack) from trying to bundle the URL
+// when this worker ships inside the embeddable component.
+type LoadPyodide = (options: Record<string, unknown>) => Promise<any>;
+
+const loadPyodideLoader = async (source: PyodideSource): Promise<LoadPyodide> => {
+    // Offline exports prepend Pyodide's classic loader (pyodide.asm.js and
+    // pyodide.js) to this worker's script, defining loadPyodide globally.
+    const preloaded = (globalThis as any).loadPyodide;
+    if (typeof preloaded === "function") return preloaded;
+    // A classic worker (offline exports, or a bundler that turned this worker
+    // classic, as Next.js does) loads the classic build; in a module worker
+    // importScripts throws at once and the module build is imported instead.
+    try {
+        (self as any).importScripts(`${source.indexURL}pyodide.js`);
+        const loaded = (globalThis as any).loadPyodide;
+        if (typeof loaded === "function") return loaded;
+    } catch {
+        // Module worker.
+    }
+    const url = `${source.indexURL}pyodide.mjs`;
+    const mod = await import(/* @vite-ignore */ /* webpackIgnore: true */ url);
+    return mod.loadPyodide;
+};
+
+// Offline exports: assets under the virtual indexURL are requested from the
+// page (which decodes them from the export) instead of fetched, because a
+// worker started by a page opened from file:// cannot fetch files.
+let assetRequestCounter = 0;
+const pendingAssets = new Map<number, (bytes: ArrayBuffer | null) => void>();
+
+const requestAsset = (name: string) =>
+    new Promise<ArrayBuffer | null>((resolve) => {
+        const requestId = ++assetRequestCounter;
+        pendingAssets.set(requestId, resolve);
+        postMessage({ type: "asset_request", requestId, name });
+    });
+
+const mimeForAsset = (name: string) =>
+    name.endsWith(".wasm") ? "application/wasm"
+        : name.endsWith(".json") ? "application/json"
+        : name.endsWith(".js") || name.endsWith(".mjs") ? "text/javascript"
+        : "application/octet-stream";
+
+const serveEmbeddedAssets = (indexURL: string) => {
+    const nativeFetch = self.fetch.bind(self);
+    self.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        if (!url.startsWith(indexURL)) return nativeFetch(input, init);
+        const name = decodeURIComponent(url.slice(indexURL.length).split(/[?#]/)[0]);
+        const bytes = await requestAsset(name);
+        if (!bytes) {
+            return new Response(`${name} is not included in this export`, { status: 404, statusText: "Not Found" });
+        }
+        return new Response(bytes, { status: 200, headers: { "Content-Type": mimeForAsset(name) } });
+    };
+};
+// Package loading reports progress ("Loading numpy") through console.log by
+// default; keep the console of the page (PyNote, an export, or a site with
+// embedded cells) quiet. Errors still go to console.error.
+const QUIET_LOADING = { messageCallback: () => {} };
+
 let workspacePersistenceEnabled = false;
 let matplotlibReady = false;
 
@@ -340,16 +405,18 @@ const parentPath = (path: string): string => {
     if (parts.length <= 1) return WORKSPACE_ROOT;
     return `/${parts.slice(0, -1).join("/")}`;
 };
-async function initPyodide() {
+async function initPyodide(source: PyodideSource) {
     try {
+        if (source.kind === "embedded") serveEmbeddedAssets(source.indexURL);
+        const loadPyodide = await loadPyodideLoader(source);
         pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/",
+            indexURL: source.indexURL,
             // Since 0.28, JS null converts to pyodide.ffi.jsnull instead of None.
             // Interaction payloads (e.g. Form child values) can contain null and
             // the Python handlers compare against None, so keep the old mapping.
             convertNullToNone: true,
         });
-        await pyodide.loadPackage("micropip");
+        await pyodide.loadPackage("micropip", QUIET_LOADING);
 
         // Write pynote_ui straight into the FS instead of installing the wheel
         // through micropip; skips the HTTP round trip on startup.
@@ -394,7 +461,7 @@ async function runCode(id: string, code: string) {
     // No setStdout here; Python routes streams per-cell via contextvars.
 
     try {
-        await pyodide.loadPackagesFromImports(code);
+        await pyodide.loadPackagesFromImports(code, QUIET_LOADING);
 
         // Patch pyplot.show() before the first matplotlib cell executes, so
         // figures render into cell output instead of warning on AGG.
@@ -428,9 +495,37 @@ async function runCode(id: string, code: string) {
             }
         }
 
-        postMessage({ id, type: "success", result: result?.toString(), mimebundle });
+        // A pynote_ui component result is displayed as the component. Its
+        // str() is the marker string print() streams, not a value for Out:.
+        const text = mimebundle?.[UI_MIME] ? undefined : result?.toString();
+        postMessage({ id, type: "success", result: text, mimebundle });
     } catch (error: any) {
         postMessage({ id, type: "error", error: error.toString() });
+    }
+}
+
+// Run a whole script as `python script.py` would (see run_script in
+// init-code.ts). Used to check exported .py files in a throwaway kernel; its
+// output streams to `id` like a cell's.
+async function runScript(id: string, source: string) {
+    if (!pyodide) {
+        postMessage({ id, type: "script_result", error: "Kernel not ready" });
+        return;
+    }
+    try {
+        await pyodide.loadPackagesFromImports(source, QUIET_LOADING);
+        if (!matplotlibReady && pyodide.loadedPackages?.matplotlib) {
+            const setup_matplotlib = pyodide.globals.get("setup_matplotlib");
+            setup_matplotlib();
+            setup_matplotlib.destroy();
+            matplotlibReady = true;
+        }
+        const run_script = pyodide.globals.get("run_script");
+        const error = run_script(source, id);
+        run_script.destroy();
+        postMessage({ id, type: "script_result", error: typeof error === "string" ? error : null });
+    } catch (err: any) {
+        postMessage({ id, type: "script_result", error: String(err) });
     }
 }
 
@@ -438,7 +533,13 @@ self.onmessage = async (e) => {
     const { type, id, code } = e.data;
 
     if (type === "init") {
-        await initPyodide();
+        await initPyodide(e.data.pyodide ?? DEFAULT_PYODIDE_SOURCE);
+    } else if (type === "asset_response") {
+        const resolve = pendingAssets.get(e.data.requestId);
+        pendingAssets.delete(e.data.requestId);
+        resolve?.(e.data.bytes ?? null);
+    } else if (type === "run_script") {
+        runScript(id, e.data.source);
     } else if (type === "cleanup") {
         // Clear caches when kernel is stopped/restarted
         if (pyodide) {

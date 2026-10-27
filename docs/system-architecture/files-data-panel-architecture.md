@@ -162,27 +162,28 @@ Use these references to validate each architectural claim in implementation code
 
 ### Filesystem persistence in worker
 
-- Root and persistence state: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L5-L6)
-- Path normalization and `/workspace` sandboxing: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L23-L31)
-- IDBFS mount and startup hydration (`syncfs(true)`): [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L62-L76)
-- Sync helper and flush behavior (`syncfs`): [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L52-L60)
-- Filesystem operations handler (`list`, `mkdir`, `upload`, `delete`, `rename`, `move`, `copy`, `read_text`, `download`): [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L155-L274)
-- `list` returns persistence flag: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L163-L167)
-- Worker init calls filesystem setup: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L2546-L2547)
-- Worker filesystem message route: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L2667-L2682)
+- Root and persistence state: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L12) and [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L79)
+- Path normalization and `/workspace` sandboxing: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L82-L105)
+- IDBFS mount and startup hydration (`syncfs(true)`): [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L161-L175)
+- Sync helper and flush behavior (`syncfs`): [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L151-L159)
+- Filesystem operations handler (`list`, `mkdir`, `upload`, `delete`, `rename`, `move`, `copy`, `read_text`, `download`): [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L254-L401)
+- `list` returns persistence flag: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L257-L267)
+- Worker init calls filesystem setup: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L432)
+- Worker filesystem message route: [src/lib/pyodide.worker.ts](../../src/lib/pyodide.worker.ts#L593-L608)
 
 ### Kernel bridge
 
-- Typed filesystem request contract: [src/lib/pyodide.ts](../../src/lib/pyodide.ts#L17-L26)
-- `kernel.filesystem(...)` request/response bridge: [src/lib/pyodide.ts](../../src/lib/pyodide.ts#L212-L231)
+- Typed filesystem request contract: [src/lib/pyodide.ts](../../src/lib/pyodide.ts#L45-L54)
+- `kernel.filesystem(...)` request/response bridge: [src/lib/pyodide.ts](../../src/lib/pyodide.ts#L357-L376)
 
 ### Files and Data UI
 
-- Panel calls through kernel bridge: [src/components/FileWorkspacePanel.tsx](../../src/components/FileWorkspacePanel.tsx#L142-L274)
-- UI reads persistence from `list` and stores state: [src/components/FileWorkspacePanel.tsx](../../src/components/FileWorkspacePanel.tsx#L142-L148)
-- Status rendering labels (`Persistent` / `Session memory`): [src/components/FileWorkspacePanel.tsx](../../src/components/FileWorkspacePanel.tsx#L667-L675)
+- Panel state and its calls through the kernel bridge (`createFileWorkspaceState`): [src/components/file-workspace/context.tsx](../../src/components/file-workspace/context.tsx)
+- UI reads persistence from `list` and stores state: [src/components/file-workspace/context.tsx](../../src/components/file-workspace/context.tsx#L102-L122)
+- Status rendering labels (`Persistent` / `Session memory`): [src/components/FileWorkspacePanel.tsx](../../src/components/FileWorkspacePanel.tsx#L61-L74)
 
 ### Notebook session persistence (separate system)
 
-- Autosave session snapshot path: [src/components/Notebook.tsx](../../src/components/Notebook.tsx#L808-L845)
-- Session restore path: [src/components/Notebook.tsx](../../src/components/Notebook.tsx#L861-L910)
+- Autosave session snapshot path: [src/components/Notebook.tsx](../../src/components/Notebook.tsx#L485-L535)
+- Session restore path: [src/components/Notebook.tsx](../../src/components/Notebook.tsx#L561-L657)
+- Session storage (localStorage, and IndexedDB for opened files' attachments and metadata): [src/lib/session.ts](../../src/lib/session.ts); see [state-management.md](state-management.md#session-persistence)

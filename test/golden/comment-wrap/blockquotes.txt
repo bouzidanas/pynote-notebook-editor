@@ -1,0 +1,16 @@
+# > A quotation that is long enough to need wrapping, so every wrapped line has
+# > to keep its quote marker after the comment sign. lazy continuation lines
+# > join the quote.
+#
+# > > A nested quotation that is also long enough to wrap onto a second comment
+# > > line here.
+#
+# > A quote with a list:
+# >
+# > - first point, which is long enough to wrap inside the quote and the list
+# >   at once
+# > - second point
+# >
+# > ```
+# > code in a quote
+# > ```

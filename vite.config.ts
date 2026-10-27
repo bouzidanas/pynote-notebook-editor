@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import solid from 'vite-plugin-solid'
 import tailwindcss from '@tailwindcss/vite'
+import { exportRuntime } from './vite/export-runtime'
 
 // The default theme and every preset use JetBrains Mono Variable (the two
 // non-mono preset body fonts are only downloaded when those themes are
@@ -28,7 +29,7 @@ const preloadThemeFont = (): Plugin => ({
 })
 
 export default defineConfig({
-  plugins: [solid(), tailwindcss(), preloadThemeFont()],
+  plugins: [solid(), tailwindcss(), preloadThemeFont(), exportRuntime()],
   worker: {
     format: 'es',
   },
@@ -42,6 +43,7 @@ export default defineConfig({
           if (id.includes('/notebooks/no-magic/')) return 'notebooks-nomagic';
           if (id.includes('/notebooks/tutorials/')) return 'notebooks-tutorials';
           if (id.includes('/notebooks/testing/')) return 'notebooks-testing';
+          if (id.includes('/notebooks/coding-interview-prep/')) return 'notebooks-coding-prep';
 
           if (id.includes('node_modules')) {
             // =================================================================
@@ -83,6 +85,10 @@ export default defineConfig({
 
             // Lucide icons
             if (id.includes('lucide')) return 'icons';
+
+            // YAML (only the .pynote format uses it, and that module is
+            // loaded on demand; keep it out of the startup vendor chunk)
+            if (id.includes('/node_modules/yaml/')) return 'yaml';
 
             // Remaining small utilities (clsx, tailwind-merge, etc.)
             return 'vendor';

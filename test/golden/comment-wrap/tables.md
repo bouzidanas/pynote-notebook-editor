@@ -1,0 +1,15 @@
+| Region | Units | Revenue (USD) | Note |
+|:-------|------:|:-------------:|------|
+| North | 1200 | 3,400,000.00 | best quarter |
+| South | 85 | 240.50 | pipe \| inside |
+| Zürich | 7 |
+| Ōsaka | 12345 | 1.00 | x | extra cell |
+
+Name | Score
+--- | ---
+Ann | 9
+Bob | 10
+
+| A table wider than the width is never wrapped | because a wrapped table row would no longer be a row |
+|---|---|
+| left | right |

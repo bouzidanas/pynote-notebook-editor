@@ -16,6 +16,7 @@ export const TESTID = {
   addMarkdownCell: "add-markdown-cell",
   cell: "cell",
   cellOutput: "cell-output",
+  cellResult: "cell-result",
   filesPanelRoot: "files-panel-root",
   filesPanelRow: "files-panel-row",
   filesPanelBreadcrumb: "files-panel-breadcrumb",
@@ -23,6 +24,20 @@ export const TESTID = {
   filesDialog: "files-panel-dialog",
   filesSidePanel: "files-panel-side",
   uploadComponent: "upload-component",
+  exportDialog: "export-dialog",
+  exportFormatTitle: "export-format-title",
+  exportSettings: "export-settings",
+  exportPreview: "export-preview",
+  exportScriptCheck: "export-script-check",
+  exportSetupCommand: "export-setup-command",
+  exportSetupSteps: "export-setup-steps",
+  exportFilename: "export-filename",
+  exportExtension: "export-extension",
+  exportStatus: "export-status",
+  exportButton: "export-button",
+  exportCancel: "export-cancel",
+  autosaveWarning: "autosave-warning",
+  documentDataLost: "document-data-lost",
 } as const;
 
 export type TestId = (typeof TESTID)[keyof typeof TESTID];

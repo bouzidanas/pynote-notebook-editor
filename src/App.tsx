@@ -4,12 +4,14 @@ import { kernel } from "./lib/pyodide";
 import { initTheme } from "./lib/theme";
 import { actions } from "./lib/store";
 import { TESTID } from "./lib/testids";
+import { host } from "./lib/host";
 
 const App: Component = () => {
   initTheme();
   
   onMount(() => {
-    kernel.init();
+    // A read-only export shows saved outputs and never starts Python.
+    if (host().embedded?.mode !== "readonly") kernel.init();
   });
 
   return (

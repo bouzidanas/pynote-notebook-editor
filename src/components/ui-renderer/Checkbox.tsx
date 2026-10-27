@@ -63,7 +63,7 @@ const Checkbox: Component<CheckboxProps> = (p) => {
     
     kernel.registerComponentListener(componentId, (data: any) => {
       setAllProps((prev) => ({ ...prev, ...data as Partial<CheckboxProps['props']> }));
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {

@@ -16,11 +16,22 @@ From the project root:
 | `npm run test:e2e -- happy-path`         | Run a single spec by filename fragment.       |
 | `npm run test:e2e -- -g "undo"`          | Run tests whose title matches.                |
 
-First-time setup installs the browser binary:
+First-time setup installs the browser binaries.
+The export suite uses all three, and the app suite also runs some Export dialog tests (modal focus and downloads without folder access) in WebKit:
 
 ```sh
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 ```
+
+Every Pyodide request is answered from the local mirror in `.cache/pyodide/` (the `pyodideMirror` fixture in `support/fixtures.ts`), so the suite never depends on the network.
+`npm run test:e2e` fetches the mirror first; a package a test imports must be in it (`scripts/fetch-pyodide-mirror.mjs`).
+
+Two more suites have their own configs:
+
+| Command | Suite |
+| --- | --- |
+| `npm run test:export` | `export/`: web app exports opened from disk and a static host, in Chromium, Firefox and WebKit ([playwright.export.config.ts](../playwright.export.config.ts)). |
+| `npm run test:consumers` | `consumers/`: the `pynote` package in real Astro, SolidStart, Next.js (TypeScript, so its build type-checks the documented config import) and HTML projects ([playwright.consumers.config.ts](../playwright.consumers.config.ts)). |
 
 The HTML report lands at `reports/e2e-html`; failure traces, screenshots, and
 videos at `reports/e2e-artifacts`. Configuration:

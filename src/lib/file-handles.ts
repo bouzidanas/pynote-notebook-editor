@@ -4,36 +4,13 @@
 // restore the handle may need permission re-granted; the save path handles
 // that since permission prompts require a user gesture.
 
-const DB_NAME = "pynote-file-handles";
-const STORE = "handles";
+import { idbStore } from "./idb-store";
 
-const openDb = (): Promise<IDBDatabase> =>
-  new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-
-const withStore = async <T>(
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest<T>
-): Promise<T> => {
-  const db = await openDb();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const req = fn(db.transaction(STORE, mode).objectStore(STORE));
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  } finally {
-    db.close();
-  }
-};
+const handles = idbStore<FileSystemFileHandle>("pynote-file-handles", "handles");
 
 export const saveFileHandle = async (sessionId: string, handle: FileSystemFileHandle) => {
   try {
-    await withStore("readwrite", (s) => s.put(handle, sessionId));
+    await handles.put(sessionId, handle);
   } catch {
     // Persistence is best-effort; saving still works via picker/download.
   }
@@ -41,7 +18,7 @@ export const saveFileHandle = async (sessionId: string, handle: FileSystemFileHa
 
 export const loadFileHandle = async (sessionId: string): Promise<FileSystemFileHandle | null> => {
   try {
-    return ((await withStore("readonly", (s) => s.get(sessionId))) as FileSystemFileHandle) ?? null;
+    return (await handles.get(sessionId)) ?? null;
   } catch {
     return null;
   }
@@ -49,7 +26,7 @@ export const loadFileHandle = async (sessionId: string): Promise<FileSystemFileH
 
 export const deleteFileHandle = async (sessionId: string) => {
   try {
-    await withStore("readwrite", (s) => s.delete(sessionId));
+    await handles.delete(sessionId);
   } catch {
     // Stale entries are harmless.
   }

@@ -13,7 +13,11 @@ import { TESTID } from "../support/selectors";
  *   never arbitrary `waitForTimeout`.
  */
 export class NotebookPage {
-  constructor(private readonly page: Page) {}
+  private readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
 
   // --- Core locators ---------------------------------------------------------
 
@@ -47,6 +51,11 @@ export class NotebookPage {
 
   get filesSidePanel(): Locator {
     return this.page.getByTestId(TESTID.filesSidePanel);
+  }
+
+  /** The Out: block (the cell's return value) of the nth cell (0-based). */
+  cellResult(index: number): Locator {
+    return this.cells.nth(index).getByTestId(TESTID.cellResult);
   }
 
   /** The CodeMirror editing surface inside the nth cell (0-based). */

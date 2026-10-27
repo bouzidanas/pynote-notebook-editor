@@ -1,0 +1,4 @@
+/* A site with its own look: none of it may leak into the cells. */
+body { background: rgb(250, 248, 240); color: rgb(20, 20, 20); font-family: Georgia, serif; margin: 2rem; }
+pre, code { color: rgb(200, 0, 0); }
+button, input, select { background: rgb(0, 128, 0); }

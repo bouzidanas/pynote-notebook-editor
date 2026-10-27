@@ -25,5 +25,27 @@ test.describe("session persistence", () => {
     expect(await notebook.sessionId()).toBe(sessionId);
     await expect(notebook.cells).toHaveCount(expectedCount);
   });
+
+  // Edits still inside the autosave debounce (or a markdown editor's own
+  // debounce) are saved when the page goes away, so reloading or closing the
+  // tab right after typing loses nothing.
+  test("a code edit made just before a reload survives it", async ({ notebook, page }) => {
+    await notebook.goto();
+    await notebook.addCodeCell();
+    const index = (await notebook.cellCount()) - 1;
+    await page.keyboard.type("kept = 'typed right before reload'");
+    await page.reload();
+    await expect(notebook.cellEditor(index)).toContainText("kept = 'typed right before reload'");
+  });
+
+  test("a markdown edit made just before a reload survives it", async ({ notebook, page }) => {
+    await notebook.goto();
+    await notebook.addMarkdownCell();
+    const index = (await notebook.cellCount()) - 1;
+    await expect(page.locator(".milkdown-editor-wrapper .editor")).toBeVisible();
+    await page.keyboard.type("Markdown typed right before reload");
+    await page.reload();
+    await expect(notebook.cells.nth(index)).toContainText("Markdown typed right before reload");
+  });
 });
 

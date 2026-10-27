@@ -5,11 +5,12 @@ reports, documentation fixes, tests, and code.
 
 ## Getting set up
 
-PyNote uses Vite 7, so you will need Node.js 20 or newer and npm. There is no
-backend service to run. The Python kernel (Pyodide) is downloaded from the
-jsDelivr CDN at runtime, from the version pinned in
-[src/lib/pyodide.worker.ts](src/lib/pyodide.worker.ts), so the first kernel
-start needs a network connection. The browser caches it after that.
+You will need Node.js 22.18 or newer and npm.
+Some build and test scripts are TypeScript files that Node runs directly (`npm run build:package`, for example), and older versions of Node cannot.
+Node.js 24 is recommended: `npm run test:consumers` installs SolidStart, which declares Node.js 24 or newer, so npm warns on older versions.
+There is no backend service to run.
+The Python kernel (Pyodide) is downloaded from the jsDelivr CDN at runtime, in the version pinned by `PYODIDE_VERSION` in [src/lib/pyodide-config.ts](src/lib/pyodide-config.ts), so the first kernel start needs a network connection.
+The browser caches it after that.
 
 ```sh
 git clone https://github.com/bouzidanas/pynote-notebook-editor.git
@@ -22,9 +23,11 @@ The development server is available at `http://localhost:5173` by default.
 
 A few things that help while developing:
 
-- Notebooks autosave to localStorage as sessions, addressed by a `?session=`
-  query parameter. To reproduce first-run behavior, use a private window or
-  clear the site's localStorage rather than just reloading.
+- Notebooks autosave as sessions, addressed by a `?session=` query parameter: 300 ms after the last change, or at once when the page is hidden or closed before then.
+  localStorage keeps what you edit, and IndexedDB keeps opened files' attachments and metadata, each session's file handle (the file Save writes to), and the Files and Data workspace.
+  The 10 most recently used sessions are kept, and every session open in a tab; when the browser cannot store a notebook even after making room, the toolbar says NOT AUTOSAVED.
+  To reproduce first-run behavior, use a private window or clear all of the site's data, not only localStorage, rather than just reloading.
+  Close the app's other tabs first: a tab whose session is gone from storage writes it back.
 - Press `Ctrl-\` in the app for the keyboard shortcut overlay.
 - The kernel status indicator in the toolbar shows when Pyodide is ready.
   Python cells run before that point are queued, not lost.
@@ -39,13 +42,20 @@ Common commands, run from the project root:
 | `npm run test:watch` | Runs Vitest in watch mode. |
 | `npm run test:coverage` | Runs Vitest and writes coverage reports to `reports/coverage`. |
 | `npm run test:e2e` | Runs the Playwright end-to-end suite against the real app and Pyodide kernel. |
+| `npm run test:export` | Builds the app and runs the web app export suite in Chromium, Firefox and WebKit. |
+| `npm run build:package` | Builds the `pynote` package (embeddable cells) into `packages/pynote`. |
+| `npm run test:consumers` | Builds and packs `pynote`, installs it into the Astro, SolidStart, Next.js (TypeScript) and HTML projects in `test/consumers/`, and tests them. |
+| `npm run test:oracle` | Checks the golden files with the reference tools: the `.ipynb` files against Jupyter's nbformat, and the `.py` scripts with CPython and jupytext (needs `uv`). |
+| `npm run verify` | Runs everything above that checks something: types, Vitest, oracles and all browser suites. |
 | `npm run gen:presets` | Regenerates built-in theme presets from the notebooks in `themed-notebooks/`. |
 
-Before running the browser tests for the first time, install Chromium:
+Before running the browser tests for the first time, install the browsers (the export suite uses all three, and the app suite runs some Export dialog tests in WebKit):
 
 ```sh
-npx playwright install chromium
+npx playwright install chromium firefox webkit
 ```
+
+The browser suites never download Python: they answer every Pyodide request from a local mirror in `.cache/pyodide/`, which `node scripts/fetch-pyodide-mirror.mjs` fills once (the test scripts run it, and it skips files already there).
 
 Each end-to-end test opens a fresh page and starts a real Pyodide kernel. The
 suite runs one test at a time to avoid loading several WebAssembly kernels at
@@ -67,12 +77,16 @@ See [src/test/README.md](src/test/README.md) for focused Vitest commands and
 - `src/lib/python-runtime/` contains the Python sources the worker writes into
   the Pyodide filesystem at startup, including the copy of `pynote_ui` that
   actually runs in the app.
+- `src/lib/formats/` reads and writes the notebook file formats and the text exports, as pure functions specified in [docs/formats/](docs/formats/).
+- `src/lib/export/` and `src/components/export-dialog/` hold the exports and the Export dialog, and `src/export-runtime/` is the app that web app exports ship.
+- `src/embed/` holds the source of the `pynote` package (`packages/pynote/`), which puts PyNote's code cells on other websites: its browser runtime, framework adapters and CLI.
 - `packages/pynote_ui/` is a separately maintained installable version of the
   Python API. It is not loaded by the browser app and is not automatically kept
   in sync with the embedded runtime. `scripts/build_python_pkg.sh` builds it
   into a wheel under `public/packages/`.
 - `src/test/` and colocated `*.test.ts` or `*.test.tsx` files contain Vitest
   setup and tests.
+- `test/` holds the format property tests, golden files and Python oracles, and the web projects the `pynote` package is tested in (`test/consumers/`).
 - `e2e/` contains Playwright page objects, fixtures, and browser-level tests.
 - `docs/system-architecture/` documents the worker bridge, state management,
   execution flow, and other major system boundaries.
@@ -218,11 +232,11 @@ should remain useful outside the app. Document settings live under
 as optional when loading, and update both the import and export paths whenever
 the saved format changes.
 
-Cell outputs are intentionally not restored from sessions or written into
-exported notebooks. Output storing and persistence is a planned feature that is in-progress. Currently, interactive components and built-in plots depend on the
-live Python kernel, so restoring their old output without restoring their
-Python objects would show stale, non-working results. A contributor should not
-add output persistence as a side effect of another file or session change.
+Cell outputs are intentionally not restored from sessions or written into saved notebooks (`.ipynb`, `.pynote`).
+The one exception is the read-only web app export, which has no kernel: it embeds the outputs as they are at export time, with each widget's current state.
+Output storing and persistence is a planned feature that is in-progress.
+Currently, interactive components and built-in plots depend on the live Python kernel, so restoring their old output without restoring their Python objects would show stale, non-working results.
+A contributor should not add output persistence as a side effect of another file or session change.
 
 #### Rules to follow
 
@@ -424,6 +438,9 @@ review.
 | UI components and styling | `npm test`, plus a visual pass in more than one theme preset and in the mobile layout when the component is responsive |
 | Worker, embedded Python, `pynote_ui`, execution modes | `npm run test:e2e`, since only the browser suite runs a real kernel |
 | Persistence, sessions, file handling | `npm run test:e2e`, plus a manual save, reload, and restore check |
+| File formats, the Export dialog | `npm test` and `npm run test:oracle`, plus `npm run test:e2e` (see [docs/formats/](docs/formats/) and [the export system](docs/system-architecture/export-system.md)) |
+| Web app exports, the export runtime | `npm run test:export` |
+| The `pynote` package, `src/embed/`, shared cell components | `npm run test:consumers` |
 | Theme presets in `themed-notebooks/` | `npm run gen:presets`, then confirm the preset in the theme dialog |
 
 - Add regression coverage for bug fixes when the behavior can be tested

@@ -15,10 +15,14 @@ import {
   defaultTheme,
   saveThemeAppWide,
   loadAppTheme,
+  currentTheme,
+  themeVariables,
 } from "../../lib/theme";
 
 const root = document.documentElement;
 const cssVar = (name: string) => root.style.getPropertyValue(name).trim();
+// The defaults as the module defines them, before any test changes the theme.
+const DEFAULTS = structuredClone(defaultTheme);
 
 // Solid effects flush asynchronously; a macrotask runs after the scheduler's
 // microtask queue, so the effect created by initTheme has re-run by then.
@@ -40,6 +44,22 @@ afterAll(() => dispose?.());
 afterEach(async () => {
   updateTheme(defaultTheme);
   await tick();
+});
+
+describe("themeVariables", () => {
+  test("is exactly what initTheme writes onto the root", async () => {
+    updateTheme({ colors: { ...defaultTheme.colors, accent: "#123456" }, pageWidth: "wide" });
+    await tick();
+    const vars = themeVariables(currentTheme);
+    expect(vars["--accent"]).toBe("#123456");
+    expect(vars["--page-max-width-content"]).toBe("64rem");
+    for (const [name, value] of Object.entries(vars)) expect([name, cssVar(name)]).toEqual([name, value.trim()]);
+  });
+
+  test("needs no document (the pynote package applies it to shadow roots)", () => {
+    expect(Object.keys(themeVariables(defaultTheme)).length).toBeGreaterThan(60);
+    expect(Object.keys(themeVariables(defaultTheme)).every((name) => name.startsWith("--"))).toBe(true);
+  });
 });
 
 describe("color inputs map to CSS variables", () => {
@@ -433,6 +453,17 @@ describe("save to app-wide localStorage", () => {
 
     updateTheme({ saveToExport: false });
     await tick();
+  });
+});
+
+describe("the default theme", () => {
+  test("stays the defaults whatever the theme becomes: the store starts from a copy", async () => {
+    updateTheme({ colors: { background: "#123456" }, radii: { sm: "0.25rem" }, componentBorder: "none" });
+    await tick();
+    expect(currentTheme.colors.background).toBe("#123456");
+    // What Reset and the Export dialog's differences compare with.
+    expect(defaultTheme).toEqual(DEFAULTS);
+    expect(defaultTheme.colors.background).toBe("#1e1e2e");
   });
 });
 

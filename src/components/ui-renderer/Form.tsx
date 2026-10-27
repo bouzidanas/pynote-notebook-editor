@@ -42,7 +42,7 @@ const Form: Component<FormProps> = (p) => {
         setChildValues(new Map());
       }
       if (data.hidden !== undefined) setHidden(data.hidden);
-    });
+    }, () => ({ ...p.props, hidden: hidden() }));
   });
 
   onCleanup(() => {

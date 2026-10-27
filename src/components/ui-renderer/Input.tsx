@@ -59,7 +59,7 @@ const Input: Component<InputProps> = (p) => {
     
     kernel.registerComponentListener(componentId, (data: any) => {
       setAllProps(prev => ({ ...prev, ...data }));
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {

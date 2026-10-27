@@ -41,7 +41,7 @@ const Group: Component<GroupProps> = (p) => {
   onMount(() => {
     kernel.registerComponentListener(componentId, (data: any) => {
       setAllProps(prev => ({ ...prev, ...data }));
-    });
+    }, () => allProps());
   });
 
   onCleanup(() => {
