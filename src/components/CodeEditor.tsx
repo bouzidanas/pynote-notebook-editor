@@ -302,9 +302,12 @@ const CodeEditor: Component<EditorProps> = (props) => {
           actions.setActiveCell(props.cell.id);
           props.onClick?.();
           // Explicitly focus the editor to ensure edit mode fully activates
-          // This works around bracket matching intercepting the click
+          // This works around bracket matching intercepting the click. A busy
+          // page can run the timer late, after the reader has clicked
+          // elsewhere, and focus would then put the cell back in edit mode
+          // (see the focus handler below), so only while it is still editing.
           setTimeout(() => {
-            view.focus();
+            if (props.cell.isEditing && !view.hasFocus) view.focus();
           }, 0);
         }
       };
